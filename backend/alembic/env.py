@@ -1,14 +1,13 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
-
-from app.core.config import settings
-from app.core.database import Base
 
 # Phase 2+ 會 import models 讓 autogenerate 偵測到表;此處先匯入套件。
 import app.models  # noqa: F401
+from alembic import context
+from app.core.config import settings
+from app.core.database import Base
 
 config = context.config
 if config.config_file_name is not None:
