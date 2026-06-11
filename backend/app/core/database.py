@@ -21,7 +21,7 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_session() -> AsyncGenerator[AsyncSession]:
     """FastAPI 依賴:每個請求一個 async session。"""
     async with AsyncSessionLocal() as session:
         yield session
