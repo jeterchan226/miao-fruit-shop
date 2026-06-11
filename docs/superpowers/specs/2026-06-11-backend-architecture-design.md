@@ -315,7 +315,14 @@ cancelled       → (終態)
 ---
 
 ## 11. 未來擴充(非 v1)
+- **顧客 LINE Login(OAuth2)+ 會員系統 —— 已確認列為 Phase 2,另開獨立 spec。**
+  範圍:新增 `customers` 表、LINE OAuth2 授權/回呼流程、顧客專用 JWT(與 admin 分開)、訂單關聯顧客、LINE Channel 憑證設定。顧客端維持「訪客結帳之上的選用登入層」(可登入也可不登入直接買)。
 - 金流串接(LINE Pay / 信用卡 / ATM 虛擬帳號)。
-- 出貨通知(LINE / Email)。
+- 出貨通知(LINE / Email,與既有 LINE 官方帳號 @475dhpfn 串接)。
+- 後台 TOTP 兩階段驗證(選用的 admin 安全強化;v1 維持帳號密碼 + JWT)。
 - Refresh token / 管理員角色權限。
 - 多商品目錄(結構已預留)。
+
+### 驗證設計決策(本次確認)
+- **後台管理員 = 帳號密碼 + JWT(最終決定)**。不採用 LINE 第三方登入(避免把整店管理權綁在消費級社群帳號)、不採用 OTP 單一驗證。
+- **顧客 LINE Login** 與 admin 驗證屬不同信任域,刻意分開;顧客登入留待 Phase 2。
