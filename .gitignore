@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Tooling / local state (不進版控)
+.netlify/
+.playwright-mcp/
+.claude/settings.local.json
+
+# Secrets
+.env
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/

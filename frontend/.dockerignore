@@ -1,0 +1,8 @@
+# 預覽容器不需要的東西
+.netlify
+netlify.toml
+Dockerfile
+.dockerignore
+.DS_Store
+**/.DS_Store
+image
