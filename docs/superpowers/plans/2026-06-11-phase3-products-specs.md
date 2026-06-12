@@ -549,7 +549,7 @@ git commit -m "feat(backend): product & spec repositories"
 - Modify: `app/services/product_service.py` (append below `derive_stock_status`)
 - Test: `tests/test_product_service.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_product_service.py`
+- [x] **Step 1: Write the failing test** — `tests/test_product_service.py`
 
 ```python
 import pytest
@@ -639,12 +639,12 @@ async def test_spec_ops_missing_raise(db_session: AsyncSession):
         await product_service.soft_delete_spec(db_session, 999999)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_product_service.py -v`
 Expected: FAIL — `ImportError: cannot import name 'list_public_products' from 'app.services.product_service'`.
 
-- [ ] **Step 3: Append to `app/services/product_service.py`** (keep `derive_stock_status` at the top; add imports at the top of the file and the functions below)
+- [x] **Step 3: Append to `app/services/product_service.py`** (keep `derive_stock_status` at the top; add imports at the top of the file and the functions below)
 
 Full file after this step:
 ```python
@@ -787,17 +787,17 @@ async def soft_delete_spec(session: AsyncSession, spec_id: int) -> None:
 
 > `update_product` re-maps with `_to_admin_product`; because `Product.specs` is `selectin`, `session.refresh(product)` reloads it. The `refresh` after commit keeps server defaults (e.g. `updated_at`) current.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_product_service.py -v`
 Expected: PASS (7 passed).
 
-- [ ] **Step 5: Verify suite + lint + types**
+- [x] **Step 5: Verify suite + lint + types**
 
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: all green; mypy Success.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/services/product_service.py tests/test_product_service.py
