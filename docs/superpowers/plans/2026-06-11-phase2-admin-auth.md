@@ -139,7 +139,7 @@ git commit -m "refactor(backend): move domain exceptions to core/exceptions"
 - Create: `app/core/security.py`
 - Test: `tests/test_security.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_security.py`
+- [x] **Step 1: Write the failing test** — `tests/test_security.py`
 
 ```python
 from datetime import timedelta
@@ -179,12 +179,12 @@ def test_garbage_token_raises_auth_error():
         decode_access_token("not-a-jwt")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_security.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.core.security'`.
 
-- [ ] **Step 3: Write `app/core/security.py`**
+- [x] **Step 3: Write `app/core/security.py`**
 
 ```python
 from datetime import datetime, timedelta, timezone
@@ -229,12 +229,12 @@ def decode_access_token(token: str) -> dict[str, Any]:
         raise AuthError("登入已失效,請重新登入") from exc
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_security.py -v`
 Expected: PASS (4 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/core/security.py tests/test_security.py
