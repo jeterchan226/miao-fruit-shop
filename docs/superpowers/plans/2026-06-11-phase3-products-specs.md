@@ -154,32 +154,32 @@ git commit -m "feat(backend): Product and ProductSpec models"
 
 **Prerequisite:** dev DB `miao` reachable; Phase 2's `admin_users` migration already applied (so autogenerate only adds the two new tables).
 
-- [ ] **Step 1: Autogenerate**
+- [x] **Step 1: Autogenerate**
 
 Run: `uv run alembic revision --autogenerate -m "create products and product_specs"`
 Expected: a new versions file whose `upgrade()` has `op.create_table("products", ...)` and `op.create_table("product_specs", ...)` with a FK `product_specs.product_id -> products.id`, a unique index on `products.slug`, an index on `product_specs.product_id`. `downgrade()` drops both tables.
 
-- [ ] **Step 2: Sanity-check the generated file**
+- [x] **Step 2: Sanity-check the generated file**
 
 Run: `sed -n '1,80p' alembic/versions/*_create_products_and_product_specs.py`
 Expected: confirm both `create_table` calls + the FK + indexes. If `upgrade()` is empty, STOP and report BLOCKED (models not imported by env.py). Do NOT hand-write it.
 
-- [ ] **Step 3: Apply**
+- [x] **Step 3: Apply**
 
 Run: `uv run alembic upgrade head`
 Expected: `Running upgrade <prev> -> <rev>, create products and product_specs`, exit 0.
 
-- [ ] **Step 4: Verify in PostgreSQL**
+- [x] **Step 4: Verify in PostgreSQL**
 
 Run: `docker compose exec -T db psql -U miao -d miao -c "\d products" -c "\d product_specs"`
 Expected: both tables with the spec'd columns; FK + indexes present.
 
-- [ ] **Step 5: Suite still green**
+- [x] **Step 5: Suite still green**
 
 Run: `uv run pytest -q`
 Expected: 32 passed (tests use `miao_test` + create_all; unaffected).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add alembic/versions/
