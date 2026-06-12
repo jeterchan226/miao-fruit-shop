@@ -306,27 +306,27 @@ git commit -m "feat(backend): AdminUser model"
 
 **Prerequisite:** dev DB `miao` reachable (compose `db` up). Alembic uses `settings.database_url` (the `miao` database).
 
-- [ ] **Step 1: Autogenerate the migration**
+- [x] **Step 1: Autogenerate the migration**
 
 Run: `uv run alembic revision --autogenerate -m "create admin_users"`
 Expected: prints `Generating .../alembic/versions/<rev>_create_admin_users.py ... done`. The file's `upgrade()` should contain `op.create_table("admin_users", ...)` with columns id, username (unique index), hashed_password, is_active, created_at; `downgrade()` should `op.drop_table("admin_users")`.
 
-- [ ] **Step 2: Sanity-check the generated file**
+- [x] **Step 2: Sanity-check the generated file**
 
 Run: `sed -n '1,60p' alembic/versions/*_create_admin_users.py`
 Expected: confirm `create_table('admin_users'...)` and a unique index on `username` are present. If `upgrade()` is empty (autogenerate detected nothing), STOP — it means `app.models` isn't imported in `alembic/env.py` or the model didn't register; fix before continuing.
 
-- [ ] **Step 3: Apply the migration**
+- [x] **Step 3: Apply the migration**
 
 Run: `uv run alembic upgrade head`
 Expected: `Running upgrade -> <rev>, create admin_users`, exit 0.
 
-- [ ] **Step 4: Verify the table exists in PostgreSQL**
+- [x] **Step 4: Verify the table exists in PostgreSQL**
 
 Run: `docker compose exec -T db psql -U miao -d miao -c "\d admin_users"`
 Expected: shows the `admin_users` table with the five columns.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add alembic/versions/
