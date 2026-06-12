@@ -482,7 +482,7 @@ git commit -m "feat(backend): admin repository"
 - Create: `app/services/auth_service.py`
 - Test: `tests/test_auth_service.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_auth_service.py`
+- [x] **Step 1: Write the failing test** — `tests/test_auth_service.py`
 
 ```python
 import pytest
@@ -531,12 +531,12 @@ async def test_create_token_for_encodes_admin_id(db_session: AsyncSession):
     assert decode_access_token(token)["sub"] == str(admin.id)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_auth_service.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.services.auth_service'`.
 
-- [ ] **Step 3: Write `app/services/auth_service.py`**
+- [x] **Step 3: Write `app/services/auth_service.py`**
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -564,12 +564,12 @@ def create_token_for(admin: AdminUser) -> str:
     return create_access_token(subject=admin.id)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_auth_service.py -v`
 Expected: PASS (5 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/services/auth_service.py tests/test_auth_service.py
