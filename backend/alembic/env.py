@@ -2,6 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
 # Phase 2+ 會 import models 讓 autogenerate 偵測到表;此處先匯入套件。
 import app.models  # noqa: F401
@@ -34,7 +35,7 @@ def _do_run_migrations(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    connectable = create_async_engine(settings.database_url, poolclass=None)
+    connectable = create_async_engine(settings.database_url, poolclass=NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(_do_run_migrations)
     await connectable.dispose()
