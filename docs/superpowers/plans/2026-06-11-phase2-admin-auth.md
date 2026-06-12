@@ -249,7 +249,7 @@ git commit -m "feat(backend): password hashing + JWT (core/security)"
 - Create: `app/models/admin_user.py`
 - Modify: `app/models/__init__.py`
 
-- [ ] **Step 1: Write `app/models/admin_user.py`**
+- [x] **Step 1: Write `app/models/admin_user.py`**
 
 ```python
 from datetime import datetime
@@ -272,7 +272,7 @@ class AdminUser(Base):
     )
 ```
 
-- [ ] **Step 2: Export it from `app/models/__init__.py`**
+- [x] **Step 2: Export it from `app/models/__init__.py`**
 
 ```python
 from app.models.admin_user import AdminUser
@@ -280,17 +280,17 @@ from app.models.admin_user import AdminUser
 __all__ = ["AdminUser"]
 ```
 
-- [ ] **Step 3: Verify the table registers on `Base.metadata`**
+- [x] **Step 3: Verify the table registers on `Base.metadata`**
 
 Run: `uv run python -c "import app.models; from app.core.database import Base; print('admin_users' in Base.metadata.tables)"`
 Expected: prints `True`.
 
-- [ ] **Step 4: Verify lint + types**
+- [x] **Step 4: Verify lint + types**
 
 Run: `uv run ruff check . && uv run mypy app`
 Expected: clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/models/admin_user.py app/models/__init__.py
