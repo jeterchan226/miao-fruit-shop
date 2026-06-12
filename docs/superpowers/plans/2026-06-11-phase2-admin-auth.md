@@ -584,7 +584,7 @@ git commit -m "feat(backend): auth service (authenticate, token)"
 - Create: `app/api/deps.py`
 - Test: `tests/test_deps.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_deps.py`
+- [x] **Step 1: Write the failing test** — `tests/test_deps.py`
 
 ```python
 from datetime import timedelta
@@ -638,12 +638,12 @@ async def test_inactive_admin_raises(db_session: AsyncSession):
         await get_current_admin(token, db_session)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_deps.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.api.deps'`.
 
-- [ ] **Step 3: Write `app/api/deps.py`**
+- [x] **Step 3: Write `app/api/deps.py`**
 
 ```python
 from typing import Annotated
@@ -676,12 +676,12 @@ async def get_current_admin(
     return admin
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_deps.py -v`
 Expected: PASS (5 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/api/deps.py tests/test_deps.py
