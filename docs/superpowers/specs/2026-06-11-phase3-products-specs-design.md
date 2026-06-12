@@ -1,7 +1,7 @@
 # 妙媽媽果園 — Phase 3:商品 / 規格(Products & Specs)設計
 
 - 日期:2026-06-11
-- 狀態:待審核
+- 狀態:已審核通過(使用者確認;依回饋移除 `products.sub` 欄位)
 - 上層 spec:`docs/superpowers/specs/2026-06-11-backend-architecture-design.md`(第 4、5 節)
 - 前置:Phase 1 地基 + Phase 2 後台驗證已完成(`get_current_admin` 可用)
 
@@ -42,7 +42,6 @@
 | id | int PK | |
 | slug | str unique, indexed | 識別字串(例 `kanro`) |
 | name | str | 商品名(甘露梨) |
-| sub | str | 副標(`Kanro · 蜜糖之味`) |
 | description | text | 描述 |
 | image | str | 圖片路徑 |
 | season | str | 產季文字 |
@@ -88,12 +87,12 @@ derive_stock_status(stock_qty, low_stock_threshold) -> "in" | "low" | "out"
 
 **公開(顧客)**
 - `PublicSpecRead`:`id`, `label`, `qty_text`, `price`, `stock_status`(str), `note`(str | None)。**不含** `stock_qty`。
-- `PublicProductRead`:`id`, `slug`, `name`, `sub`, `description`, `image`, `season`, `tag`, `tag_color`, `specs: list[PublicSpecRead]`。
+- `PublicProductRead`:`id`, `slug`, `name`, `description`, `image`, `season`, `tag`, `tag_color`, `specs: list[PublicSpecRead]`。
 
 **後台**
 - `AdminSpecRead`:公開欄位 + `stock_qty`, `low_stock_threshold`, `sort_order`, `is_active`。
 - `AdminProductRead`:商品欄位 + `is_active` + `specs: list[AdminSpecRead]`(含停用規格)。
-- `ProductUpdate`:所有商品欄位皆 Optional(部分更新):`name`, `sub`, `description`, `image`, `season`, `tag`, `tag_color`, `is_active`。
+- `ProductUpdate`:所有商品欄位皆 Optional(部分更新):`name`, `description`, `image`, `season`, `tag`, `tag_color`, `is_active`。
 - `SpecCreate`:`label`, `qty_text`, `price`, `stock_qty`, `low_stock_threshold`(預設 3), `note`(可空), `sort_order`(預設 0)。
 - `SpecUpdate`:上述欄位皆 Optional(部分更新)+ `is_active`。
 
