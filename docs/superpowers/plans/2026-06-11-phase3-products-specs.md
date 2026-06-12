@@ -813,7 +813,7 @@ git commit -m "feat(backend): product service (list/update/spec CRUD)"
 - Modify: `app/main.py`
 - Test: `tests/test_products_api.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_products_api.py`
+- [x] **Step 1: Write the failing test** — `tests/test_products_api.py`
 
 ```python
 from httpx import AsyncClient
@@ -863,12 +863,12 @@ async def test_list_products_empty(client: AsyncClient):
     assert resp.json() == []
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_products_api.py -v`
 Expected: FAIL — 404 for `/api/products` (route not yet registered).
 
-- [ ] **Step 3: Write `app/api/routes/products.py`**
+- [x] **Step 3: Write `app/api/routes/products.py`**
 
 ```python
 from typing import Annotated
@@ -890,7 +890,7 @@ async def list_products(
     return await product_service.list_public_products(session)
 ```
 
-- [ ] **Step 4: Wire into `app/main.py`**
+- [x] **Step 4: Wire into `app/main.py`**
 
 Add import alongside the other route imports:
 ```python
@@ -901,14 +901,14 @@ And inside `create_app()`, alongside the existing `app.include_router(admin_auth
     app.include_router(products.router)
 ```
 
-- [ ] **Step 5: Run tests + suite**
+- [x] **Step 5: Run tests + suite**
 
 Run: `uv run pytest tests/test_products_api.py -v`
 Expected: PASS (3 passed).
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: all green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/api/routes/products.py app/main.py tests/test_products_api.py
