@@ -341,7 +341,7 @@ git commit -m "feat(backend): migration create admin_users"
 - Create: `app/schemas/admin.py`
 - Test: `tests/test_schemas_admin.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_schemas_admin.py`
+- [x] **Step 1: Write the failing test** — `tests/test_schemas_admin.py`
 
 ```python
 from types import SimpleNamespace
@@ -362,12 +362,12 @@ def test_admin_read_from_attributes_excludes_password():
     assert read.model_dump() == {"id": 1, "username": "miaomama", "is_active": True}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_schemas_admin.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.schemas.admin'`.
 
-- [ ] **Step 3: Write `app/schemas/admin.py`**
+- [x] **Step 3: Write `app/schemas/admin.py`**
 
 ```python
 from pydantic import BaseModel, ConfigDict
@@ -386,12 +386,12 @@ class AdminRead(BaseModel):
     is_active: bool
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_schemas_admin.py -v`
 Expected: PASS (2 passed). The second test proves `AdminRead` ignores `hashed_password`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/schemas/admin.py tests/test_schemas_admin.py
