@@ -43,7 +43,7 @@ Modify:
 - Create: `app/models/product.py`, `app/models/product_spec.py`
 - Modify: `app/models/__init__.py`
 
-- [ ] **Step 1: Write `app/models/product.py`**
+- [x] **Step 1: Write `app/models/product.py`**
 
 ```python
 from datetime import datetime
@@ -85,7 +85,7 @@ class Product(Base):
     )
 ```
 
-- [ ] **Step 2: Write `app/models/product_spec.py`**
+- [x] **Step 2: Write `app/models/product_spec.py`**
 
 ```python
 from typing import TYPE_CHECKING
@@ -118,7 +118,7 @@ class ProductSpec(Base):
     product: Mapped["Product"] = relationship(back_populates="specs")
 ```
 
-- [ ] **Step 3: Update `app/models/__init__.py`**
+- [x] **Step 3: Update `app/models/__init__.py`**
 
 ```python
 from app.models.admin_user import AdminUser
@@ -128,17 +128,17 @@ from app.models.product_spec import ProductSpec
 __all__ = ["AdminUser", "Product", "ProductSpec"]
 ```
 
-- [ ] **Step 4: Verify both tables register on `Base.metadata`**
+- [x] **Step 4: Verify both tables register on `Base.metadata`**
 
 Run: `uv run python -c "import app.models; from app.core.database import Base; print(sorted(t for t in Base.metadata.tables))"`
 Expected: includes `'admin_users'`, `'products'`, `'product_specs'`.
 
-- [ ] **Step 5: Verify lint + types + suite**
+- [x] **Step 5: Verify lint + types + suite**
 
 Run: `uv run ruff check . && uv run mypy app && uv run pytest -q`
 Expected: ruff clean; mypy Success; 32 passed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/models/product.py app/models/product_spec.py app/models/__init__.py
