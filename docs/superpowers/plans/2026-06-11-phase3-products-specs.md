@@ -194,7 +194,7 @@ git commit -m "feat(backend): migration create products and product_specs"
 - Create: `app/schemas/product.py`
 - Test: `tests/test_schemas_product.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_schemas_product.py`
+- [x] **Step 1: Write the failing test** — `tests/test_schemas_product.py`
 
 ```python
 from app.schemas.product import (
@@ -227,12 +227,12 @@ def test_spec_create_defaults():
     assert s.sort_order == 0
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_schemas_product.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.schemas.product'`.
 
-- [ ] **Step 3: Write `app/schemas/product.py`**
+- [x] **Step 3: Write `app/schemas/product.py`**
 
 ```python
 from pydantic import BaseModel, ConfigDict
@@ -324,12 +324,12 @@ class SpecUpdate(BaseModel):
 
 > The `Read` schemas are built explicitly by the service (it injects the computed `stock_status`), so they don't use `from_attributes`. `extra="forbid"` on the input schemas rejects unknown fields.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_schemas_product.py -v`
 Expected: PASS (4 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/schemas/product.py tests/test_schemas_product.py
