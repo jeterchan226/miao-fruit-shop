@@ -403,7 +403,7 @@ git commit -m "feat(backend): derive_stock_status helper"
 - Create: `app/repositories/product_repo.py`, `app/repositories/spec_repo.py`
 - Test: `tests/test_product_repo.py`, `tests/test_spec_repo.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_product_repo.py`:
 ```python
@@ -470,12 +470,12 @@ async def test_get_spec_missing_returns_none(db_session: AsyncSession):
     assert await spec_repo.get_by_id(db_session, 999999) is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest tests/test_product_repo.py tests/test_spec_repo.py -v`
 Expected: FAIL — `ModuleNotFoundError` for `app.repositories.product_repo` / `spec_repo`.
 
-- [ ] **Step 3: Write `app/repositories/product_repo.py`**
+- [x] **Step 3: Write `app/repositories/product_repo.py`**
 
 ```python
 from sqlalchemy import select
@@ -511,7 +511,7 @@ async def add(session: AsyncSession, product: Product) -> Product:
     return product
 ```
 
-- [ ] **Step 4: Write `app/repositories/spec_repo.py`**
+- [x] **Step 4: Write `app/repositories/spec_repo.py`**
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -529,12 +529,12 @@ async def add(session: AsyncSession, spec: ProductSpec) -> ProductSpec:
     return spec
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_product_repo.py tests/test_spec_repo.py -v`
 Expected: PASS (3 + 2 = 5 passed).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/repositories/product_repo.py app/repositories/spec_repo.py tests/test_product_repo.py tests/test_spec_repo.py
