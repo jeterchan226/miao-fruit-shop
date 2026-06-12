@@ -837,7 +837,7 @@ git commit -m "feat(backend): admin login + me routes"
 - Create: `app/cli.py`
 - Test: `tests/test_cli.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_cli.py`
+- [x] **Step 1: Write the failing test** — `tests/test_cli.py`
 
 ```python
 import pytest
@@ -867,12 +867,12 @@ async def test_create_admin_short_password_raises(db_session: AsyncSession):
         await create_admin(db_session, "shorty", "123")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_cli.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.cli'`.
 
-- [ ] **Step 3: Write `app/cli.py`**
+- [x] **Step 3: Write `app/cli.py`**
 
 ```python
 import argparse
@@ -935,7 +935,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_cli.py -v`
 Expected: PASS (3 passed).
@@ -946,7 +946,7 @@ Run: `uv run python -m app.cli create-admin --username miaomama`
 Enter a password (≥8 chars) twice when prompted.
 Expected: prints `已建立管理員:miaomama`. Running it again with the same username prints `管理員 'miaomama' 已存在` and exits non-zero. (This writes to the dev `miao` DB.)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/cli.py tests/test_cli.py
@@ -957,9 +957,9 @@ git commit -m "feat(backend): create-admin CLI bootstrap"
 
 ## Definition of Done (Phase 2)
 
-- [ ] `uv run pytest -q` → all pass (7 from Phase 1 + new: security 4, schemas 2, admin_repo 2, auth_service 5, deps 5, admin_auth_api 4, cli 3 = 32 total).
-- [ ] `uv run ruff check .` → clean.
-- [ ] `uv run mypy app` → clean.
+- [x] `uv run pytest -q` → all pass (7 from Phase 1 + new: security 4, schemas 2, admin_repo 2, auth_service 5, deps 5, admin_auth_api 4, cli 3 = 32 total).
+- [x] `uv run ruff check .` → clean.
+- [x] `uv run mypy app` → clean.
 - [ ] `uv run alembic upgrade head` → admin_users migration applied.
 - [ ] `uv run python -m app.cli create-admin --username <x>` creates an admin; re-running errors.
 - [ ] `POST /api/admin/auth/login` returns a token; `GET /api/admin/auth/me` with the bearer token returns the admin (no `hashed_password`).
