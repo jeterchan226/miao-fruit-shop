@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.api.errors import (
+from app.api.errors import register_exception_handlers
+from app.core.exceptions import (
     AuthError,
     InsufficientStockError,
     NotFoundError,
-    register_exception_handlers,
 )
 
 
