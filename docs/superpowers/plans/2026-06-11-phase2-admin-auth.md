@@ -1,6 +1,6 @@
 # Phase 2: Admin Auth Implementation Plan (Phase 2 of 4)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. When a task is fully done (spec + quality review passed), also tick its checkboxes here.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. When a task is fully done (spec + quality review passed), also tick its checkboxes here.
 
 **Goal:** Add backend admin authentication on top of the Phase 1 foundation: an `admin_users` table, argon2 password hashing + JWT issue/verify, a login endpoint, a `get_current_admin` dependency, a `/me` endpoint, and a CLI to bootstrap the first admin.
 
@@ -940,7 +940,7 @@ if __name__ == "__main__":
 Run: `uv run pytest tests/test_cli.py -v`
 Expected: PASS (3 passed).
 
-- [ ] **Step 5: Manual smoke test (optional but recommended)**
+- [x] **Step 5: Manual smoke test (optional but recommended)**
 
 Run: `uv run python -m app.cli create-admin --username miaomama`
 Enter a password (≥8 chars) twice when prompted.
@@ -960,10 +960,10 @@ git commit -m "feat(backend): create-admin CLI bootstrap"
 - [x] `uv run pytest -q` → all pass (7 from Phase 1 + new: security 4, schemas 2, admin_repo 2, auth_service 5, deps 5, admin_auth_api 4, cli 3 = 32 total).
 - [x] `uv run ruff check .` → clean.
 - [x] `uv run mypy app` → clean.
-- [ ] `uv run alembic upgrade head` → admin_users migration applied.
-- [ ] `uv run python -m app.cli create-admin --username <x>` creates an admin; re-running errors.
-- [ ] `POST /api/admin/auth/login` returns a token; `GET /api/admin/auth/me` with the bearer token returns the admin (no `hashed_password`).
-- [ ] All tasks committed; plan checkboxes ticked.
+- [x] `uv run alembic upgrade head` → admin_users migration applied.
+- [x] `uv run python -m app.cli create-admin --username <x>` creates an admin; re-running errors.
+- [x] `POST /api/admin/auth/login` returns a token; `GET /api/admin/auth/me` with the bearer token returns the admin (no `hashed_password`).
+- [x] All tasks committed; plan checkboxes ticked.
 
 ## Next phase
 
