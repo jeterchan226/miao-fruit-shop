@@ -344,7 +344,7 @@ git commit -m "feat(backend): product & spec schemas"
 - Create: `app/services/product_service.py`
 - Test: `tests/test_stock_status.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_stock_status.py`
+- [x] **Step 1: Write the failing test** — `tests/test_stock_status.py`
 
 ```python
 import pytest
@@ -367,12 +367,12 @@ def test_derive_stock_status(qty, threshold, expected):
     assert derive_stock_status(qty, threshold) == expected
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_stock_status.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.services.product_service'`.
 
-- [ ] **Step 3: Write `app/services/product_service.py`** (initial — just the pure function)
+- [x] **Step 3: Write `app/services/product_service.py`** (initial — just the pure function)
 
 ```python
 def derive_stock_status(stock_qty: int, low_stock_threshold: int) -> str:
@@ -383,12 +383,12 @@ def derive_stock_status(stock_qty: int, low_stock_threshold: int) -> str:
     return "in"
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_stock_status.py -v`
 Expected: PASS (6 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/services/product_service.py tests/test_stock_status.py
