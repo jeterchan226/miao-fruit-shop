@@ -406,7 +406,7 @@ git commit -m "feat(backend): admin auth schemas (Token, AdminRead)"
 - Create: `app/repositories/admin_repo.py`
 - Test: `tests/test_admin_repo.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_admin_repo.py`
+- [x] **Step 1: Write the failing test** — `tests/test_admin_repo.py`
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -431,12 +431,12 @@ async def test_get_by_username_missing_returns_none(db_session: AsyncSession):
     assert await admin_repo.get_by_username(db_session, "nobody") is None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_admin_repo.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.repositories.admin_repo'`.
 
-- [ ] **Step 3: Write `app/repositories/admin_repo.py`**
+- [x] **Step 3: Write `app/repositories/admin_repo.py`**
 
 ```python
 from sqlalchemy import select
@@ -462,12 +462,12 @@ async def add(session: AsyncSession, admin: AdminUser) -> AdminUser:
     return admin
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_admin_repo.py -v`
 Expected: PASS (2 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/repositories/admin_repo.py tests/test_admin_repo.py
