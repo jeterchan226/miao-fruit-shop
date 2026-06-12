@@ -45,7 +45,7 @@ Modify:
 - Modify: `app/api/errors.py`
 - Modify: `tests/test_errors.py`
 
-- [ ] **Step 1: Create `app/core/exceptions.py`** (the classes, moved verbatim)
+- [x] **Step 1: Create `app/core/exceptions.py`** (the classes, moved verbatim)
 
 ```python
 class AppError(Exception):
@@ -79,7 +79,7 @@ class AuthError(AppError):
     status_code = 401
 ```
 
-- [ ] **Step 2: Replace `app/api/errors.py` with a handler-only module**
+- [x] **Step 2: Replace `app/api/errors.py` with a handler-only module**
 
 ```python
 from fastapi import FastAPI, Request
@@ -97,7 +97,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 ```
 
-- [ ] **Step 3: Update `tests/test_errors.py` imports**
+- [x] **Step 3: Update `tests/test_errors.py` imports**
 
 Change the top import block from `from app.api.errors import (...)` to split the source: error classes come from `app.core.exceptions`, the handler registrar stays in `app.api.errors`.
 
@@ -114,17 +114,17 @@ from app.core.exceptions import (
 ```
 (Leave the rest of `tests/test_errors.py` — the `_build_app()` helper and the three test functions — unchanged.)
 
-- [ ] **Step 4: Run the suite to verify nothing broke**
+- [x] **Step 4: Run the suite to verify nothing broke**
 
 Run: `uv run pytest -q`
 Expected: `7 passed`. (Same 7 tests; only the import source for the error classes changed.)
 
-- [ ] **Step 5: Verify lint + types**
+- [x] **Step 5: Verify lint + types**
 
 Run: `uv run ruff check . && uv run mypy app`
 Expected: ruff "All checks passed!"; mypy "Success".
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/core/exceptions.py app/api/errors.py tests/test_errors.py
