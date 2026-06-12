@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.errors import register_exception_handlers
+from app.api.routes import admin_auth
 from app.core.config import settings
 
 
@@ -17,6 +18,8 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
+
+    app.include_router(admin_auth.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
