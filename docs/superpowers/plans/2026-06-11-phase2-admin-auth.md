@@ -698,7 +698,7 @@ git commit -m "feat(backend): get_current_admin dependency"
 - Modify: `app/main.py`
 - Test: `tests/test_admin_auth_api.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_admin_auth_api.py`
+- [x] **Step 1: Write the failing test** — `tests/test_admin_auth_api.py`
 
 ```python
 from httpx import AsyncClient
@@ -759,18 +759,18 @@ async def test_me_without_token_401(client: AsyncClient):
     assert resp.status_code == 401
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_admin_auth_api.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.api.routes.admin_auth'`.
 
-- [ ] **Step 3: Create `app/api/routes/__init__.py`** (empty file)
+- [x] **Step 3: Create `app/api/routes/__init__.py`** (empty file)
 
 ```bash
 : > app/api/routes/__init__.py
 ```
 
-- [ ] **Step 4: Write `app/api/routes/admin_auth.py`**
+- [x] **Step 4: Write `app/api/routes/admin_auth.py`**
 
 ```python
 from typing import Annotated
@@ -804,7 +804,7 @@ async def me(
     return admin
 ```
 
-- [ ] **Step 5: Include the router in `app/main.py`**
+- [x] **Step 5: Include the router in `app/main.py`**
 
 Add the import near the other app imports and include the router inside `create_app()` (after `register_exception_handlers(app)`, before the `/health` route):
 
@@ -815,14 +815,14 @@ from app.api.routes import admin_auth
     app.include_router(admin_auth.router)
 ```
 
-- [ ] **Step 6: Run the new tests + full suite**
+- [x] **Step 6: Run the new tests + full suite**
 
 Run: `uv run pytest tests/test_admin_auth_api.py -v`
 Expected: PASS (4 passed).
 Run: `uv run pytest -q`
 Expected: all pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/api/routes/__init__.py app/api/routes/admin_auth.py app/main.py tests/test_admin_auth_api.py
