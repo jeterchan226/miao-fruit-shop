@@ -1103,7 +1103,7 @@ git commit -m "feat(backend): admin product/spec routes"
 - Modify: `app/cli.py`
 - Test: `tests/test_seed_product_cli.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_seed_product_cli.py`
+- [x] **Step 1: Write the failing test** — `tests/test_seed_product_cli.py`
 
 ```python
 import pytest
@@ -1129,12 +1129,12 @@ async def test_seed_product_duplicate_raises(db_session: AsyncSession):
         await seed_product(db_session)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_seed_product_cli.py -v`
 Expected: FAIL — `ImportError: cannot import name 'seed_product' from 'app.cli'`.
 
-- [ ] **Step 3: Edit `app/cli.py`** — add imports, the `seed_product` function, a `_run_seed_product` wrapper, and a `seed-product` subcommand.
+- [x] **Step 3: Edit `app/cli.py`** — add imports, the `seed_product` function, a `_run_seed_product` wrapper, and a `seed-product` subcommand.
 
 Add to the import block:
 ```python
@@ -1204,17 +1204,17 @@ def main() -> None:
         asyncio.run(_run_seed_product())
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_seed_product_cli.py -v`
 Expected: PASS (2 passed).
 
-- [ ] **Step 5: Verify full suite + lint + types**
+- [x] **Step 5: Verify full suite + lint + types**
 
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: all green; mypy Success.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/cli.py tests/test_seed_product_cli.py
