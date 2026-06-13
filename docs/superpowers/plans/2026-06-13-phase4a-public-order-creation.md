@@ -243,7 +243,7 @@ git commit -m "feat(backend): migration create orders and order_items"
 - Create: `backend/app/services/order_service.py`(本任務只放純函式;Task 6 再加 `create_order`)
 - Test: `backend/tests/test_order_amounts.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_order_amounts.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_order_amounts.py`
 
 ```python
 from app.services.order_service import (
@@ -293,12 +293,12 @@ def test_order_no_format():
     assert all(c in ORDER_NO_ALPHABET for c in no[3:])
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_order_amounts.py -v`
 Expected: FAIL — `ModuleNotFoundError`/`ImportError` (order_service 尚未建立)。
 
-- [ ] **Step 3: Write `backend/app/core/constants.py`**
+- [x] **Step 3: Write `backend/app/core/constants.py`**
 
 ```python
 # 金額規則常數(與前端 frontend/src/Cart.jsx 對齊)。金額一律整數 NT$。
@@ -307,7 +307,7 @@ SHIPPING_FEE = 150
 COD_FEE = 30
 ```
 
-- [ ] **Step 4: Append `PriceChangedError` to `backend/app/core/exceptions.py`**
+- [x] **Step 4: Append `PriceChangedError` to `backend/app/core/exceptions.py`**
 
 在檔案末端新增(沿用既有 `AppError` 樣式):
 
@@ -332,7 +332,7 @@ class PriceChangedError(AppError):
         self.total = total
 ```
 
-- [ ] **Step 5: Write `backend/app/services/order_service.py`**(本任務僅純函式)
+- [x] **Step 5: Write `backend/app/services/order_service.py`**(本任務僅純函式)
 
 ```python
 import secrets
@@ -370,12 +370,12 @@ def _new_order_no() -> str:
     return f"MM-{suffix}"
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `cd backend && uv run pytest tests/test_order_amounts.py -v && uv run ruff check . && uv run mypy app`
 Expected: 8 passed;ruff clean;mypy Success。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd backend && git add app/core/constants.py app/core/exceptions.py app/services/order_service.py tests/test_order_amounts.py
