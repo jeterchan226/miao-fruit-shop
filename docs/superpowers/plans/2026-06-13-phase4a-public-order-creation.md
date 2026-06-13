@@ -679,7 +679,7 @@ git commit -m "feat(backend): order repo + spec get_for_update"
 - Modify: `backend/app/services/order_service.py`(在 Task 3 純函式之後 append)
 - Test: `backend/tests/test_order_service.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_order_service.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_order_service.py`
 
 ```python
 import pytest
@@ -804,12 +804,12 @@ async def test_inactive_spec_raises_not_found(db_session: AsyncSession):
         )
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_order_service.py -v`
 Expected: FAIL — `AttributeError: module 'app.services.order_service' has no attribute 'create_order'`。
 
-- [ ] **Step 3: Append to `backend/app/services/order_service.py`**
+- [x] **Step 3: Append to `backend/app/services/order_service.py`**
 
 在 Task 3 的純函式之後新增 import 與 `create_order` / `_to_order_read`。完成後檔案頂端的 import 區塊應為:
 
@@ -934,17 +934,17 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
     return _to_order_read(order)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && uv run pytest tests/test_order_service.py -v`
 Expected: 6 passed。
 
-- [ ] **Step 5: Verify suite + lint + types**
+- [x] **Step 5: Verify suite + lint + types**
 
 Run: `cd backend && uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 全綠;mypy Success。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd backend && git add app/services/order_service.py tests/test_order_service.py
