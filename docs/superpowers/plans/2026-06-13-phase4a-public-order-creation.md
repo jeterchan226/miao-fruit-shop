@@ -547,7 +547,7 @@ git commit -m "feat(backend): order schemas"
 - Modify: `backend/app/repositories/spec_repo.py`
 - Test: `backend/tests/test_order_repo.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_order_repo.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_order_repo.py`
 
 ```python
 from datetime import date
@@ -601,12 +601,12 @@ async def test_spec_get_for_update_missing_returns_none(db_session: AsyncSession
     assert await spec_repo.get_for_update(db_session, 999999) is None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_order_repo.py -v`
 Expected: FAIL — `ImportError: cannot import name 'order_repo'` 或 `AttributeError: ... 'get_for_update'`。
 
-- [ ] **Step 3: Write `backend/app/repositories/order_repo.py`**
+- [x] **Step 3: Write `backend/app/repositories/order_repo.py`**
 
 ```python
 from sqlalchemy import select
@@ -626,7 +626,7 @@ async def get_by_order_no(session: AsyncSession, order_no: str) -> Order | None:
     return result.scalar_one_or_none()
 ```
 
-- [ ] **Step 4: Add `get_for_update` to `backend/app/repositories/spec_repo.py`**
+- [x] **Step 4: Add `get_for_update` to `backend/app/repositories/spec_repo.py`**
 
 更新整個檔案(在既有 `get_by_id` / `add` 之外新增 `get_for_update`,並補上 `select` / `selectinload` import):
 
@@ -659,12 +659,12 @@ async def add(session: AsyncSession, spec: ProductSpec) -> ProductSpec:
     return spec
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `cd backend && uv run pytest tests/test_order_repo.py -v && uv run ruff check . && uv run mypy app`
 Expected: 4 passed;ruff clean;mypy Success。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd backend && git add app/repositories/order_repo.py app/repositories/spec_repo.py tests/test_order_repo.py
