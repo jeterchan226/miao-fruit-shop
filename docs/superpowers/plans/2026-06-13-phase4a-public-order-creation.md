@@ -390,7 +390,7 @@ git commit -m "feat(backend): order amounts/status/order_no helpers + PriceChang
 - Create: `backend/app/schemas/order.py`
 - Test: `backend/tests/test_schemas_order.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_schemas_order.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_schemas_order.py`
 
 ```python
 import pytest
@@ -451,12 +451,12 @@ def test_extra_top_level_field_rejected():
         OrderCreate.model_validate(_valid_payload(hacker_price=1))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_schemas_order.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.schemas.order'`。
 
-- [ ] **Step 3: Write `backend/app/schemas/order.py`**
+- [x] **Step 3: Write `backend/app/schemas/order.py`**
 
 ```python
 from datetime import date, datetime
@@ -526,12 +526,12 @@ class PriceChangedResponse(BaseModel):
     total: int
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && uv run pytest tests/test_schemas_order.py -v && uv run ruff check . && uv run mypy app`
 Expected: 6 passed;ruff clean;mypy Success。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd backend && git add app/schemas/order.py tests/test_schemas_order.py
