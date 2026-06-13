@@ -1133,15 +1133,15 @@ git commit -m "feat(backend): public POST /api/orders + PriceChangedError handle
 
 ## Definition of Done (Phase 4a)
 
-- [ ] `cd backend && uv run pytest -q` → 全數通過(既有 68 + 新增:order_models 3、order_amounts 8、schemas_order 6、order_repo 4、order_service 6、orders_api 5 = 32 新 → 100 total)。
-- [ ] `cd backend && uv run ruff check .` → clean。
-- [ ] `cd backend && uv run mypy app` → Success。
-- [ ] `cd backend && uv run alembic upgrade head` → orders + order_items 遷移已套用。
-- [ ] `POST /api/orders` 正常:回 201 + 權威金額 + `order_no`(`MM-XXXXXX`)+ 初始狀態,並扣庫存。
-- [ ] 價格不符 → 409 `PRICE_CHANGED` + 新金額明細,且**不扣庫存、不建單**。
-- [ ] 庫存不足 → 409 `INSUFFICIENT_STOCK`,且**不扣庫存、不建單**。
-- [ ] 未知/停用規格 → 404 `NOT_FOUND`;輸入驗證錯 → 422。
-- [ ] 全部任務已提交、plan checkboxes 已勾選。
+- [x] `cd backend && uv run pytest -q` → 全數通過(既有 68 + 新增:order_models 3、order_amounts 8、schemas_order 6、order_repo 4、order_service 6、orders_api 5 = 32 新 → 100 total)。
+- [x] `cd backend && uv run ruff check .` → clean。
+- [x] `cd backend && uv run mypy app` → Success。
+- [x] `cd backend && uv run alembic upgrade head` → orders + order_items 遷移已套用。
+- [x] `POST /api/orders` 正常:回 201 + 權威金額 + `order_no`(`MM-XXXXXX`)+ 初始狀態,並扣庫存。
+- [x] 價格不符 → 409 `PRICE_CHANGED` + 新金額明細,且**不扣庫存、不建單**。
+- [x] 庫存不足 → 409 `INSUFFICIENT_STOCK`,且**不扣庫存、不建單**。
+- [x] 未知/停用規格 → 404 `NOT_FOUND`;輸入驗證錯 → 422。
+- [x] 全部任務已提交、plan checkboxes 已勾選。
 
 ## 下一階段
 
