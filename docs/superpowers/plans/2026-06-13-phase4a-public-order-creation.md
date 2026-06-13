@@ -197,12 +197,12 @@ git commit -m "feat(backend): Order and OrderItem models"
 **Files:**
 - Create: `backend/alembic/versions/<rev>_create_orders_and_order_items.py` (autogenerate)
 
-- [ ] **Step 1: Autogenerate**
+- [x] **Step 1: Autogenerate**
 
 Run: `cd backend && uv run alembic revision --autogenerate -m "create orders and order_items"`
 Expected: 產生新檔於 `alembic/versions/`。
 
-- [ ] **Step 2: Sanity-check the generated file**
+- [x] **Step 2: Sanity-check the generated file**
 
 開啟產生的檔案,確認:
 - `down_revision = "16c86ea7cbda"`(接在 products 遷移之後)。
@@ -211,22 +211,22 @@ Expected: 產生新檔於 `alembic/versions/`。
 - `downgrade()` 對應 `op.drop_table("order_items")` 與 `op.drop_table("orders")`(順序:先 items 後 orders)。
 - 不應出現對 `products` / `product_specs` / `admin_users` 的非預期變更(若有,代表模型漂移,需先釐清)。
 
-- [ ] **Step 3: Apply**
+- [x] **Step 3: Apply**
 
 Run: `cd backend && uv run alembic upgrade head`
 Expected: `Running upgrade 16c86ea7cbda -> <rev>, create orders and order_items`。
 
-- [ ] **Step 4: Verify head**
+- [x] **Step 4: Verify head**
 
 Run: `cd backend && uv run alembic current`
 Expected: 顯示新 `<rev> (head)`。
 
-- [ ] **Step 5: Suite still green**
+- [x] **Step 5: Suite still green**
 
 Run: `cd backend && uv run pytest -q`
 Expected: 全數通過(測試 DB 由 `Base.metadata.create_all` 建立,不受遷移影響)。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd backend && git add alembic/versions/
