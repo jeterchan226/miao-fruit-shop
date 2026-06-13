@@ -27,3 +27,23 @@ class InvalidStatusTransition(AppError):
 class AuthError(AppError):
     code = "AUTH_ERROR"
     status_code = 401
+
+
+class PriceChangedError(AppError):
+    code = "PRICE_CHANGED"
+    status_code = 409
+
+    def __init__(
+        self,
+        detail: str,
+        *,
+        subtotal: int,
+        shipping_fee: int,
+        cod_fee: int,
+        total: int,
+    ) -> None:
+        super().__init__(detail)
+        self.subtotal = subtotal
+        self.shipping_fee = shipping_fee
+        self.cod_fee = cod_fee
+        self.total = total
