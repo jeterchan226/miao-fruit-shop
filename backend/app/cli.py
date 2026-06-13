@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.admin_user import AdminUser
-from app.repositories import admin_repo
+from app.models.product import Product
+from app.models.product_spec import ProductSpec
+from app.repositories import admin_repo, product_repo
 
 MIN_PASSWORD_LEN = 8
 
@@ -25,6 +27,49 @@ async def create_admin(
     await admin_repo.add(session, admin)
     await session.commit()
     return admin
+
+
+SEED_SLUG = "kanro"
+
+
+async def seed_product(session: AsyncSession) -> Product:
+    if await product_repo.get_by_slug(session, SEED_SLUG) is not None:
+        raise ValueError("商品 '甘露梨' 已存在")
+    product = Product(
+        slug=SEED_SLUG,
+        name="甘露梨",
+        description="園區珍稀品種,產量稀少,蜜香濃郁、入口即化,識貨的老客戶才點。",
+        image="assets/product_5.jpg",
+        season="10 月上旬 – 10 月中旬",
+        tag="珍稀",
+        tag_color="red",
+    )
+    product.specs = [
+        ProductSpec(
+            label="2 粒精緻禮盒", qty_text="2 顆 · 約 1.6 台斤", price=880,
+            stock_qty=20, note="蜜糖之味", sort_order=1,
+        ),
+        ProductSpec(
+            label="5 台斤家庭箱", qty_text="6–8 顆 · 5 台斤", price=1880,
+            stock_qty=3, low_stock_threshold=3, note="剩 3 箱", sort_order=2,
+        ),
+        ProductSpec(
+            label="10 台斤大箱", qty_text="12–16 顆 · 10 台斤", price=3580,
+            stock_qty=20, note="老客戶限定", sort_order=3,
+        ),
+    ]
+    session.add(product)
+    await session.commit()
+    return product
+
+
+async def _run_seed_product() -> None:
+    async with AsyncSessionLocal() as session:
+        try:
+            product = await seed_product(session)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    print(f"已建立商品:{product.name}(規格 {len(product.specs)} 個)")
 
 
 def _prompt_password() -> str:
@@ -49,9 +94,12 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     create = sub.add_parser("create-admin", help="建立後台管理員")
     create.add_argument("--username", required=True)
+    sub.add_parser("seed-product", help="建立初始商品(甘露梨)")
     args = parser.parse_args()
     if args.command == "create-admin":
         asyncio.run(_run_create_admin(args.username))
+    elif args.command == "seed-product":
+        asyncio.run(_run_seed_product())
 
 
 if __name__ == "__main__":
