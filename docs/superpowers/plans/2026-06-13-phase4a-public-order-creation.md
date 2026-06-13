@@ -48,7 +48,7 @@
 - Modify: `backend/app/models/__init__.py`
 - Test: `backend/tests/test_order_models.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_order_models.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_order_models.py`
 
 ```python
 from app.core.database import Base
@@ -80,12 +80,12 @@ def test_order_item_has_snapshot_columns():
     } <= cols
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_order_models.py -v`
 Expected: FAIL — `ImportError: cannot import name 'Order' from 'app.models'`.
 
-- [ ] **Step 3: Write `backend/app/models/order.py`**
+- [x] **Step 3: Write `backend/app/models/order.py`**
 
 ```python
 from datetime import date, datetime
@@ -136,7 +136,7 @@ class Order(Base):
     )
 ```
 
-- [ ] **Step 4: Write `backend/app/models/order_item.py`**
+- [x] **Step 4: Write `backend/app/models/order_item.py`**
 
 ```python
 from typing import TYPE_CHECKING
@@ -166,7 +166,7 @@ class OrderItem(Base):
     order: Mapped["Order"] = relationship(back_populates="items")
 ```
 
-- [ ] **Step 5: Update `backend/app/models/__init__.py`**
+- [x] **Step 5: Update `backend/app/models/__init__.py`**
 
 ```python
 from app.models.admin_user import AdminUser
@@ -178,12 +178,12 @@ from app.models.product_spec import ProductSpec
 __all__ = ["AdminUser", "Order", "OrderItem", "Product", "ProductSpec"]
 ```
 
-- [ ] **Step 6: Run test + verify lint/types/suite**
+- [x] **Step 6: Run test + verify lint/types/suite**
 
 Run: `cd backend && uv run pytest tests/test_order_models.py -v && uv run ruff check . && uv run mypy app`
 Expected: 3 passed; ruff clean; mypy Success.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd backend && git add app/models/order.py app/models/order_item.py app/models/__init__.py tests/test_order_models.py
