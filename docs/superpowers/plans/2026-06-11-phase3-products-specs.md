@@ -924,7 +924,7 @@ git commit -m "feat(backend): public GET /api/products"
 - Modify: `app/main.py`
 - Test: `tests/test_admin_products_api.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_admin_products_api.py`
+- [x] **Step 1: Write the failing test** — `tests/test_admin_products_api.py`
 
 ```python
 from httpx import AsyncClient
@@ -1005,12 +1005,12 @@ async def test_admin_spec_create_update_delete(client: AsyncClient, db_session: 
     assert deleted.status_code == 204
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_admin_products_api.py -v`
 Expected: FAIL — 404s (routes not registered).
 
-- [ ] **Step 3: Write `app/api/routes/admin_products.py`**
+- [x] **Step 3: Write `app/api/routes/admin_products.py`**
 
 ```python
 from typing import Annotated
@@ -1071,7 +1071,7 @@ async def delete_spec(spec_id: int, session: SessionDep) -> None:
     await product_service.soft_delete_spec(session, spec_id)
 ```
 
-- [ ] **Step 4: Wire into `app/main.py`**
+- [x] **Step 4: Wire into `app/main.py`**
 
 Extend the route import and includes:
 ```python
@@ -1081,14 +1081,14 @@ from app.api.routes import admin_auth, admin_products, products
     app.include_router(admin_products.router)
 ```
 
-- [ ] **Step 5: Run tests + suite**
+- [x] **Step 5: Run tests + suite**
 
 Run: `uv run pytest tests/test_admin_products_api.py -v`
 Expected: PASS (5 passed).
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: all green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/api/routes/admin_products.py app/main.py tests/test_admin_products_api.py
