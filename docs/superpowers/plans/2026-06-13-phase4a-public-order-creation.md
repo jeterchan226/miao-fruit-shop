@@ -961,7 +961,7 @@ git commit -m "feat(backend): order_service.create_order (lock/recompute/confirm
 - Modify: `backend/app/main.py`
 - Test: `backend/tests/test_orders_api.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_orders_api.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_orders_api.py`
 
 ```python
 from httpx import AsyncClient
@@ -1038,12 +1038,12 @@ async def test_create_order_validation_422(client: AsyncClient, db_session: Asyn
     assert resp.status_code == 422
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && uv run pytest tests/test_orders_api.py -v`
 Expected: FAIL — 404(路由不存在)或 import 錯誤。
 
-- [ ] **Step 3: Add `PriceChangedError` handler to `backend/app/api/errors.py`**
+- [x] **Step 3: Add `PriceChangedError` handler to `backend/app/api/errors.py`**
 
 更新整個檔案(在既有 `AppError` handler 之外,新增更特定的 `PriceChangedError` handler,使其 body 帶金額明細):
 
@@ -1081,7 +1081,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
 > 註:Starlette 依例外的 MRO 取最特定的 handler,`PriceChangedError` 會優先於 `AppError` 被選用。
 
-- [ ] **Step 4: Write `backend/app/api/routes/orders.py`**
+- [x] **Step 4: Write `backend/app/api/routes/orders.py`**
 
 ```python
 from typing import Annotated
@@ -1103,7 +1103,7 @@ async def create_order(data: OrderCreate, session: SessionDep) -> OrderRead:
     return await order_service.create_order(session, data)
 ```
 
-- [ ] **Step 5: Wire into `backend/app/main.py`**
+- [x] **Step 5: Wire into `backend/app/main.py`**
 
 更新 router import 與 include:
 
@@ -1117,12 +1117,12 @@ from app.api.routes import admin_auth, admin_products, orders, products
     app.include_router(orders.router)
 ```
 
-- [ ] **Step 6: Run tests + full suite + lint + types**
+- [x] **Step 6: Run tests + full suite + lint + types**
 
 Run: `cd backend && uv run pytest tests/test_orders_api.py -v && uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: orders_api 5 passed;全 suite 全綠;ruff clean;mypy Success。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd backend && git add app/api/errors.py app/api/routes/orders.py app/main.py tests/test_orders_api.py
