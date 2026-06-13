@@ -1,6 +1,6 @@
 # Backend Foundation Implementation Plan (Phase 1 of 4)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Stand up a runnable, tested FastAPI backend skeleton with config, async DB session, domain-error handling, CORS, a health endpoint, an async test harness, Alembic migrations scaffolding, and Docker — ready for the auth/products/orders phases to build on.
 
@@ -57,7 +57,7 @@ All backend code lives under `backend/`. Files created in this phase:
 - Create: `backend/.gitignore`
 - Create: `backend/app/__init__.py`, `backend/app/core/__init__.py`, `backend/app/api/__init__.py`, `backend/app/services/__init__.py`, `backend/app/repositories/__init__.py`, `backend/app/models/__init__.py`, `backend/app/schemas/__init__.py`, `backend/tests/__init__.py`
 
-- [ ] **Step 1: Create the package directory tree and empty `__init__.py` files**
+- [x] **Step 1: Create the package directory tree and empty `__init__.py` files**
 
 ```bash
 cd backend
@@ -67,7 +67,7 @@ touch app/__init__.py app/core/__init__.py app/api/__init__.py \
       app/models/__init__.py app/schemas/__init__.py tests/__init__.py
 ```
 
-- [ ] **Step 2: Write `backend/pyproject.toml`**
+- [x] **Step 2: Write `backend/pyproject.toml`**
 
 ```toml
 [project]
@@ -121,7 +121,7 @@ build-backend = "hatchling.build"
 packages = ["app"]
 ```
 
-- [ ] **Step 3: Write `backend/.gitignore`**
+- [x] **Step 3: Write `backend/.gitignore`**
 
 ```gitignore
 .venv/
@@ -133,17 +133,17 @@ __pycache__/
 .env
 ```
 
-- [ ] **Step 4: Resolve and install dependencies**
+- [x] **Step 4: Resolve and install dependencies**
 
 Run: `uv sync`
 Expected: creates `.venv/` and `uv.lock`, installs all deps without error. Final line resembles `Installed NN packages`.
 
-- [ ] **Step 5: Verify the toolchain runs**
+- [x] **Step 5: Verify the toolchain runs**
 
 Run: `uv run python -c "import fastapi, sqlalchemy, pydantic_settings; print('ok')"`
 Expected: prints `ok`.
 
-- [ ] **Step 6: Commit** (run from `backend/`; git finds the repo's `.git` in the parent dir)
+- [x] **Step 6: Commit** (run from `backend/`; git finds the repo's `.git` in the parent dir)
 
 ```bash
 git add pyproject.toml uv.lock .gitignore app tests
@@ -159,7 +159,7 @@ git commit -m "chore(backend): init uv project, deps, package layout"
 - Create: `backend/.env.example`
 - Test: `backend/tests/test_config.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `backend/tests/test_config.py`:
 ```python
@@ -183,12 +183,12 @@ def test_defaults_apply(monkeypatch):
     assert s.jwt_expire_minutes == 480
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_config.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.core.config'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `backend/app/core/config.py`:
 ```python
@@ -216,7 +216,7 @@ settings = Settings()  # type: ignore[call-arg]
 
 > Note: `cors_origins` is a comma-separated string (not `list[str]`) so plain `.env` values work without JSON encoding. `settings` is instantiated at import; tests construct their own `Settings()` after setting env vars.
 
-- [ ] **Step 4: Write `backend/.env.example`**
+- [x] **Step 4: Write `backend/.env.example`**
 
 ```dotenv
 # 連線到本機 PostgreSQL(docker-compose 的 db 服務或本機安裝)
@@ -229,14 +229,14 @@ JWT_EXPIRE_MINUTES=480
 CORS_ORIGINS=http://localhost:8080
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_config.py -v`
 Expected: PASS (2 passed).
 
 > The test sets `DATABASE_URL`/`JWT_SECRET` via `monkeypatch`, so importing `app.core.config` (which builds `settings`) succeeds even without a `.env` file present.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/core/config.py .env.example tests/test_config.py
@@ -250,7 +250,7 @@ git commit -m "feat(backend): settings via pydantic-settings"
 **Files:**
 - Create: `backend/app/core/database.py`
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 `backend/app/core/database.py`:
 ```python
@@ -283,14 +283,14 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 ```
 
-- [ ] **Step 2: Verify it imports**
+- [x] **Step 2: Verify it imports**
 
 Run: `uv run python -c "from app.core.database import Base, engine, get_session; print('ok')"`
 Expected: prints `ok` (importing does not open a DB connection).
 
 > No standalone unit test here — `get_session` and `Base` are exercised by the `db_session` fixture and its test in Task 6. This keeps the test meaningful (real session round-trip) rather than asserting on object identity.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/core/database.py
@@ -305,7 +305,7 @@ git commit -m "feat(backend): async engine, Base, get_session dependency"
 - Create: `backend/app/api/errors.py`
 - Test: `backend/tests/test_errors.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `backend/tests/test_errors.py`:
 ```python
@@ -363,12 +363,12 @@ async def test_auth_error_maps_to_401():
     assert resp.json()["code"] == "AUTH_ERROR"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_errors.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.api.errors'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `backend/app/api/errors.py`:
 ```python
@@ -418,12 +418,12 @@ def register_exception_handlers(app: FastAPI) -> None:
 
 > `InvalidStatusTransition` is defined now (used in Phase 4) so the single error module is complete and Phase 4 needs no edits here.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_errors.py -v`
 Expected: PASS (3 passed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/api/errors.py tests/test_errors.py
@@ -437,7 +437,7 @@ git commit -m "feat(backend): domain errors + exception handlers"
 **Files:**
 - Create: `backend/app/main.py`
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 `backend/app/main.py`:
 ```python
@@ -471,14 +471,14 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 2: Verify the module imports**
+- [x] **Step 2: Verify the module imports**
 
 Run: `uv run python -c "from app.main import app; print(type(app).__name__)"`
 Expected: prints `FastAPI`. (Requires `DATABASE_URL`/`JWT_SECRET` in `.env` or environment, since importing builds `settings`. If it errors on missing fields, create `backend/.env` by copying `.env.example`.)
 
 > The behavioral test for `/health` is in Task 6, once the `client` fixture exists.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/main.py
@@ -496,7 +496,7 @@ git commit -m "feat(backend): app factory with CORS + /health"
 
 **Prerequisite:** a reachable PostgreSQL and a test database named `miao_test`. Create it once: `createdb -h localhost -U miao miao_test` (or via the docker-compose `db` in Task 8: `docker compose exec db createdb -U miao miao_test`). The test engine derives its URL from `settings.database_url` by replacing the database name with `miao_test`.
 
-- [ ] **Step 1: Write `backend/tests/conftest.py`**
+- [x] **Step 1: Write `backend/tests/conftest.py`**
 
 ```python
 from collections.abc import AsyncGenerator
@@ -559,7 +559,7 @@ async def client(
     app.dependency_overrides.clear()
 ```
 
-- [ ] **Step 2: Write `backend/tests/test_health.py`**
+- [x] **Step 2: Write `backend/tests/test_health.py`**
 
 ```python
 from httpx import AsyncClient
@@ -571,7 +571,7 @@ async def test_health_returns_ok(client: AsyncClient):
     assert resp.json() == {"status": "ok"}
 ```
 
-- [ ] **Step 3: Write `backend/tests/test_db_session.py`**
+- [x] **Step 3: Write `backend/tests/test_db_session.py`**
 
 ```python
 from sqlalchemy import text
@@ -583,17 +583,17 @@ async def test_db_session_executes_query(db_session: AsyncSession):
     assert result.scalar_one() == 1
 ```
 
-- [ ] **Step 4: Run the new tests to verify they pass**
+- [x] **Step 4: Run the new tests to verify they pass**
 
 Run: `uv run pytest tests/test_health.py tests/test_db_session.py -v`
 Expected: PASS (2 passed). If you see a connection error, confirm the `miao_test` database exists and `DATABASE_URL` in `.env` points at a running PostgreSQL.
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 Run: `uv run pytest -v`
 Expected: all tests PASS (test_config: 2, test_errors: 3, test_health: 1, test_db_session: 1).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tests/conftest.py tests/test_health.py tests/test_db_session.py
@@ -612,12 +612,12 @@ git commit -m "test(backend): async harness, health + db-session tests"
 
 > No migration is generated in this phase (no models yet). This task only wires Alembic to `Base.metadata` and the async engine so Phase 2 can run `alembic revision --autogenerate`.
 
-- [ ] **Step 1: Generate the Alembic skeleton, then we overwrite env.py**
+- [x] **Step 1: Generate the Alembic skeleton, then we overwrite env.py**
 
 Run: `uv run alembic init -t async alembic`
 Expected: creates `alembic.ini`, `alembic/env.py`, `alembic/script.py.mako`, `alembic/versions/`. (The `async` template gives an async-ready `env.py`; we replace it below for our settings + metadata.)
 
-- [ ] **Step 2: Point `alembic.ini` script location and leave URL to env.py**
+- [x] **Step 2: Point `alembic.ini` script location and leave URL to env.py**
 
 In `backend/alembic.ini`, ensure these lines (the rest of the generated file is fine as-is):
 ```ini
@@ -627,7 +627,7 @@ prepend_sys_path = .
 ```
 Remove or leave blank any `sqlalchemy.url =` line — the URL is supplied programmatically in `env.py`.
 
-- [ ] **Step 3: Overwrite `backend/alembic/env.py`**
+- [x] **Step 3: Overwrite `backend/alembic/env.py`**
 
 ```python
 import asyncio
@@ -679,18 +679,18 @@ else:
     asyncio.run(run_migrations_online())
 ```
 
-- [ ] **Step 4: Keep the empty versions dir under git**
+- [x] **Step 4: Keep the empty versions dir under git**
 
 ```bash
 touch alembic/versions/.gitkeep
 ```
 
-- [ ] **Step 5: Verify Alembic loads config and metadata without error**
+- [x] **Step 5: Verify Alembic loads config and metadata without error**
 
 Run: `uv run alembic upgrade head`
 Expected: connects and reports nothing to do (no versions yet) — exit code 0, no traceback. Confirms `env.py` imports `app.*` and reaches the DB. (Requires the dev DB from `.env` to be running.)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add alembic.ini alembic/env.py alembic/script.py.mako alembic/versions/.gitkeep
@@ -706,7 +706,7 @@ git commit -m "chore(backend): async Alembic scaffolding bound to Base.metadata"
 - Create: `backend/.dockerignore`
 - Create: `backend/docker-compose.yml`
 
-- [ ] **Step 1: Write `backend/Dockerfile`**
+- [x] **Step 1: Write `backend/Dockerfile`**
 
 ```dockerfile
 FROM python:3.13-slim
@@ -729,7 +729,7 @@ EXPOSE 8000
 CMD ["uv", "run", "--no-dev", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-- [ ] **Step 2: Write `backend/.dockerignore`**
+- [x] **Step 2: Write `backend/.dockerignore`**
 
 ```dockerignore
 .venv/
@@ -743,7 +743,7 @@ tests/
 alembic/versions/__pycache__/
 ```
 
-- [ ] **Step 3: Write `backend/docker-compose.yml`**
+- [x] **Step 3: Write `backend/docker-compose.yml`**
 
 ```yaml
 services:
@@ -780,23 +780,23 @@ volumes:
   pgdata:
 ```
 
-- [ ] **Step 4: Build and smoke-test the stack**
+- [x] **Step 4: Build and smoke-test the stack**
 
 Run: `docker compose up -d --build`
 Then: `curl -s localhost:8000/health`
 Expected: `{"status":"ok"}`.
 
-- [ ] **Step 5: Create the test database inside the compose Postgres (for later test runs)**
+- [x] **Step 5: Create the test database inside the compose Postgres (for later test runs)**
 
 Run: `docker compose exec db createdb -U miao miao_test`
 Expected: no output, exit 0 (idempotent failure "already exists" is fine).
 
-- [ ] **Step 6: Tear down**
+- [x] **Step 6: Tear down**
 
 Run: `docker compose down`
 Expected: containers removed (volume `pgdata` persists).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Dockerfile .dockerignore docker-compose.yml
@@ -810,7 +810,7 @@ git commit -m "chore(backend): Dockerfile + compose (postgres 17 + api)"
 **Files:**
 - Create: `backend/README.md`
 
-- [ ] **Step 1: Write `backend/README.md`**
+- [x] **Step 1: Write `backend/README.md`**
 
 ````markdown
 # 妙媽媽果園 Backend
@@ -865,7 +865,7 @@ docker compose up -d --build    # db + api
 ```
 ````
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -876,13 +876,13 @@ git commit -m "docs(backend): dev runbook README"
 
 ## Definition of Done (Phase 1)
 
-- [ ] `uv run pytest -v` → 7 tests pass (config 2, errors 3, health 1, db-session 1).
-- [ ] `uv run ruff check .` → clean.
-- [ ] `uv run mypy app` → clean.
-- [ ] `uv run uvicorn app.main:app` + `curl localhost:8000/health` → `{"status":"ok"}`.
-- [ ] `docker compose up -d --build` brings up db + api; `/health` responds.
-- [ ] `uv run alembic upgrade head` runs without error (no versions yet).
-- [ ] All work committed.
+- [x] `uv run pytest -v` → 7 tests pass (config 2, errors 3, health 1, db-session 1).
+- [x] `uv run ruff check .` → clean.
+- [x] `uv run mypy app` → clean.
+- [x] `uv run uvicorn app.main:app` + `curl localhost:8000/health` → `{"status":"ok"}`.
+- [x] `docker compose up -d --build` brings up db + api; `/health` responds.
+- [x] `uv run alembic upgrade head` runs without error (no versions yet).
+- [x] All work committed.
 
 ## Next phase
 

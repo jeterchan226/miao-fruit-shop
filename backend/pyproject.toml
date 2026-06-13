@@ -1,0 +1,54 @@
+[project]
+name = "miao-fruit-shop-backend"
+version = "0.1.0"
+description = "妙媽媽果園 backend API"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.136.3",
+    "uvicorn[standard]==0.49.0",
+    "sqlalchemy==2.0.50",
+    "asyncpg==0.31.0",
+    "alembic==1.18.4",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.1",
+    "pyjwt==2.13.0",
+    "pwdlib[argon2]==0.3.0",
+    "python-multipart==0.0.32",
+    "greenlet>=3.5.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "httpx==0.28.1",
+    "ruff==0.15.16",
+    "mypy==2.1.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# Alembic 自動產生的遷移檔不手改,排除於 lint 之外
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

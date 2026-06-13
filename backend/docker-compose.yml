@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: miao
+      POSTGRES_PASSWORD: miao
+      POSTGRES_DB: miao
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miao"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    # 容器內連 db 服務,host 用 db 而非 localhost
+    environment:
+      DATABASE_URL: postgresql+asyncpg://miao:miao@db:5432/miao
+      JWT_SECRET: change-me-in-prod
+      CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
