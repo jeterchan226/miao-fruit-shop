@@ -1225,14 +1225,14 @@ git commit -m "feat(backend): seed-product CLI"
 
 ## Definition of Done (Phase 3)
 
-- [ ] `uv run pytest -q` → all pass (32 from Phase 1+2 + new: stock_status 6, schemas 4, product_repo 3, spec_repo 2, product_service 7, products_api 3, admin_products_api 5, seed_cli 2 = 32 new → 64 total).
-- [ ] `uv run ruff check .` → clean.
-- [ ] `uv run mypy app` → clean.
-- [ ] `uv run alembic upgrade head` → products + product_specs migration applied.
-- [ ] `GET /api/products` returns active products with `stock_status` and NO `stock_qty`.
-- [ ] Admin endpoints require a bearer token; with it, list/update/spec-CRUD work; missing ids → 404.
-- [ ] `uv run python -m app.cli seed-product` creates 甘露梨 + 3 specs; re-running errors.
-- [ ] All tasks committed; plan checkboxes ticked.
+- [x] `uv run pytest -q` → all pass (32 from Phase 1+2 + new: stock_status 6, schemas 4, product_repo 3, spec_repo 2, product_service 7, products_api 3, admin_products_api 5, seed_cli 2 = 32 new → 64 total).
+- [x] `uv run ruff check .` → clean.
+- [x] `uv run mypy app` → clean.
+- [x] `uv run alembic upgrade head` → products + product_specs migration applied.
+- [x] `GET /api/products` returns active products with `stock_status` and NO `stock_qty`.
+- [x] Admin endpoints require a bearer token; with it, list/update/spec-CRUD work; missing ids → 404.
+- [x] `uv run python -m app.cli seed-product` creates 甘露梨 + 3 specs; re-running errors.
+- [x] All tasks committed; plan checkboxes ticked.
 
 ## Next phase
 
