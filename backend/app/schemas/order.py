@@ -63,3 +63,49 @@ class PriceChangedResponse(BaseModel):
     shipping_fee: int
     cod_fee: int
     total: int
+
+
+class AdminOrderListItem(BaseModel):
+    order_no: str
+    status: str
+    customer_name: str
+    customer_phone: str
+    total: int
+    created_at: datetime
+
+
+class AdminOrderListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[AdminOrderListItem]
+
+
+class AdminOrderRead(BaseModel):
+    id: int
+    order_no: str
+    status: str
+    customer_name: str
+    customer_phone: str
+    customer_email: str | None
+    ship_zipcode: str
+    ship_city: str
+    ship_district: str
+    ship_street: str
+    preferred_date: date
+    delivery_window: str
+    payment_method: str
+    note: str | None
+    subtotal: int
+    shipping_fee: int
+    cod_fee: int
+    total: int
+    items: list[OrderItemRead]
+    created_at: datetime
+    updated_at: datetime
+
+
+class OrderStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
