@@ -1,6 +1,6 @@
 # Phase 4b: Admin Order Management Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 為後台管理員加入訂單列表（含篩選 + 分頁）、單筆明細、改狀態（狀態機驗證 + 取消自動回補庫存）三個 endpoint。
 
@@ -38,7 +38,7 @@ Modify:
 - Modify: `app/schemas/order.py`
 - Create: `tests/test_schemas_admin_order.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_schemas_admin_order.py`
+- [x] **Step 1: Write the failing test** — `tests/test_schemas_admin_order.py`
 
 ```python
 import pytest
@@ -75,12 +75,12 @@ def test_order_status_update_forbids_extra():
         OrderStatusUpdate(status="confirmed", extra_field="oops")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_schemas_admin_order.py -v`
 Expected: FAIL — `ImportError: cannot import name 'AdminOrderListResponse' from 'app.schemas.order'`
 
-- [ ] **Step 3: Append admin schemas to `app/schemas/order.py`**
+- [x] **Step 3: Append admin schemas to `app/schemas/order.py`**
 
 Add these imports at the top of the file (the file already has `from datetime import date, datetime` and `from pydantic import BaseModel, ConfigDict, Field`):
 
@@ -140,17 +140,17 @@ class OrderStatusUpdate(BaseModel):
     status: str
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_schemas_admin_order.py -v`
 Expected: PASS（4 passed）
 
-- [ ] **Step 5: Verify full suite still green**
+- [x] **Step 5: Verify full suite still green**
 
 Run: `uv run pytest -q`
 Expected: 103 passed（99 + 4 new）
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/schemas/order.py tests/test_schemas_admin_order.py
@@ -165,7 +165,7 @@ git commit -m "feat(backend): admin order schemas"
 - Modify: `app/repositories/order_repo.py`
 - Modify: `tests/test_order_repo.py`（append 6 new tests）
 
-- [ ] **Step 1: Extend `tests/test_order_repo.py`**
+- [x] **Step 1: Extend `tests/test_order_repo.py`**
 
 First, update the existing import at the top of the file from:
 ```python
@@ -258,12 +258,12 @@ async def test_list_filtered_pagination(db_session: AsyncSession):
     assert {o.order_no for o in page1}.isdisjoint({o.order_no for o in page2})
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest tests/test_order_repo.py -v`
 Expected: FAIL — `AttributeError: module 'app.repositories.order_repo' has no attribute 'list_filtered'`
 
-- [ ] **Step 3: Implement `list_filtered` in `app/repositories/order_repo.py`**
+- [x] **Step 3: Implement `list_filtered` in `app/repositories/order_repo.py`**
 
 Full updated file:
 
@@ -332,17 +332,17 @@ async def list_filtered(
     return total, list(rows.scalars().all())
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_order_repo.py -v`
 Expected: PASS（10 passed；既有 4 + 新 6）
 
-- [ ] **Step 5: Verify full suite + lint + types**
+- [x] **Step 5: Verify full suite + lint + types**
 
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 109 passed；ruff clean；mypy Success
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/repositories/order_repo.py tests/test_order_repo.py
@@ -357,7 +357,7 @@ git commit -m "feat(backend): order_repo.list_filtered (status/date/q/order_no/p
 - Create: `app/services/admin_order_service.py`
 - Create: `tests/test_admin_order_service.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_admin_order_service.py`
+- [x] **Step 1: Write the failing test** — `tests/test_admin_order_service.py`
 
 ```python
 from datetime import date as date_type
@@ -544,12 +544,12 @@ async def test_cancel_with_null_spec_id_skips_silently(db_session: AsyncSession)
     assert result.status == "cancelled"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_admin_order_service.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.services.admin_order_service'`
 
-- [ ] **Step 3: Create `app/services/admin_order_service.py`**
+- [x] **Step 3: Create `app/services/admin_order_service.py`**
 
 ```python
 from datetime import date
@@ -679,17 +679,17 @@ async def change_order_status(
     return _to_admin_order_read(order)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/test_admin_order_service.py -v`
 Expected: PASS（12 passed）
 
-- [ ] **Step 5: Verify suite + lint + types**
+- [x] **Step 5: Verify suite + lint + types**
 
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 121 passed；ruff clean；mypy Success
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/services/admin_order_service.py tests/test_admin_order_service.py
@@ -705,7 +705,7 @@ git commit -m "feat(backend): admin_order_service (list/detail/change_status + s
 - Modify: `app/main.py`
 - Create: `tests/test_admin_orders_api.py`
 
-- [ ] **Step 1: Write the failing test** — `tests/test_admin_orders_api.py`
+- [x] **Step 1: Write the failing test** — `tests/test_admin_orders_api.py`
 
 ```python
 from datetime import date
@@ -844,12 +844,12 @@ async def test_change_status_order_not_found(
     assert resp.status_code == 404
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/test_admin_orders_api.py -v`
 Expected: FAIL — 401 on all routes except the auth check（routes 尚未 include）
 
-- [ ] **Step 3: Create `app/api/routes/admin_orders.py`**
+- [x] **Step 3: Create `app/api/routes/admin_orders.py`**
 
 ```python
 from datetime import date
@@ -907,7 +907,7 @@ async def change_status(
     return await admin_order_service.change_order_status(session, order_no, data.status)
 ```
 
-- [ ] **Step 4: Wire router into `app/main.py`**
+- [x] **Step 4: Wire router into `app/main.py`**
 
 Extend the import line from:
 ```python
@@ -923,7 +923,7 @@ Inside `create_app()`, add alongside the other `include_router` calls:
     app.include_router(admin_orders.router)
 ```
 
-- [ ] **Step 5: Run tests + full suite**
+- [x] **Step 5: Run tests + full suite**
 
 Run: `uv run pytest tests/test_admin_orders_api.py -v`
 Expected: PASS（8 passed）
@@ -931,7 +931,7 @@ Expected: PASS（8 passed）
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 129 passed；ruff clean；mypy Success
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/api/routes/admin_orders.py app/main.py tests/test_admin_orders_api.py
@@ -942,12 +942,12 @@ git commit -m "feat(backend): admin order routes (list/detail/change-status)"
 
 ## Definition of Done (Phase 4b)
 
-- [ ] `cd backend && uv run pytest -q` → 129 passed（99 既有 + 4 schemas + 6 repo + 12 service + 8 api）
-- [ ] `cd backend && uv run ruff check .` → clean
-- [ ] `cd backend && uv run mypy app` → Success
-- [ ] `GET /api/admin/orders` 需 JWT；支援 `status`、`date_from`/`date_to`、`q`、`order_no`、`page`/`page_size` 篩選；回 `AdminOrderListResponse`（含 total/page）
-- [ ] `GET /api/admin/orders/{order_no}` 回完整 `AdminOrderRead`（含 items + 所有物流/金額欄位）；找不到 → 404
-- [ ] `PATCH /api/admin/orders/{order_no}/status` 合法轉移 → 200 + 新狀態；非法 → 409 `INVALID_STATUS_TRANSITION`；取消 → 自動回補 `spec.stock_qty`
-- [ ] `shipping` / `delivered` 轉 `cancelled` → 409（不可取消）
-- [ ] `order_service.py`（Phase 4a create_order）未被修改
-- [ ] 全部任務已提交；plan checkboxes 已勾選
+- [x] `cd backend && uv run pytest -q` → 129 passed（99 既有 + 4 schemas + 6 repo + 12 service + 8 api）
+- [x] `cd backend && uv run ruff check .` → clean
+- [x] `cd backend && uv run mypy app` → Success
+- [x] `GET /api/admin/orders` 需 JWT；支援 `status`、`date_from`/`date_to`、`q`、`order_no`、`page`/`page_size` 篩選；回 `AdminOrderListResponse`（含 total/page）
+- [x] `GET /api/admin/orders/{order_no}` 回完整 `AdminOrderRead`（含 items + 所有物流/金額欄位）；找不到 → 404
+- [x] `PATCH /api/admin/orders/{order_no}/status` 合法轉移 → 200 + 新狀態；非法 → 409 `INVALID_STATUS_TRANSITION`；取消 → 自動回補 `spec.stock_qty`
+- [x] `shipping` / `delivered` 轉 `cancelled` → 409（不可取消）
+- [x] `order_service.py`（Phase 4a create_order）未被修改
+- [x] 全部任務已提交；plan checkboxes 已勾選
