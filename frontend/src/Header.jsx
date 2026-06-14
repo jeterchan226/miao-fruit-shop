@@ -1,8 +1,12 @@
 /* Header — sticky top nav with mobile hamburger */
 
-const Header = ({ cartCount, onCart, active, onNav }) => {
-  const I = window.StoreIcon;
-  const [open, setOpen] = React.useState(false);
+import { useEffect, useState } from 'react';
+
+import { StoreIcon } from './Icons.jsx';
+
+export const Header = ({ cartCount, onCart, active, onNav }) => {
+  const I = StoreIcon;
+  const [open, setOpen] = useState(false);
 
   const links = [
     { id: 'shop', label: '商品' },
@@ -12,7 +16,7 @@ const Header = ({ cartCount, onCart, active, onNav }) => {
     { id: 'contact', label: '聯絡我們' }
   ];
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
@@ -67,5 +71,3 @@ const Header = ({ cartCount, onCart, active, onNav }) => {
     </header>
   );
 };
-
-window.Header = Header;

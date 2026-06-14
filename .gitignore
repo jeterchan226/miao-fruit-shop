@@ -24,3 +24,5 @@ venv/
 
 # Node
 node_modules/
+dist/
+frontend/dist/

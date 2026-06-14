@@ -1,8 +1,25 @@
 /* App — top-level state, tweaks, sections */
 
-const { useState: useStateA, useEffect: useEffectA } = React;
+import { useEffect, useState } from 'react';
 
-function App() {
+import { listProducts } from './api.js';
+import { CartDrawer } from './Cart.jsx';
+import { Header } from './Header.jsx';
+import { Hero, scrollToId } from './Hero.jsx';
+import { SpecCard } from './SpecCard.jsx';
+import { PRODUCTS } from './data.js';
+import {
+  Belief,
+  Contact,
+  Footer,
+  Notices,
+  Packaging,
+  Rail,
+  SecTitle,
+} from './Sections.jsx';
+import { TweakRadio, TweakSection, TweaksPanel, useTweaks } from './tweaks-panel.jsx';
+
+export default function App() {
   // ── Tweaks ────────────────────────────────────────────────
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     "heroLayout": "split",
@@ -14,16 +31,19 @@ function App() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
 
   // apply palette + density via root attributes
-  useEffectA(() => {
+  useEffect(() => {
     document.documentElement.setAttribute('data-palette', tweaks.palette);
     document.documentElement.setAttribute('data-density', tweaks.density);
   }, [tweaks.palette, tweaks.density]);
 
   // ── Cart state ────────────────────────────────────────────
-  const [cart, setCart] = useStateA([]); // [{lineId, productId, name, image, specLabel, qty, price, count}]
-  const [drawerOpen, setDrawerOpen] = useStateA(false);
-  const [toast, setToast] = useStateA(null);
-  const [activeSec, setActiveSec] = useStateA('shop');
+  const [cart, setCart] = useState([]); // [{lineId, productId, specId, name, image, specLabel, qty, price, count}]
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [activeSec, setActiveSec] = useState('shop');
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState(null);
 
   const cartCount = cart.reduce((s, i) => s + i.count, 0);
 
@@ -35,7 +55,7 @@ function App() {
         return prev.map(i => i.lineId === lineId ? { ...i, count: i.count + count } : i);
       }
       return [...prev, {
-        lineId, productId: p.id, name: p.name,
+        lineId, productId: p.id, specId: spec.id, name: p.name,
         image: p.image, specLabel: spec.label, qty: spec.qty,
         price: spec.price, count
       }];
@@ -52,14 +72,38 @@ function App() {
   };
   const remove = (lineId) => setCart(prev => prev.filter(i => i.lineId !== lineId));
 
-  useEffectA(() => {
+  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1800);
     return () => clearTimeout(t);
   }, [toast]);
 
+  const loadProducts = (showLoading = true, shouldApply = () => true) => {
+    if (showLoading) setProductsLoading(true);
+    setProductsError(null);
+    return listProducts()
+      .then(apiProducts => {
+        if (!shouldApply()) return;
+        setProducts(apiProducts);
+        setProductsLoading(false);
+      })
+      .catch(err => {
+        if (!shouldApply()) return;
+        console.warn('[products] API unavailable, falling back to static data:', err);
+        setProducts(PRODUCTS);
+        setProductsError('目前暫時無法同步即時庫存，已顯示預設商品資料。');
+        setProductsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    let alive = true;
+    loadProducts(true, () => alive);
+    return () => { alive = false; };
+  }, []);
+
   // scroll spy
-  useEffectA(() => {
+  useEffect(() => {
     const sections = ['shop','notice','packaging','about','contact'];
     const onScroll = () => {
       const y = window.scrollY + 120;
@@ -82,7 +126,7 @@ function App() {
         cartCount={cartCount}
         onCart={() => setDrawerOpen(true)}
         active={activeSec}
-        onNav={(id) => id === 'top' ? window.scrollTo({top:0, behavior:'smooth'}) : window.scrollToId(id)}
+        onNav={(id) => id === 'top' ? window.scrollTo({top:0, behavior:'smooth'}) : scrollToId(id)}
       />
       <Hero variant={tweaks.heroLayout} />
 
@@ -93,9 +137,14 @@ function App() {
             title="精選水梨商品"
             sub="甘露梨珍稀品種，蜜香濃郁、入口即化。提供 2 粒禮盒、5 台斤與 10 台斤三種規格選擇。"
           />
+          {productsLoading && <div className="shop-state">正在同步商品與庫存...</div>}
+          {!productsLoading && productsError && <div className="shop-state shop-state--warn">{productsError}</div>}
+          {!productsLoading && !productsError && products.length === 0 && (
+            <div className="shop-state">目前沒有上架商品。</div>
+          )}
           <div className="shop">
             <div className="shop__grid shop__grid--specs">
-              {window.PRODUCTS.flatMap(p =>
+              {products.flatMap(p =>
                 p.specs.map(spec => (
                   <SpecCard key={p.id + '-' + spec.id} p={p} spec={spec} onAdd={addToCart} />
                 ))
@@ -118,7 +167,7 @@ function App() {
         items={cart}
         onQty={setQty}
         onRemove={remove}
-        onPlaceOrder={() => setCart([])}
+        onPlaceOrder={() => { setCart([]); loadProducts(false); }}
       />
 
       {toast && <div className="toast">{toast}</div>}
@@ -176,5 +225,3 @@ function App() {
     </>
   );
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);

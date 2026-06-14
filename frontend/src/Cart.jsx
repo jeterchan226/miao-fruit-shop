@@ -1,6 +1,9 @@
 /* Cart drawer + multi-step checkout (data → payment → done) */
 
-const { useState: useStateC, useEffect: useEffectC, useMemo: useMemoC } = React;
+import { useEffect, useMemo, useState } from 'react';
+
+import { createOrder } from './api.js';
+import { StoreIcon } from './Icons.jsx';
 
 const FREE_SHIPPING = 5000;
 const SHIPPING_FEE  = 150;
@@ -27,8 +30,8 @@ const DatePickerSheet = ({ value, onSelect, onClose }) => {
   const maxDate  = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
 
   const initDate   = value ? new Date(value + 'T00:00:00') : tomorrow;
-  const [viewYear,  setViewYear]  = useStateC(initDate.getFullYear());
-  const [viewMonth, setViewMonth] = useStateC(initDate.getMonth());
+  const [viewYear,  setViewYear]  = useState(initDate.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initDate.getMonth());
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); }
@@ -143,7 +146,7 @@ const CartItem = ({ item, onQty, onRemove }) => (
 );
 
 const Empty = ({ onBrowse }) => {
-  const I = window.StoreIcon;
+  const I = StoreIcon;
   return (
     <div className="drawer__empty">
       <span className="ill"><I name="cart" size={42} stroke={1.4} /></span>
@@ -178,8 +181,8 @@ const Steps = ({ step }) => (
 
 const InfoForm = ({ form, setForm, errors }) => {
   const set = (k, v) => setForm({ ...form, [k]: v });
-  const [sheet,  setSheet]  = useStateC(null);   // null | 'city' | 'district'
-  const [dpOpen, setDpOpen] = useStateC(false);
+  const [sheet,  setSheet]  = useState(null);   // null | 'city' | 'district'
+  const [dpOpen, setDpOpen] = useState(false);
 
   const zipData  = window.TW_ZIPCODE || {};
   const cities   = Object.keys(zipData);
@@ -380,9 +383,10 @@ const PayForm = ({ pay, setPay, form }) => {
 const CheckoutPage = ({
   step, form, setForm, errors, pay, setPay,
   subtotal, shipping, codFee, total,
+  submitting, submitError,
   onBack, onNext, onClose,
 }) => {
-  useEffectC(() => {
+  useEffect(() => {
     const scrollY = window.scrollY;
     document.body.style.cssText =
       `overflow:hidden;position:fixed;top:-${scrollY}px;width:100%;`;
@@ -425,10 +429,11 @@ const CheckoutPage = ({
           </div>
           <div className="checkout-page__actions">
             <button className="btn btn--ghost co-back" type="button" onClick={onBack}>上一步</button>
-            <button className="btn btn--primary co-next" type="button" onClick={onNext}>
-              {step === 'info' ? '下一步：選擇付款' : '送出訂單'}
+            <button className="btn btn--primary co-next" type="button" onClick={onNext} disabled={submitting}>
+              {submitting ? '送出中...' : (step === 'info' ? '下一步：選擇付款' : '送出訂單')}
             </button>
           </div>
+          {submitError && <div className="checkout-error">{submitError}</div>}
         </div>
       </div>
     </div>
@@ -437,22 +442,24 @@ const CheckoutPage = ({
 
 /* ── Cart Drawer ───────────────────────────────────────────── */
 
-const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => {
-  const [step, setStep]       = useStateC('cart');
-  const [form, setForm]       = useStateC({
+export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => {
+  const [step, setStep]       = useState('cart');
+  const [form, setForm]       = useState({
     name: '', phone: '', email: '',
     city: '', district: '', zipcode: '', street: '',
     ship: getTomorrowStr(), window: 'any', note: ''
   });
-  const [errors, setErrors]   = useStateC({});
-  const [pay, setPay]         = useStateC('linepay');
-  const [orderId, setOrderId] = useStateC(null);
+  const [errors, setErrors]   = useState({});
+  const [pay, setPay]         = useState('linepay');
+  const [orderId, setOrderId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
-  useEffectC(() => {
+  useEffect(() => {
     if (open && items.length === 0 && step !== 'cart' && step !== 'done') setStep('cart');
   }, [open, items.length]);
 
-  const subtotal = useMemoC(() => items.reduce((s, i) => s + i.price * i.count, 0), [items]);
+  const subtotal = useMemo(() => items.reduce((s, i) => s + i.price * i.count, 0), [items]);
   const shipping = subtotal === 0 ? 0 : (subtotal >= FREE_SHIPPING ? 0 : SHIPPING_FEE);
   const codFee   = pay === 'cod' && step === 'pay' ? 30 : 0;
   const total    = subtotal + shipping + codFee;
@@ -477,56 +484,63 @@ const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => 
     return Object.keys(e).length === 0;
   };
 
-  // 送出訂單 — 後端 API 尚未開發。這裡先保留唯一的接點:目前只把訂單內容
-  // 記到 console 並直接成功,之後把這裡換成對後端的 fetch 即可,呼叫端
-  // (下方 step === 'pay' 的流程)完全不用改動。
-  //   例: return fetch('/api/orders', {
-  //          method: 'POST',
-  //          headers: { 'Content-Type': 'application/json' },
-  //          body: JSON.stringify(order),
-  //        }).then(r => { if (!r.ok) throw new Error('下單失敗'); return r.json(); });
-  const submitOrder = (order) => {
-    console.log('[order] 待串接後端 API,暫存訂單內容:', order);
-    return Promise.resolve();
+  const formatApiError = (err) => {
+    const data = err?.data || {};
+    if (err?.code === 'PRICE_CHANGED') {
+      return `商品價格已更新，新的訂單合計為 NT$ ${Number(data.total || 0).toLocaleString()}，請重新確認後再送出。`;
+    }
+    if (err?.code === 'INSUFFICIENT_STOCK') return data.detail || '庫存不足，請調整購買數量。';
+    if (err?.code === 'NOT_FOUND') return '商品規格已更新，請重新整理頁面後再加入購物車。';
+    if (err?.status === 422) return '訂單資料格式有誤，請檢查收件資訊後再送出。';
+    return '目前無法送出訂單，請稍後再試。';
   };
 
-  const next = () => {
+  const buildOrderPayload = () => ({
+    customer: {
+      name: form.name,
+      phone: form.phone,
+      email: form.email || null,
+    },
+    shipping: {
+      zipcode: form.zipcode,
+      city: form.city,
+      district: form.district,
+      street: form.street,
+      preferred_date: form.ship,
+      delivery_window: form.window,
+    },
+    items: items.map(i => ({
+      spec_id: i.specId,
+      qty: i.count,
+    })),
+    payment_method: pay,
+    note: form.note || null,
+    expected_total: total,
+  });
+
+  const next = async () => {
     if (step === 'cart') {
       if (items.length === 0) return;
+      setSubmitError(null);
       setStep('info');
     } else if (step === 'info') {
+      setSubmitError(null);
       if (validate()) setStep('pay');
     } else if (step === 'pay') {
-      const oid         = 'MM-' + Date.now().toString(36).toUpperCase().slice(-6);
-      const fullAddress = `${form.zipcode} ${form.city}${form.district}${form.street}`;
-      const windowLabel = form.window === 'any' ? '不指定' : form.window === 'am' ? '上午 9–13' : '下午 14–18';
-      const payLabel    = { linepay: 'LINE Pay', card: '信用卡', atm: 'ATM 轉帳', cod: '貨到付款' }[pay] || pay;
-
-      // 結構化訂單物件 — 之後直接以 JSON 送給後端 API。
-      const order = {
-        orderId:   oid,
-        createdAt: new Date().toISOString(),
-        customer:  { name: form.name, phone: form.phone, email: form.email },
-        shipping:  {
-          fullAddress,
-          city: form.city, district: form.district, zipcode: form.zipcode, street: form.street,
-          preferredDate: form.ship,
-          deliveryWindow: windowLabel,
-        },
-        items: items.map(i => ({
-          productId: i.productId, name: i.name, spec: i.specLabel,
-          qty: i.count, unitPrice: i.price, lineTotal: i.price * i.count,
-        })),
-        payment: { method: pay, label: payLabel },
-        amounts: { subtotal, shipping, codFee, total },
-        note: form.note,
-      };
-
-      submitOrder(order).finally(() => {
-        setOrderId(oid);
+      if (submitting) return;
+      setSubmitting(true);
+      setSubmitError(null);
+      try {
+        const order = await createOrder(buildOrderPayload());
+        setOrderId(order.order_no);
         setStep('done');
         onPlaceOrder?.();
-      });
+      } catch (err) {
+        console.error('[order] create failed:', err);
+        setSubmitError(formatApiError(err));
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -543,6 +557,7 @@ const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => 
         setForm({ name:'', phone:'', email:'', city:'', district:'', zipcode:'', street:'', ship: getTomorrowStr(), window:'any', note:'' });
         setPay('linepay');
         setOrderId(null);
+        setSubmitError(null);
       }
     }, 200);
   };
@@ -556,6 +571,8 @@ const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => 
         form={form} setForm={setForm} errors={errors}
         pay={pay} setPay={setPay}
         subtotal={subtotal} shipping={shipping} codFee={codFee} total={total}
+        submitting={submitting}
+        submitError={submitError}
         onBack={back}
         onNext={next}
         onClose={closeAll}
@@ -627,5 +644,3 @@ const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => 
     </>
   );
 };
-
-window.CartDrawer = CartDrawer;

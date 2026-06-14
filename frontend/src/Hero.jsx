@@ -1,6 +1,8 @@
 /* Hero — three variants: split / fullbleed / collage */
 
-const scrollToId = (id) => {
+import { StoreIcon } from './Icons.jsx';
+
+export const scrollToId = (id) => {
   const el = document.getElementById(id);
   if (!el) return;
   const top = el.getBoundingClientRect().top + window.scrollY - 80;
@@ -9,7 +11,7 @@ const scrollToId = (id) => {
 window.scrollToId = scrollToId;
 
 const HeroSplit = () => {
-  const I = window.StoreIcon;
+  const I = StoreIcon;
   return (
     <section className="hero hero--split" id="top">
       <div className="hero__grid">
@@ -75,7 +77,7 @@ const HeroSplit = () => {
 };
 
 const HeroFullbleed = () => {
-  const I = window.StoreIcon;
+  const I = StoreIcon;
   return (
     <section className="hero hero--fullbleed" id="top">
       <div className="hero__bleed">
@@ -157,10 +159,8 @@ const HeroCollage = () => {
   );
 };
 
-const Hero = ({ variant }) => {
+export const Hero = ({ variant }) => {
   if (variant === 'fullbleed') return <HeroFullbleed />;
   if (variant === 'collage')   return <HeroCollage />;
   return <HeroSplit />;
 };
-
-window.Hero = Hero;

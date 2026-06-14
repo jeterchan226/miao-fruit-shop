@@ -1,6 +1,6 @@
 /* Storefront — shared icons (Lucide-style outline) */
 
-const StoreIcon = ({ name, size = 22, stroke = 1.7 }) => {
+export const StoreIcon = ({ name, size = 22, stroke = 1.7 }) => {
   const props = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: stroke, strokeLinecap: "round", strokeLinejoin: "round" };
   switch (name) {
     case 'truck':
