@@ -116,7 +116,7 @@ async def change_order_status(
     if new_status == "cancelled":
         for item in order.items:
             if item.spec_id is not None:
-                spec = await spec_repo.get_by_id(session, item.spec_id)
+                spec = await spec_repo.get_for_update(session, item.spec_id)
                 if spec is not None:
                     spec.stock_qty += item.qty
     order.status = new_status
