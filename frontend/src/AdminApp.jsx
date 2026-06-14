@@ -144,6 +144,7 @@ function LoginView({ onLogin }) {
 /* ── Filter strip ── */
 function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
   const debounceRef = useRef(null);
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   const setChipStatus = (value) => {
     const next = { ...filters, status: value };
@@ -272,14 +273,16 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [updateError, setUpdateError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError('');
     setDetail(null);
     setStatusTarget('');
     setUpdateError('');
     getAdminOrder(token, orderNo)
-      .then((data) => { setDetail(data); setLoading(false); })
-      .catch(() => { setError('無法載入訂單明細。'); setLoading(false); });
+      .then((data) => { if (!cancelled) { setDetail(data); setLoading(false); } })
+      .catch(() => { if (!cancelled) { setError('無法載入訂單明細。'); setLoading(false); } });
+    return () => { cancelled = true; };
   }, [orderNo, token]);
 
   useEffect(() => { setStatusTarget(''); }, [detail?.status]);
@@ -437,6 +440,9 @@ export default function AdminApp() {
   const [selectedOrderNo, setSelectedOrderNo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
+  const initialLoadDone = useRef(false);
+  const reqCountRef = useRef(0);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken('');
@@ -449,17 +455,20 @@ export default function AdminApp() {
     async (page = 1, overrideFilters) => {
       if (!token) return;
       const active = overrideFilters ?? filters;
+      const reqId = ++reqCountRef.current;
       setListLoading(true);
       setListError('');
       try {
         const params = { ...resolveSearchParams(active), page, page_size: 20 };
         const data = await listAdminOrders(token, params);
-        setOrders(data);
+        if (reqId === reqCountRef.current) setOrders(data);
       } catch (err) {
-        if (err?.status === 401) logout();
-        else setListError(err?.data?.detail || '無法載入訂單。');
+        if (reqId === reqCountRef.current) {
+          if (err?.status === 401) logout();
+          else setListError(err?.data?.detail || '無法載入訂單。');
+        }
       } finally {
-        setListLoading(false);
+        if (reqId === reqCountRef.current) setListLoading(false);
       }
     },
     [token, filters, logout],
@@ -472,7 +481,12 @@ export default function AdminApp() {
       .catch(() => { logout(); setAuthChecked(true); });
   }, [token, logout]);
 
-  useEffect(() => { if (admin) loadOrders(1); }, [admin]);
+  useEffect(() => {
+    if (admin && !initialLoadDone.current) {
+      initialLoadDone.current = true;
+      loadOrders(1);
+    }
+  }, [admin, loadOrders]);
 
   const handleLogin = (accessToken) => {
     localStorage.setItem(TOKEN_KEY, accessToken);
@@ -554,7 +568,7 @@ export default function AdminApp() {
               <div className="adm-pager-current">{orders.page}</div>
               <button
                 className="adm-pager-btn"
-                disabled={orders.items.length < orders.page_size || listLoading}
+                disabled={orders.page * orders.page_size >= orders.total || listLoading}
                 onClick={() => loadOrders(orders.page + 1)}
               >
                 下一頁 →
