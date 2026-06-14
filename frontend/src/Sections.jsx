@@ -1,6 +1,10 @@
 /* Notices, Packaging, Belief (brand), Contact, Footer */
 
-const SecTitle = ({ eyebrow, title, sub }) =>
+import { NOTICES } from './data.js';
+import { scrollToId } from './Hero.jsx';
+import { StoreIcon } from './Icons.jsx';
+
+export const SecTitle = ({ eyebrow, title, sub }) =>
 <div className="sec__head">
     {eyebrow && <div className="eyebrow">{eyebrow}</div>}
     <h2><span className="leaf"></span>{title}<span className="leaf r"></span></h2>
@@ -8,8 +12,8 @@ const SecTitle = ({ eyebrow, title, sub }) =>
   </div>;
 
 
-const Rail = () => {
-  const I = window.StoreIcon;
+export const Rail = () => {
+  const I = StoreIcon;
   return (
     <aside className="rail">
       <h4 className="rail__title">🍐 訂購快速資訊</h4>
@@ -29,21 +33,21 @@ const Rail = () => {
         <span className="rail__chip"><I name="shield-check" /></span>
         <div><h4>運送保障</h4><p>運送途中若有損壞，憑照片補寄或退款</p></div>
       </div>
-      <button className="btn btn--sage btn--full rail__btn" onClick={() => window.scrollToId('notice')}>
+      <button className="btn btn--sage btn--full rail__btn" onClick={() => scrollToId('notice')}>
         查看完整注意事項 →
       </button>
     </aside>);
 
 };
 
-const Notices = () => {
-  const I = window.StoreIcon;
+export const Notices = () => {
+  const I = StoreIcon;
   return (
     <section className="sec" id="notice">
       <div className="container">
         <SecTitle eyebrow="ORDER NOTES" title="訂購注意事項" sub="買前先看看這幾件事，確保水梨在最好的狀態下到您家。" />
         <div className="notices">
-          {window.NOTICES.map((n) =>
+          {NOTICES.map((n) =>
           <article className="notice" key={n.title}>
               <span className="notice__chip"><I name={n.icon} /></span>
               <h4>{n.title}</h4>
@@ -56,8 +60,8 @@ const Notices = () => {
 
 };
 
-const Packaging = ({ variant }) => {
-  const I = window.StoreIcon;
+export const Packaging = ({ variant }) => {
+  const I = StoreIcon;
   return (
     <section className={'sec packaging packaging--' + (variant || 'cards')} id="packaging">
       <div className="container" data-comment-anchor="86a2bfcf1b-div-63-7">
@@ -103,8 +107,8 @@ const Packaging = ({ variant }) => {
 
 };
 
-const Belief = () => {
-  const I = window.StoreIcon;
+export const Belief = () => {
+  const I = StoreIcon;
   return (
     <section className="sec" id="about">
       <div className="container">
@@ -177,8 +181,8 @@ const Belief = () => {
 
 };
 
-const Contact = () => {
-  const I = window.StoreIcon;
+export const Contact = () => {
+  const I = StoreIcon;
   return (
     <section className="sec" id="contact">
       <div className="container">
@@ -238,8 +242,8 @@ const Contact = () => {
 
 };
 
-const Footer = () => {
-  const I = window.StoreIcon;
+export const Footer = () => {
+  const I = StoreIcon;
   return (
     <footer className="footer">
       <div className="container">
@@ -300,5 +304,3 @@ const Footer = () => {
     </footer>);
 
 };
-
-Object.assign(window, { SecTitle, Rail, Notices, Packaging, Belief, Contact, Footer });

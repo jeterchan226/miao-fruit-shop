@@ -1,8 +1,14 @@
-# 妙媽媽果園 — 本機預覽用靜態站容器
-# 純靜態(CDN 載入 React + Babel),只需 nginx 服務檔案即可。
+FROM node:22-alpine AS build
+
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
 FROM nginx:alpine
 
-# 站台檔案放到 nginx 預設根目錄
-COPY . /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80

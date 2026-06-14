@@ -6,3 +6,5 @@ Dockerfile
 .DS_Store
 **/.DS_Store
 image
+node_modules
+dist

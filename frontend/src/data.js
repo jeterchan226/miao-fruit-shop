@@ -1,6 +1,6 @@
 /* 妙媽媽果園 — 商品資料 */
 
-const PRODUCTS = [
+export const PRODUCTS = [
   {
     id: 'kanro',
     name: '甘露梨',
@@ -18,7 +18,7 @@ const PRODUCTS = [
   },
 ];
 
-const NOTICES = [
+export const NOTICES = [
   { icon: 'calendar', title: '產季時間', body: '每年 7 月下旬至 10 月中旬，依品種陸續採收。建議提前下單，先收訂單先安排出貨。' },
   { icon: 'truck',    title: '出貨時間', body: '當日上午 11:00 前完成付款的訂單，當日下午採摘包裝、翌日早班宅配出貨。週日不出貨。' },
   { icon: 'file-check', title: '付款方式', body: 'LINE Pay、信用卡、ATM 轉帳、銀行匯款，五千元以上免運。' },

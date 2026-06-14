@@ -1,6 +1,6 @@
 /* Spec card — one card per spec, with qty stepper (single-product storefront) */
 
-const { useState } = React;
+import { useState } from 'react';
 
 const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '預購中';
 
@@ -10,10 +10,11 @@ const Price = ({ value }) => (
   </span>
 );
 
-const SpecCard = ({ p, spec, onAdd }) => {
+export const SpecCard = ({ p, spec, onAdd }) => {
   const [qty, setQty] = useState(1);
   const tagClass = 'pill pill--' + (p.tagColor || 'sage');
   const disabled = spec.stock === 'out';
+  const productSub = p.sub ? p.sub.split(' · ')[1] : p.slug;
   return (
     <article className="pcard speccard">
       <div className="pcard__img" style={{backgroundImage:`url(${p.image})`}}>
@@ -23,7 +24,7 @@ const SpecCard = ({ p, spec, onAdd }) => {
       <div className="pcard__body">
         <div className="pcard__head">
           <h3 className="pcard__name">{spec.label}</h3>
-          <p className="pcard__sub">{p.name} · {p.sub.split(' · ')[1]}</p>
+          <p className="pcard__sub">{productSub ? `${p.name} · ${productSub}` : p.name}</p>
         </div>
         <div className="specs__panel">
           <div className="specs__row">
@@ -64,5 +65,3 @@ const SpecCard = ({ p, spec, onAdd }) => {
     </article>
   );
 };
-
-window.SpecCard = SpecCard;

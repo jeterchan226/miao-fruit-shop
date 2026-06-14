@@ -33,7 +33,7 @@ VALID_TRANSITIONS: dict[str, set[str]] = {
 ```
 
 - `shipping` 和 `delivered` 不可取消（已寄出）
-- 非法轉移 → `409 INVALID_TRANSITION`
+- 非法轉移 → `409 INVALID_STATUS_TRANSITION`
 - 合法轉移到 `cancelled` → 自動回補庫存（見第 7 節）
 
 ## 4. API Endpoints
@@ -68,7 +68,7 @@ Body：`OrderStatusUpdate { status: str }`
 
 流程：
 1. 查訂單，找不到 → 404
-2. 驗轉移合法性，不合法 → 409 `INVALID_TRANSITION`
+2. 驗轉移合法性，不合法 → 409 `INVALID_STATUS_TRANSITION`
 3. 若目標狀態為 `cancelled`，回補庫存
 4. 更新 `order.status`，commit
 5. 回應：`AdminOrderRead`
@@ -192,22 +192,17 @@ for item in order.items:
 | 情境 | HTTP | code |
 |------|------|------|
 | 訂單不存在 | 404 | `NOT_FOUND`（沿用既有 handler） |
-| 非法狀態轉移 | 409 | `INVALID_TRANSITION` |
+| 非法狀態轉移 | 409 | `INVALID_STATUS_TRANSITION` |
 
-新增到 `app/core/exceptions.py`：
-
-```python
-class InvalidTransitionError(AppError):
-    pass
-```
-
-新增到 `app/api/errors.py`：
+沿用 `app/core/exceptions.py`：
 
 ```python
-@app.exception_handler(InvalidTransitionError)
-async def invalid_transition_handler(request, exc):
-    return JSONResponse(status_code=409, content={"detail": str(exc), "code": "INVALID_TRANSITION"})
+class InvalidStatusTransition(AppError):
+    code = "INVALID_STATUS_TRANSITION"
+    status_code = 409
 ```
+
+`app/api/errors.py` 的通用 `AppError` handler 會回傳固定格式 `{"detail": exc.detail, "code": exc.code}`。
 
 ## 9. 測試策略（TDD）
 
@@ -221,7 +216,7 @@ async def invalid_transition_handler(request, exc):
 - `get_order_detail` → 回完整 AdminOrderRead（含 items）
 - `get_order_detail` 找不到 → NotFoundError
 - `change_order_status` 合法轉移 → 狀態更新
-- `change_order_status` 非法轉移 → InvalidTransitionError
+- `change_order_status` 非法轉移 → InvalidStatusTransition
 - `change_order_status` → cancelled：spec.stock_qty 回補正確
 - `change_order_status` → cancelled：spec_id 為 None 時靜默略過
 
@@ -232,7 +227,7 @@ async def invalid_transition_handler(request, exc):
 - GET /api/admin/orders/{order_no} → 200 完整明細
 - GET /api/admin/orders/MM-NOTEXIST → 404
 - PATCH status 合法轉移 → 200 + 新狀態
-- PATCH status 非法轉移（shipping → cancelled）→ 409 INVALID_TRANSITION
+- PATCH status 非法轉移（shipping → cancelled）→ 409 INVALID_STATUS_TRANSITION
 - PATCH status 訂單不存在 → 404
 
 ## 10. 檔案異動清單
@@ -246,8 +241,8 @@ async def invalid_transition_handler(request, exc):
 **修改：**
 - `app/schemas/order.py` — 加 admin schemas
 - `app/repositories/order_repo.py` — 加 `list_filtered`
-- `app/core/exceptions.py` — 加 `InvalidTransitionError`
-- `app/api/errors.py` — 加 `InvalidTransitionError` handler
+- `app/core/exceptions.py` — 沿用 `InvalidStatusTransition`
+- `app/api/errors.py` — 沿用通用 `AppError` handler
 - `app/main.py` — include `admin_orders` router
 
 ## 11. 未來擴充（非本階段）
