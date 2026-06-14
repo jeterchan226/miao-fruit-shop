@@ -206,19 +206,21 @@ backend/
 | 狀態 | 中文 | 說明 |
 |------|------|------|
 | `pending_payment` | 待付款 | 預付方式(linepay / card / atm)的初始態 |
-| `pending` | 待出貨 | 貨到付款(cod)初始態,或預付確認收款後進入 |
-| `shipped` | 已出貨 | |
-| `completed` | 已完成 | |
-| `cancelled` | 已取消 | 可從任一非完成態轉入 |
+| `pending` | 待確認 | 貨到付款(cod)初始態 |
+| `confirmed` | 已確認 | 管理員確認訂單 / 收款後進入 |
+| `shipping` | 出貨中 | 已安排寄出,不可取消 |
+| `delivered` | 已送達 | 終態 |
+| `cancelled` | 已取消 | 終態,取消時回補庫存 |
 
 **建立訂單時的初始態**:`payment_method == cod` → `pending`;其餘 → `pending_payment`。
 
 **合法轉移**(由 Business 層驗證,違者拋 `InvalidStatusTransition`):
 ```
-pending_payment → pending | cancelled
-pending         → shipped | cancelled
-shipped         → completed | cancelled
-completed       → (終態)
+pending_payment → confirmed | cancelled
+pending         → confirmed | cancelled
+confirmed       → shipping | cancelled
+shipping        → delivered
+delivered       → (終態)
 cancelled       → (終態)
 ```
 

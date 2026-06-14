@@ -84,7 +84,7 @@
 > **第三個遷移**:`alembic revision --autogenerate -m "create orders and order_items"` → `alembic upgrade head`。
 
 ### 訂單狀態(本階段只用初始態,完整狀態機在 4b)
-`pending_payment`(待付款)、`pending`(待出貨)、`shipped`、`completed`、`cancelled`。本階段只負責**寫入初始態**;狀態轉移驗證在 4b。
+`pending_payment`(待付款)、`pending`(待確認)、`confirmed`、`shipping`、`delivered`、`cancelled`。本階段只負責**寫入初始態**;狀態轉移驗證在 4b。
 
 ---
 

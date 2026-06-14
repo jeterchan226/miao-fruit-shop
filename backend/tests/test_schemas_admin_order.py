@@ -30,3 +30,9 @@ def test_admin_order_list_response_structure():
 def test_order_status_update_forbids_extra():
     with pytest.raises(ValidationError):
         OrderStatusUpdate(status="confirmed", extra_field="oops")
+
+
+def test_order_status_update_rejects_legacy_statuses():
+    for status in ("shipped", "completed"):
+        with pytest.raises(ValidationError):
+            OrderStatusUpdate(status=status)
