@@ -1,6 +1,6 @@
-/* Admin order management app. */
+/* Admin order management — redesigned 2026-06-14 */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   getAdminOrder,
@@ -30,20 +30,65 @@ const NEXT_STATUS = {
   cancelled: [],
 };
 
+const CHIP_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: 'pending_payment', label: '待付款' },
+  { value: 'pending', label: '待確認' },
+  { value: 'confirmed', label: '已確認' },
+  { value: 'shipping', label: '出貨中' },
+  { value: 'delivered', label: '已送達' },
+  { value: 'cancelled', label: '已取消' },
+];
+
 const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
-const dateText = (s) => s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '-';
-const statusLabel = (s) => STATUS_LABELS[s] || s || '-';
+const dateText = (s) =>
+  s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '—';
+const statusLabel = (s) => STATUS_LABELS[s] || s || '—';
 
-const ErrorBar = ({ message }) => message ? <div className="adm-alert">{message}</div> : null;
+/* ── Resolve search text → API params ──
+   If the input looks like an order number (starts with MM-), send as order_no
+   (exact match). Otherwise send as q (name + phone ilike). */
+function resolveSearchParams(filters) {
+  const params = {};
+  if (filters.status) params.status = filters.status;
+  if (filters.date_from) params.date_from = filters.date_from;
+  if (filters.date_to) params.date_to = filters.date_to;
+  const text = (filters.searchText ?? '').trim();
+  if (text) {
+    if (/^MM-/i.test(text)) {
+      params.order_no = text;
+    } else {
+      params.q = text;
+    }
+  }
+  return params;
+}
 
+/* ── Alert ── */
+function Alert({ message }) {
+  if (!message) return null;
+  return <div className="adm-alert">{message}</div>;
+}
+
+/* ── Status badge ── */
+function StatusBadge({ status, large }) {
+  const base = large ? 'adm-badge-lg' : 'adm-badge';
+  return (
+    <span className={`${base} adm-badge--${status}`}>
+      {statusLabel(status)}
+    </span>
+  );
+}
+
+/* ── Login view ── */
 function LoginView({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const submit = async (event) => {
-    event.preventDefault();
+  const submit = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
     try {
@@ -57,333 +102,477 @@ function LoginView({ onLogin }) {
   };
 
   return (
-    <main className="admin-page adm-login">
-      <form className="adm-login__box" onSubmit={submit}>
-        <div>
-          <p className="adm-kicker">Admin</p>
-          <h1>妙媽媽果園後台</h1>
+    <div className="adm-login">
+      <div className="adm-login__box">
+        <div className="adm-login__header">
+          <p className="adm-login__eyebrow">Miao Fruit Shop</p>
+          <h1 className="adm-login__title">後台管理</h1>
         </div>
-        <label>
-          <span>帳號</span>
-          <input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" />
-        </label>
-        <label>
-          <span>密碼</span>
-          <input value={password} onChange={e => setPassword(e.target.value)} type="password" autoComplete="current-password" />
-        </label>
-        <ErrorBar message={error} />
-        <button className="adm-btn adm-btn--primary" disabled={loading || !username || !password}>
-          {loading ? '登入中...' : '登入'}
-        </button>
-      </form>
-    </main>
-  );
-}
-
-function FilterBar({ filters, setFilters, onApply, onClear, loading }) {
-  const set = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
-  return (
-    <div className="adm-filters">
-      <label>
-        <span>狀態</span>
-        <select value={filters.status} onChange={e => set('status', e.target.value)}>
-          <option value="">全部</option>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        <span>姓名 / 電話</span>
-        <input value={filters.q} onChange={e => set('q', e.target.value)} placeholder="搜尋" />
-      </label>
-      <label>
-        <span>訂單編號</span>
-        <input value={filters.order_no} onChange={e => set('order_no', e.target.value)} placeholder="MM-" />
-      </label>
-      <label>
-        <span>起日</span>
-        <input type="date" value={filters.date_from} onChange={e => set('date_from', e.target.value)} />
-      </label>
-      <label>
-        <span>迄日</span>
-        <input type="date" value={filters.date_to} onChange={e => set('date_to', e.target.value)} />
-      </label>
-      <div className="adm-filter-actions">
-        <button className="adm-btn adm-btn--primary" onClick={onApply} disabled={loading}>查詢</button>
-        <button className="adm-btn" onClick={onClear} disabled={loading}>清除</button>
+        <form className="adm-login__form" onSubmit={submit}>
+          <label className="adm-login__label">
+            帳號
+            <input
+              className="adm-login__input"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+            />
+          </label>
+          <label className="adm-login__label">
+            密碼
+            <input
+              className="adm-login__input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </label>
+          <Alert message={error} />
+          <button
+            className="adm-login__submit"
+            disabled={loading || !username || !password}
+          >
+            {loading ? '登入中…' : '登入'}
+          </button>
+        </form>
       </div>
     </div>
   );
 }
 
-function OrdersTable({ orders, selected, onSelect }) {
+/* ── Filter strip ── */
+function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
+  const debounceRef = useRef(null);
+
+  const setChipStatus = (value) => {
+    const next = { ...filters, status: value };
+    setFilters(next);
+    onSearch(next);
+  };
+
+  const setSearchText = (value) => {
+    const next = { ...filters, searchText: value };
+    setFilters(next);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onSearch(next), 300);
+  };
+
+  const setDate = (key, value) => {
+    const next = { ...filters, [key]: value };
+    setFilters(next);
+    onSearch(next);
+  };
+
   return (
-    <div className="adm-table-wrap">
+    <div className="adm-filters">
+      <div className="adm-chips">
+        {CHIP_OPTIONS.map(({ value, label }) => (
+          <button
+            key={value}
+            className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
+            onClick={() => setChipStatus(value)}
+          >
+            {label}
+            {value === '' && (
+              <span className="adm-chip__count">{totalAll}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className="adm-search-row">
+        <div className="adm-search">
+          <svg
+            className="adm-search__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            className="adm-search__input"
+            placeholder="搜尋姓名、電話、訂單編號…"
+            value={filters.searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </div>
+        <div className="adm-date-range">
+          <input
+            className="adm-date-input"
+            type="date"
+            value={filters.date_from}
+            onChange={(e) => setDate('date_from', e.target.value)}
+          />
+          <span className="adm-date-sep">—</span>
+          <input
+            className="adm-date-input"
+            type="date"
+            value={filters.date_to}
+            onChange={(e) => setDate('date_to', e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Orders table ── */
+function OrdersTable({ orders, selectedOrderNo, onSelect }) {
+  if (orders.length === 0) {
+    return (
+      <div className="adm-table-card">
+        <div className="adm-empty">沒有符合條件的訂單</div>
+      </div>
+    );
+  }
+  return (
+    <div className="adm-table-card">
       <table className="adm-table">
         <thead>
           <tr>
-            <th>訂單</th>
+            <th>訂單編號</th>
             <th>狀態</th>
-            <th>客戶</th>
+            <th>收件人</th>
             <th>電話</th>
-            <th className="num">金額</th>
+            <th className="adm-num">金額</th>
             <th>建立時間</th>
           </tr>
         </thead>
         <tbody>
-          {orders.map(order => (
+          {orders.map((order) => (
             <tr
               key={order.order_no}
-              className={selected === order.order_no ? 'is-selected' : ''}
+              className={selectedOrderNo === order.order_no ? 'is-selected' : ''}
               onClick={() => onSelect(order.order_no)}
             >
-              <td className="mono">{order.order_no}</td>
-              <td><span className={`adm-status adm-status--${order.status}`}>{statusLabel(order.status)}</span></td>
+              <td><span className="adm-mono">{order.order_no}</span></td>
+              <td><StatusBadge status={order.status} /></td>
               <td>{order.customer_name}</td>
-              <td>{order.customer_phone}</td>
-              <td className="num">{money(order.total)}</td>
-              <td>{dateText(order.created_at)}</td>
+              <td className="adm-muted">{order.customer_phone}</td>
+              <td className="adm-num">{money(order.total)}</td>
+              <td className="adm-muted">{dateText(order.created_at)}</td>
             </tr>
           ))}
-          {orders.length === 0 && (
-            <tr>
-              <td colSpan="6" className="adm-empty">沒有符合條件的訂單</td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>
   );
 }
 
-function OrderDetail({ order, loading, error, onChangeStatus }) {
-  const nextStatuses = useMemo(() => order ? NEXT_STATUS[order.status] || [] : [], [order]);
-  const [target, setTarget] = useState('');
+/* ── Order detail modal ── */
+function OrderModal({ orderNo, token, onClose, onStatusChange }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [statusTarget, setStatusTarget] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState('');
 
   useEffect(() => {
-    setTarget('');
-  }, [order?.order_no, order?.status]);
+    setLoading(true);
+    setError('');
+    setDetail(null);
+    setStatusTarget('');
+    setUpdateError('');
+    getAdminOrder(token, orderNo)
+      .then((data) => { setDetail(data); setLoading(false); })
+      .catch(() => { setError('無法載入訂單明細。'); setLoading(false); });
+  }, [orderNo, token]);
 
-  if (loading) return <aside className="adm-detail"><p className="adm-muted">載入明細中...</p></aside>;
-  if (error) return <aside className="adm-detail"><ErrorBar message={error} /></aside>;
-  if (!order) return <aside className="adm-detail"><p className="adm-muted">選擇一筆訂單查看明細</p></aside>;
+  useEffect(() => { setStatusTarget(''); }, [detail?.status]);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const nextStatuses = useMemo(
+    () => (detail ? (NEXT_STATUS[detail.status] ?? []) : []),
+    [detail?.status],
+  );
+
+  const handleUpdate = async () => {
+    if (!statusTarget) return;
+    setUpdating(true);
+    setUpdateError('');
+    try {
+      const updated = await updateAdminOrderStatus(token, orderNo, statusTarget);
+      setDetail(updated);
+      onStatusChange();
+    } catch (err) {
+      setUpdateError(err?.data?.detail || '狀態更新失敗。');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
-    <aside className="adm-detail">
-      <div className="adm-detail__head">
-        <div>
-          <p className="adm-kicker">Order</p>
-          <h2>{order.order_no}</h2>
-        </div>
-        <span className={`adm-status adm-status--${order.status}`}>{statusLabel(order.status)}</span>
-      </div>
-
-      <section className="adm-block">
-        <h3>收件資訊</h3>
-        <dl className="adm-dl">
-          <dt>收件人</dt><dd>{order.customer_name}</dd>
-          <dt>電話</dt><dd>{order.customer_phone}</dd>
-          <dt>Email</dt><dd>{order.customer_email || '-'}</dd>
-          <dt>地址</dt><dd>{order.ship_zipcode} {order.ship_city}{order.ship_district}{order.ship_street}</dd>
-          <dt>希望送達</dt><dd>{order.preferred_date} / {order.delivery_window}</dd>
-          <dt>付款方式</dt><dd>{order.payment_method}</dd>
-          <dt>備註</dt><dd>{order.note || '-'}</dd>
-        </dl>
-      </section>
-
-      <section className="adm-block">
-        <h3>商品明細</h3>
-        <div className="adm-lines">
-          {order.items.map((item, index) => (
-            <div className="adm-line" key={`${item.spec_label}-${index}`}>
-              <div>
-                <strong>{item.product_name}</strong>
-                <span>{item.spec_label} x {item.qty}</span>
-              </div>
-              <b>{money(item.line_total)}</b>
+    <div className="adm-modal-overlay" onClick={onClose}>
+      <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="adm-modal__head">
+          <div>
+            <div className="adm-modal__order-no">{orderNo}</div>
+            <div className="adm-modal__customer">
+              {loading ? '載入中…' : (detail?.customer_name ?? '—')}
             </div>
-          ))}
+          </div>
+          <div className="adm-modal__head-right">
+            {detail && <StatusBadge status={detail.status} large />}
+            <button className="adm-modal__close" onClick={onClose}>✕</button>
+          </div>
         </div>
-        <div className="adm-total">
-          <span>小計</span><b>{money(order.subtotal)}</b>
-          <span>運費</span><b>{money(order.shipping_fee)}</b>
-          <span>貨到付款</span><b>{money(order.cod_fee)}</b>
-          <span>總計</span><strong>{money(order.total)}</strong>
-        </div>
-      </section>
 
-      <section className="adm-block">
-        <h3>狀態更新</h3>
-        <div className="adm-status-form">
-          <select value={target} onChange={e => setTarget(e.target.value)} disabled={nextStatuses.length === 0}>
-            <option value="">{nextStatuses.length ? '選擇下一個狀態' : '此訂單已不可變更'}</option>
-            {nextStatuses.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}
-          </select>
-          <button className="adm-btn adm-btn--primary" disabled={!target} onClick={() => onChangeStatus(order.order_no, target)}>
-            更新
-          </button>
-        </div>
-      </section>
-    </aside>
+        {/* Body */}
+        {loading && (
+          <div className="adm-modal__body" style={{ display: 'block' }}>
+            <div className="adm-empty">載入明細中…</div>
+          </div>
+        )}
+        {error && <p className="adm-modal__error">{error}</p>}
+        {!loading && !error && detail && (
+          <div className="adm-modal__body">
+            {/* Left — 收件資訊 */}
+            <div>
+              <div className="adm-modal__section">
+                <div className="adm-modal__section-title">收件資訊</div>
+                <dl className="adm-modal__dl">
+                  <dt>電話</dt><dd>{detail.customer_phone}</dd>
+                  <dt>Email</dt><dd>{detail.customer_email || '—'}</dd>
+                  <dt>地址</dt>
+                  <dd>
+                    {detail.ship_zipcode}&nbsp;
+                    {detail.ship_city}{detail.ship_district}{detail.ship_street}
+                  </dd>
+                  <dt>希望送達</dt><dd>{detail.preferred_date}</dd>
+                  <dt>配送時段</dt><dd>{detail.delivery_window}</dd>
+                  <dt>付款方式</dt><dd>{detail.payment_method}</dd>
+                  <dt>備註</dt><dd>{detail.note || '—'}</dd>
+                </dl>
+              </div>
+            </div>
+            {/* Right — 商品明細 */}
+            <div>
+              <div className="adm-modal__section">
+                <div className="adm-modal__section-title">商品明細</div>
+                <div className="adm-modal__items">
+                  {detail.items.map((item, idx) => (
+                    <div className="adm-modal__item" key={idx}>
+                      <div>
+                        <div className="adm-modal__item-name">{item.product_name}</div>
+                        <div className="adm-modal__item-spec">
+                          {item.spec_label} × {item.qty}
+                        </div>
+                      </div>
+                      <div className="adm-modal__item-price">{money(item.line_total)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="adm-modal__totals">
+                  <span>小計</span><span>{money(detail.subtotal)}</span>
+                  <span>運費</span><span>{money(detail.shipping_fee)}</span>
+                  <span>貨到付款手續費</span><span>{money(detail.cod_fee)}</span>
+                  <span className="grand">總計</span>
+                  <span className="grand-val">{money(detail.total)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        {!loading && !error && detail && (
+          <div className="adm-modal__foot">
+            {updateError
+              ? <span style={{ fontSize: 12, color: 'var(--packaging-red)', flex: 1 }}>{updateError}</span>
+              : <span className="adm-modal__foot-label">變更狀態</span>
+            }
+            <select
+              className="adm-modal__status-select"
+              value={statusTarget}
+              onChange={(e) => setStatusTarget(e.target.value)}
+              disabled={nextStatuses.length === 0 || updating}
+            >
+              <option value="">
+                {nextStatuses.length ? '選擇下一個狀態…' : '此訂單已不可變更'}
+              </option>
+              {nextStatuses.map((s) => (
+                <option key={s} value={s}>{statusLabel(s)}</option>
+              ))}
+            </select>
+            <button
+              className="adm-modal__update-btn"
+              disabled={!statusTarget || updating}
+              onClick={handleUpdate}
+            >
+              {updating ? '更新中…' : '確認更新'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
+/* ── Main app ── */
 export default function AdminApp() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
   const [admin, setAdmin] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+
   const [filters, setFilters] = useState({
-    status: '', q: '', order_no: '', date_from: '', date_to: '',
+    status: '',
+    searchText: '',
+    date_from: '',
+    date_to: '',
   });
   const [orders, setOrders] = useState({ total: 0, page: 1, page_size: 20, items: [] });
-  const [selected, setSelected] = useState('');
-  const [detail, setDetail] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [detailError, setDetailError] = useState('');
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState('');
 
-  const logout = () => {
+  const [selectedOrderNo, setSelectedOrderNo] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken('');
     setAdmin(null);
-    setSelected('');
-    setDetail(null);
-  };
+    setSelectedOrderNo('');
+    setModalOpen(false);
+  }, []);
 
-  const loadOrders = async (page = 1, filterValues = filters) => {
-    if (!token) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await listAdminOrders(token, {
-        ...filterValues,
-        page,
-        page_size: 20,
-      });
-      setOrders(data);
-      if (data.items.length === 0) {
-        setSelected('');
-        setDetail(null);
-      } else if (!data.items.some(item => item.order_no === selected)) {
-        setSelected(data.items[0].order_no);
+  const loadOrders = useCallback(
+    async (page = 1, overrideFilters) => {
+      if (!token) return;
+      const active = overrideFilters ?? filters;
+      setListLoading(true);
+      setListError('');
+      try {
+        const params = { ...resolveSearchParams(active), page, page_size: 20 };
+        const data = await listAdminOrders(token, params);
+        setOrders(data);
+      } catch (err) {
+        if (err?.status === 401) logout();
+        else setListError(err?.data?.detail || '無法載入訂單。');
+      } finally {
+        setListLoading(false);
       }
-    } catch (err) {
-      if (err?.status === 401) logout();
-      else setError(err?.data?.detail || '無法載入訂單。');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDetail = async (orderNo) => {
-    if (!token || !orderNo) return;
-    setDetailLoading(true);
-    setDetailError('');
-    try {
-      const data = await getAdminOrder(token, orderNo);
-      setDetail(data);
-    } catch (err) {
-      if (err?.status === 401) logout();
-      else setDetailError(err?.data?.detail || '無法載入訂單明細。');
-    } finally {
-      setDetailLoading(false);
-    }
-  };
+    },
+    [token, filters, logout],
+  );
 
   useEffect(() => {
-    if (!token) {
-      setAuthChecked(true);
-      return;
-    }
+    if (!token) { setAuthChecked(true); return; }
     getCurrentAdmin(token)
-      .then(user => {
-        setAdmin(user);
-        setAuthChecked(true);
-      })
-      .catch(() => {
-        logout();
-        setAuthChecked(true);
-      });
-  }, [token]);
+      .then((user) => { setAdmin(user); setAuthChecked(true); })
+      .catch(() => { logout(); setAuthChecked(true); });
+  }, [token, logout]);
 
-  useEffect(() => {
-    if (admin) loadOrders(1);
-  }, [admin]);
-
-  useEffect(() => {
-    if (selected) loadDetail(selected);
-  }, [selected]);
+  useEffect(() => { if (admin) loadOrders(1); }, [admin]);
 
   const handleLogin = (accessToken) => {
     localStorage.setItem(TOKEN_KEY, accessToken);
     setToken(accessToken);
   };
 
-  const clearFilters = () => {
-    const cleared = { status: '', q: '', order_no: '', date_from: '', date_to: '' };
-    setFilters(cleared);
-    loadOrders(1, cleared);
-  };
+  const openModal = useCallback((orderNo) => {
+    setSelectedOrderNo(orderNo);
+    setModalOpen(true);
+  }, []);
 
-  const changeStatus = async (orderNo, status) => {
-    setDetailError('');
-    try {
-      const updated = await updateAdminOrderStatus(token, orderNo, status);
-      setDetail(updated);
-      await loadOrders(orders.page);
-    } catch (err) {
-      setDetailError(err?.data?.detail || '狀態更新失敗。');
-    }
-  };
+  const closeModal = useCallback(() => setModalOpen(false), []);
 
-  if (!authChecked) return <main className="admin-page adm-shell adm-center">載入中...</main>;
+  if (!authChecked) return <div className="adm-loading">載入中…</div>;
   if (!token || !admin) return <LoginView onLogin={handleLogin} />;
 
   return (
-    <main className="admin-page adm-shell">
+    <div className="adm-shell">
+      {/* Topbar */}
       <header className="adm-topbar">
-        <div>
-          <p className="adm-kicker">Miao Fruit Shop</p>
-          <h1>訂單管理</h1>
-        </div>
-        <div className="adm-user">
-          <span>{admin.username}</span>
-          <button className="adm-btn" onClick={logout}>登出</button>
+        <span className="adm-topbar__logo">妙媽媽果園</span>
+        <nav className="adm-topbar__nav">
+          <button className="adm-topbar__nav-item adm-topbar__nav-item--active">
+            訂單管理
+          </button>
+          <button className="adm-topbar__nav-item">商品管理</button>
+        </nav>
+        <div className="adm-topbar__user">
+          <span className="adm-topbar__username">{admin.username}</span>
+          <button className="adm-btn adm-btn--ghost" onClick={logout}>登出</button>
         </div>
       </header>
 
-      <FilterBar
+      {/* Page header */}
+      <div className="adm-page-head">
+        <h1 className="adm-page-head__title">訂單管理</h1>
+        <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
+      </div>
+
+      {/* Filter */}
+      <FilterStrip
+        totalAll={orders.total}
         filters={filters}
         setFilters={setFilters}
-        onApply={() => loadOrders(1)}
-        onClear={clearFilters}
-        loading={loading}
+        onSearch={(f) => loadOrders(1, f)}
       />
-      <ErrorBar message={error} />
 
-      <section className="adm-grid">
-        <div className="adm-list">
-          <div className="adm-list__head">
-            <span>共 {orders.total} 筆</span>
+      {/* List error */}
+      <Alert message={listError} />
+
+      {/* Table + pagination */}
+      <div className="adm-table-wrap">
+        {listLoading ? (
+          <div className="adm-table-card">
+            <div className="adm-empty">載入訂單中…</div>
+          </div>
+        ) : (
+          <OrdersTable
+            orders={orders.items}
+            selectedOrderNo={selectedOrderNo}
+            onSelect={openModal}
+          />
+        )}
+
+        {orders.total > 0 && (
+          <div className="adm-pagination">
+            <span>
+              第 {orders.page} 頁，共{' '}
+              {Math.ceil(orders.total / orders.page_size)} 頁
+            </span>
             <div className="adm-pager">
-              <button className="adm-btn" disabled={orders.page <= 1 || loading} onClick={() => loadOrders(orders.page - 1)}>上一頁</button>
-              <span>{orders.page}</span>
-              <button className="adm-btn" disabled={orders.items.length < orders.page_size || loading} onClick={() => loadOrders(orders.page + 1)}>下一頁</button>
+              <button
+                className="adm-pager-btn"
+                disabled={orders.page <= 1 || listLoading}
+                onClick={() => loadOrders(orders.page - 1)}
+              >
+                ← 上一頁
+              </button>
+              <div className="adm-pager-current">{orders.page}</div>
+              <button
+                className="adm-pager-btn"
+                disabled={orders.items.length < orders.page_size || listLoading}
+                onClick={() => loadOrders(orders.page + 1)}
+              >
+                下一頁 →
+              </button>
             </div>
           </div>
-          {loading ? <p className="adm-muted">載入訂單中...</p> : (
-            <OrdersTable orders={orders.items} selected={selected} onSelect={setSelected} />
-          )}
-        </div>
-        <OrderDetail
-          order={detail}
-          loading={detailLoading}
-          error={detailError}
-          onChangeStatus={changeStatus}
+        )}
+      </div>
+
+      {/* Modal */}
+      {modalOpen && selectedOrderNo && (
+        <OrderModal
+          orderNo={selectedOrderNo}
+          token={token}
+          onClose={closeModal}
+          onStatusChange={() => loadOrders(orders.page)}
         />
-      </section>
-    </main>
+      )}
+    </div>
   );
 }
