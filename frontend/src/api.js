@@ -57,10 +57,8 @@ const normalizeProduct = (product) => ({
   name: product.name,
   sub: product.sub || 'Kanro · 蜜糖之味',
   desc: product.description,
-  image: product.image,
+  images: product.images || [],
   season: product.season,
-  tag: product.tag,
-  tagColor: product.tag_color || 'sage',
   specs: (product.specs || []).map((spec) => ({
     id: spec.id,
     label: spec.label,
@@ -104,6 +102,49 @@ export const getCurrentAdmin = (token) => request('/api/admin/auth/me', {
   headers: authHeaders(token),
 });
 
+const adminRequest = (token, path, options = {}) =>
+  request(path, {
+    ...options,
+    headers: { ...authHeaders(token), ...(options.headers || {}) },
+  });
+
+// ── Admin products ──
+
+export const listAdminProducts = (token) =>
+  adminRequest(token, '/api/admin/products');
+
+export const updateAdminProduct = (token, productId, data) =>
+  adminRequest(token, `/api/admin/products/${productId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+// ── Admin image APIs ──
+
+export const signUpload = (token, filename, contentType) =>
+  adminRequest(token, '/api/admin/uploads/sign', {
+    method: 'POST',
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+
+export const listProductImages = (token, productId) =>
+  adminRequest(token, `/api/admin/products/${productId}/images`);
+
+export const registerProductImage = (token, productId, url, sortOrder = 0) =>
+  adminRequest(token, `/api/admin/products/${productId}/images`, {
+    method: 'POST',
+    body: JSON.stringify({ url, sort_order: sortOrder }),
+  });
+
+export const deleteProductImage = (token, imageId) =>
+  adminRequest(token, `/api/admin/images/${imageId}`, { method: 'DELETE' });
+
+export const reorderProductImages = (token, productId, items) =>
+  adminRequest(token, `/api/admin/products/${productId}/images/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items }),
+  });
+
 export const listAdminOrders = (token, filters = {}) => {
   const qs = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -136,10 +177,17 @@ export const updateAdminOrderStatus = (token, orderNo, status) => request(
 window.MiaoApi = {
   ApiError,
   createOrder,
+  deleteProductImage,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,
+  listAdminProducts,
+  listProductImages,
   listProducts,
   loginAdmin,
+  registerProductImage,
+  reorderProductImages,
+  signUpload,
   updateAdminOrderStatus,
+  updateAdminProduct,
 };

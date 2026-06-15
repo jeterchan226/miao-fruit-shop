@@ -574,6 +574,60 @@ button { cursor: pointer; }
   background: #F8F5F0;
 }
 
+/* ── Product modal ── */
+.adm-modal--product { max-width: 560px; }
+.adm-modal__product-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 64px);
+}
+
+/* ── Image gallery（商品圖片管理）── */
+.img-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.img-gallery__item {
+  position: relative;
+  aspect-ratio: 4/3;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid var(--sage-200);
+}
+.img-gallery__thumb {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.img-gallery__delete {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(58,45,31,.65); color: #fff;
+  border: none; border-radius: 50%;
+  width: 22px; height: 22px; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0; transition: opacity var(--dur-micro);
+}
+.img-gallery__item:hover .img-gallery__delete { opacity: 1; }
+.img-gallery__upload-btn {
+  aspect-ratio: 4/3;
+  border: 2px dashed var(--sage-300);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: var(--sage-500);
+  cursor: pointer; transition: all var(--dur-micro);
+  user-select: none;
+}
+.img-gallery__upload-btn:hover,
+.img-gallery__upload-btn.is-uploading {
+  border-color: var(--sage-600); color: var(--sage-700);
+  background: var(--sage-100);
+}
+.img-gallery__upload-btn.is-uploading { font-size: 12px; cursor: wait; }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .adm-modal__body { grid-template-columns: 1fr; }

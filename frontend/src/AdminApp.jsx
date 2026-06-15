@@ -3,10 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  deleteProductImage,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,
+  listAdminProducts,
+  listProductImages,
   loginAdmin,
+  registerProductImage,
+  signUpload,
   updateAdminOrderStatus,
 } from './api.js';
 
@@ -421,11 +426,207 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   );
 }
 
+/* ── Image Gallery (商品圖片管理) ── */
+function ImageGallery({ productId, token }) {
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    listProductImages(token, productId).then(setImages).catch(() => {});
+  }, [productId, token]);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const { signed_url, public_url } = await signUpload(token, file.name, file.type);
+      await fetch(signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      const newSortOrder = images.length;
+      const img = await registerProductImage(token, productId, public_url, newSortOrder);
+      setImages((prev) => [...prev, img]);
+    } catch (err) {
+      setError('上傳失敗：' + (err?.message || '請稍後再試'));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDelete = async (imageId) => {
+    try {
+      await deleteProductImage(token, imageId);
+      setImages((prev) => prev.filter((i) => i.id !== imageId));
+    } catch {
+      setError('刪除失敗，請稍後再試');
+    }
+  };
+
+  return (
+    <div className="img-gallery">
+      <div className="img-gallery__grid">
+        {images.map((img) => (
+          <div key={img.id} className="img-gallery__item">
+            <img src={img.url} alt="" className="img-gallery__thumb" />
+            <button
+              className="img-gallery__delete"
+              onClick={() => handleDelete(img.id)}
+              title="移除"
+            >✕</button>
+          </div>
+        ))}
+        <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
+          {uploading ? '上傳中…' : '＋'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+      {error && <div className="adm-alert" style={{ marginTop: 8 }}>{error}</div>}
+    </div>
+  );
+}
+
+/* ── Product edit modal ── */
+function ProductEditModal({ product, token, onClose, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('images');
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="adm-modal-overlay" onClick={onClose}>
+      <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+        <div className="adm-modal__head">
+          <div>
+            <div className="adm-modal__order-no">{product.name}</div>
+            <div className="adm-modal__customer">商品 ID: {product.id}</div>
+          </div>
+          <button className="adm-modal__close" onClick={onClose}>✕</button>
+        </div>
+        <div className="adm-modal__product-body">
+          <div className="adm-modal__section">
+            <div className="adm-modal__section-title">商品圖片</div>
+            <ImageGallery productId={product.id} token={token} />
+          </div>
+          <div className="adm-modal__section">
+            <div className="adm-modal__section-title">基本資訊</div>
+            <dl className="adm-modal__dl">
+              <dt>商品名稱</dt><dd>{product.name}</dd>
+              <dt>Slug</dt><dd>{product.slug}</dd>
+              <dt>產季</dt><dd>{product.season}</dd>
+              <dt>狀態</dt><dd>{product.is_active ? '上架中' : '已下架'}</dd>
+              <dt>描述</dt><dd>{product.description}</dd>
+            </dl>
+          </div>
+          {error && <div className="adm-alert">{error}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Products tab ── */
+function ProductsTab({ token }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [editProduct, setEditProduct] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await listAdminProducts(token);
+      setProducts(data);
+    } catch {
+      setError('無法載入商品資料');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [token]);
+
+  if (loading) return <div className="adm-table-wrap"><div className="adm-empty">載入商品中…</div></div>;
+  if (error) return <div className="adm-table-wrap"><div className="adm-alert">{error}</div></div>;
+
+  return (
+    <div className="adm-table-wrap">
+      <div className="adm-table-card">
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th>商品名稱</th>
+              <th>Slug</th>
+              <th>產季</th>
+              <th>圖片數</th>
+              <th>規格數</th>
+              <th>狀態</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p) => (
+              <tr key={p.id}>
+                <td><strong>{p.name}</strong></td>
+                <td><span className="adm-mono">{p.slug}</span></td>
+                <td>{p.season}</td>
+                <td>{p.images?.length ?? 0}</td>
+                <td>{p.specs?.length ?? 0}</td>
+                <td>
+                  <span className={`adm-badge adm-badge--${p.is_active ? 'confirmed' : 'cancelled'}`}>
+                    {p.is_active ? '上架中' : '已下架'}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="adm-btn adm-btn--ghost"
+                    onClick={() => setEditProduct(p)}
+                    style={{ fontSize: 12 }}
+                  >
+                    編輯圖片
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editProduct && (
+        <ProductEditModal
+          product={editProduct}
+          token={token}
+          onClose={() => setEditProduct(null)}
+          onSaved={() => { setEditProduct(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
 /* ── Main app ── */
 export default function AdminApp() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
   const [admin, setAdmin] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState('orders');
 
   const [filters, setFilters] = useState({
     status: '',
@@ -509,10 +710,18 @@ export default function AdminApp() {
       <header className="adm-topbar">
         <span className="adm-topbar__logo">妙媽媽果園</span>
         <nav className="adm-topbar__nav">
-          <button className="adm-topbar__nav-item adm-topbar__nav-item--active">
+          <button
+            className={`adm-topbar__nav-item${activeTab === 'orders' ? ' adm-topbar__nav-item--active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
             訂單管理
           </button>
-          <button className="adm-topbar__nav-item">商品管理</button>
+          <button
+            className={`adm-topbar__nav-item${activeTab === 'products' ? ' adm-topbar__nav-item--active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            商品管理
+          </button>
         </nav>
         <div className="adm-topbar__user">
           <span className="adm-topbar__username">{admin.username}</span>
@@ -520,72 +729,77 @@ export default function AdminApp() {
         </div>
       </header>
 
-      {/* Page header */}
-      <div className="adm-page-head">
-        <h1 className="adm-page-head__title">訂單管理</h1>
-        <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
-      </div>
-
-      {/* Filter */}
-      <FilterStrip
-        totalAll={orders.total}
-        filters={filters}
-        setFilters={setFilters}
-        onSearch={(f) => loadOrders(1, f)}
-      />
-
-      {/* List error */}
-      <Alert message={listError} />
-
-      {/* Table + pagination */}
-      <div className="adm-table-wrap">
-        {listLoading ? (
-          <div className="adm-table-card">
-            <div className="adm-empty">載入訂單中…</div>
+      {/* Orders tab */}
+      {activeTab === 'orders' && (
+        <>
+          <div className="adm-page-head">
+            <h1 className="adm-page-head__title">訂單管理</h1>
+            <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
           </div>
-        ) : (
-          <OrdersTable
-            orders={orders.items}
-            selectedOrderNo={selectedOrderNo}
-            onSelect={openModal}
+          <FilterStrip
+            totalAll={orders.total}
+            filters={filters}
+            setFilters={setFilters}
+            onSearch={(f) => loadOrders(1, f)}
           />
-        )}
-
-        {orders.total > 0 && (
-          <div className="adm-pagination">
-            <span>
-              第 {orders.page} 頁，共{' '}
-              {Math.ceil(orders.total / orders.page_size)} 頁
-            </span>
-            <div className="adm-pager">
-              <button
-                className="adm-pager-btn"
-                disabled={orders.page <= 1 || listLoading}
-                onClick={() => loadOrders(orders.page - 1)}
-              >
-                ← 上一頁
-              </button>
-              <div className="adm-pager-current">{orders.page}</div>
-              <button
-                className="adm-pager-btn"
-                disabled={orders.page * orders.page_size >= orders.total || listLoading}
-                onClick={() => loadOrders(orders.page + 1)}
-              >
-                下一頁 →
-              </button>
-            </div>
+          <Alert message={listError} />
+          <div className="adm-table-wrap">
+            {listLoading ? (
+              <div className="adm-table-card">
+                <div className="adm-empty">載入訂單中…</div>
+              </div>
+            ) : (
+              <OrdersTable
+                orders={orders.items}
+                selectedOrderNo={selectedOrderNo}
+                onSelect={openModal}
+              />
+            )}
+            {orders.total > 0 && (
+              <div className="adm-pagination">
+                <span>
+                  第 {orders.page} 頁，共{' '}
+                  {Math.ceil(orders.total / orders.page_size)} 頁
+                </span>
+                <div className="adm-pager">
+                  <button
+                    className="adm-pager-btn"
+                    disabled={orders.page <= 1 || listLoading}
+                    onClick={() => loadOrders(orders.page - 1)}
+                  >
+                    ← 上一頁
+                  </button>
+                  <div className="adm-pager-current">{orders.page}</div>
+                  <button
+                    className="adm-pager-btn"
+                    disabled={orders.page * orders.page_size >= orders.total || listLoading}
+                    onClick={() => loadOrders(orders.page + 1)}
+                  >
+                    下一頁 →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          {modalOpen && selectedOrderNo && (
+            <OrderModal
+              orderNo={selectedOrderNo}
+              token={token}
+              onClose={closeModal}
+              onStatusChange={() => loadOrders(orders.page)}
+            />
+          )}
+        </>
+      )}
 
-      {/* Modal */}
-      {modalOpen && selectedOrderNo && (
-        <OrderModal
-          orderNo={selectedOrderNo}
-          token={token}
-          onClose={closeModal}
-          onStatusChange={() => loadOrders(orders.page)}
-        />
+      {/* Products tab */}
+      {activeTab === 'products' && (
+        <>
+          <div className="adm-page-head">
+            <h1 className="adm-page-head__title">商品管理</h1>
+          </div>
+          <ProductsTab token={token} />
+        </>
       )}
     </div>
   );
