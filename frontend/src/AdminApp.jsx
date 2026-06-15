@@ -268,7 +268,7 @@ function OrdersTable({ orders, selectedOrderNo, onSelect }) {
   }
   return (
     <div className="adm-table-card">
-      <table className="adm-table">
+      <table className="adm-table adm-table--orders">
         <thead>
           <tr>
             <th>訂單編號</th>
@@ -891,7 +891,8 @@ function ProductsTab({ token }) {
           {/* Spec rows */}
           {expanded[p.id] && (
             <>
-              <table className="adm-table">
+              <div className="adm-spec-scroll">
+              <table className="adm-table adm-table--specs">
                 <thead>
                   <tr>
                     <th style={{ width: 56 }}>順序</th>
@@ -957,6 +958,7 @@ function ProductsTab({ token }) {
                   ))}
                 </tbody>
               </table>
+              </div>
               <div style={{ padding: '10px 16px' }}>
                 <button
                   className="adm-btn adm-btn--secondary"
