@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  createSpec,
   deleteProductImage,
+  deleteSpec,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,
@@ -637,12 +639,112 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
   );
 }
 
+const EMPTY_SPEC_FORM = {
+  label: '', qty_text: '', price: '', stock_qty: '', note: '', low_stock_threshold: 3,
+};
+
+/* ── Create spec modal ── */
+function CreateSpecModal({ productId, token, onClose, onCreated }) {
+  const [form, setForm] = useState(EMPTY_SPEC_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const handleCreate = async () => {
+    if (!form.label || !form.qty_text || form.price === '' || form.stock_qty === '') {
+      setError('請填寫所有必填欄位');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await createSpec(token, productId, {
+        label: form.label,
+        qty_text: form.qty_text,
+        price: Number(form.price),
+        stock_qty: Number(form.stock_qty),
+        low_stock_threshold: Number(form.low_stock_threshold),
+        note: form.note || null,
+      });
+      onCreated();
+    } catch (err) {
+      setError(err?.data?.detail || '新增失敗');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="adm-modal-overlay" onClick={onClose}>
+      <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+        <div className="adm-modal__head">
+          <div className="adm-modal__order-no">新增規格</div>
+          <button className="adm-modal__close" onClick={onClose}>✕</button>
+        </div>
+        <div className="adm-modal__product-body">
+          <div className="adm-modal__section">
+            <div className="adm-spec-form">
+              <label className="adm-field">
+                <span className="adm-field__label">規格名稱 *</span>
+                <input className="adm-field__input" value={form.label}
+                  onChange={(e) => setField('label', e.target.value)} placeholder="如：5 台斤家庭箱" />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">容量說明 *</span>
+                <input className="adm-field__input" value={form.qty_text}
+                  onChange={(e) => setField('qty_text', e.target.value)} placeholder="如：6–8 顆 · 5 台斤" />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">售價（NT$）*</span>
+                <input className="adm-field__input" type="number" min="0" value={form.price}
+                  onChange={(e) => setField('price', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">庫存數量 *</span>
+                <input className="adm-field__input" type="number" min="0" value={form.stock_qty}
+                  onChange={(e) => setField('stock_qty', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">低庫存警示（預設 3）</span>
+                <input className="adm-field__input" type="number" min="0" value={form.low_stock_threshold}
+                  onChange={(e) => setField('low_stock_threshold', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">備註</span>
+                <input className="adm-field__input" value={form.note}
+                  onChange={(e) => setField('note', e.target.value)} placeholder="如：剩 3 箱" />
+              </label>
+            </div>
+          </div>
+          {error && <div className="adm-alert">{error}</div>}
+        </div>
+        <div className="adm-modal__foot">
+          <span />
+          <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
+          <button className="adm-modal__update-btn" onClick={handleCreate} disabled={saving}>
+            {saving ? '新增中…' : '新增規格'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Products tab — specs expanded under each product ── */
 function ProductsTab({ token }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editSpec, setEditSpec] = useState(null);
+  const [createForProduct, setCreateForProduct] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [expanded, setExpanded] = useState({});
 
   const load = async () => {
@@ -651,10 +753,11 @@ function ProductsTab({ token }) {
     try {
       const data = await listAdminProducts(token);
       setProducts(data);
-      // auto-expand all products
-      const exp = {};
-      data.forEach((p) => { exp[p.id] = true; });
-      setExpanded(exp);
+      setExpanded((prev) => {
+        const exp = { ...prev };
+        data.forEach((p) => { if (exp[p.id] === undefined) exp[p.id] = true; });
+        return exp;
+      });
     } catch {
       setError('無法載入商品資料');
     } finally {
@@ -664,6 +767,32 @@ function ProductsTab({ token }) {
 
   useEffect(() => { load(); }, [token]);
 
+  const moveSpec = async (specs, idx, direction) => {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= specs.length) return;
+    const a = specs[idx], b = specs[targetIdx];
+    const newOrderA = b.sort_order !== a.sort_order ? b.sort_order : b.sort_order + direction;
+    await Promise.all([
+      updateSpec(token, a.id, { sort_order: newOrderA }),
+      updateSpec(token, b.id, { sort_order: a.sort_order }),
+    ]);
+    load();
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await deleteSpec(token, confirmDelete.id);
+      setConfirmDelete(null);
+      load();
+    } catch (err) {
+      alert(err?.data?.detail || '刪除失敗');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="adm-table-wrap"><div className="adm-empty">載入商品中…</div></div>;
   if (error) return <div className="adm-table-wrap"><div className="adm-alert">{error}</div></div>;
 
@@ -671,7 +800,7 @@ function ProductsTab({ token }) {
     <div className="adm-table-wrap">
       {products.map((p) => (
         <div key={p.id} className="adm-table-card" style={{ marginBottom: 16 }}>
-          {/* Product header row */}
+          {/* Product header */}
           <div
             className="adm-product-header"
             onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}
@@ -687,50 +816,81 @@ function ProductsTab({ token }) {
 
           {/* Spec rows */}
           {expanded[p.id] && (
-            <table className="adm-table">
-              <thead>
-                <tr>
-                  <th style={{ paddingLeft: 32 }}>規格名稱</th>
-                  <th>容量</th>
-                  <th className="adm-num">售價</th>
-                  <th className="adm-num">庫存</th>
-                  <th>庫存狀態</th>
-                  <th>圖片數</th>
-                  <th>狀態</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(p.specs || []).map((s) => (
-                  <tr key={s.id}>
-                    <td style={{ paddingLeft: 32 }}>{s.label}</td>
-                    <td className="adm-muted">{s.qty_text}</td>
-                    <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
-                    <td className="adm-num">{s.stock_qty}</td>
-                    <td>
-                      <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
-                        {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
-                      </span>
-                    </td>
-                    <td>{s.images?.length ?? 0}</td>
-                    <td>
-                      <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
-                        {s.is_active ? '上架' : '下架'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="adm-btn adm-btn--secondary"
-                        style={{ fontSize: 12 }}
-                        onClick={() => setEditSpec(s)}
-                      >
-                        編輯規格
-                      </button>
-                    </td>
+            <>
+              <table className="adm-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 56 }}>順序</th>
+                    <th>規格名稱</th>
+                    <th>容量</th>
+                    <th className="adm-num">售價</th>
+                    <th className="adm-num">庫存</th>
+                    <th>庫存狀態</th>
+                    <th>圖片</th>
+                    <th>狀態</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(p.specs || []).map((s, idx, arr) => (
+                    <tr key={s.id}>
+                      <td>
+                        <div className="adm-order-btns">
+                          <button
+                            className="adm-order-btn"
+                            disabled={idx === 0}
+                            onClick={() => moveSpec(arr, idx, -1)}
+                            title="往上移"
+                          >▲</button>
+                          <button
+                            className="adm-order-btn"
+                            disabled={idx === arr.length - 1}
+                            onClick={() => moveSpec(arr, idx, 1)}
+                            title="往下移"
+                          >▼</button>
+                        </div>
+                      </td>
+                      <td>{s.label}</td>
+                      <td className="adm-muted">{s.qty_text}</td>
+                      <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
+                      <td className="adm-num">{s.stock_qty}</td>
+                      <td>
+                        <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
+                          {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
+                        </span>
+                      </td>
+                      <td>{s.images?.length ?? 0}</td>
+                      <td>
+                        <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
+                          {s.is_active ? '上架' : '下架'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="adm-btn adm-btn--secondary"
+                            style={{ fontSize: 12 }}
+                            onClick={() => setEditSpec(s)}
+                          >編輯</button>
+                          <button
+                            className="adm-btn adm-btn--danger"
+                            style={{ fontSize: 12 }}
+                            onClick={() => setConfirmDelete(s)}
+                          >刪除</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ padding: '10px 16px' }}>
+                <button
+                  className="adm-btn adm-btn--secondary"
+                  style={{ fontSize: 13 }}
+                  onClick={() => setCreateForProduct(p)}
+                >＋ 新增規格</button>
+              </div>
+            </>
           )}
         </div>
       ))}
@@ -742,6 +902,38 @@ function ProductsTab({ token }) {
           onClose={() => setEditSpec(null)}
           onSaved={() => { setEditSpec(null); load(); }}
         />
+      )}
+
+      {createForProduct && (
+        <CreateSpecModal
+          productId={createForProduct.id}
+          token={token}
+          onClose={() => setCreateForProduct(null)}
+          onCreated={() => { setCreateForProduct(null); load(); }}
+        />
+      )}
+
+      {confirmDelete && (
+        <div className="adm-modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="adm-modal adm-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="adm-modal__head">
+              <div className="adm-modal__order-no">確認刪除</div>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <p>確定要永久刪除規格「<strong>{confirmDelete.label}</strong>」嗎？</p>
+              <p style={{ fontSize: 13, color: 'var(--packaging-red)', marginTop: 8 }}>
+                此操作無法復原，相關圖片將一併刪除。
+              </p>
+            </div>
+            <div className="adm-modal__foot">
+              <span />
+              <button className="adm-btn adm-btn--ghost" onClick={() => setConfirmDelete(null)}>取消</button>
+              <button className="adm-btn adm-btn--danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? '刪除中…' : '確認刪除'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

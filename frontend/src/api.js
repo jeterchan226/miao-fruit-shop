@@ -163,13 +163,22 @@ export const reorderSpecImages = (token, specId, items) =>
     body: JSON.stringify({ items }),
   });
 
-// ── Admin spec update ──
+// ── Admin spec CRUD ──
+
+export const createSpec = (token, productId, data) =>
+  adminRequest(token, `/api/admin/products/${productId}/specs`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 
 export const updateSpec = (token, specId, data) =>
   adminRequest(token, `/api/admin/specs/${specId}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+
+export const deleteSpec = (token, specId) =>
+  adminRequest(token, `/api/admin/specs/${specId}`, { method: 'DELETE' });
 
 export const listAdminOrders = (token, filters = {}) => {
   const qs = new URLSearchParams();
@@ -203,7 +212,9 @@ export const updateAdminOrderStatus = (token, orderNo, status) => request(
 window.MiaoApi = {
   ApiError,
   createOrder,
+  createSpec,
   deleteProductImage,
+  deleteSpec,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,

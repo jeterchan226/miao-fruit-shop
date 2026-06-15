@@ -81,7 +81,33 @@ button { cursor: pointer; }
   color: var(--cream-card);
 }
 .adm-btn--primary:hover { background: var(--sage-700); }
+.adm-btn--danger {
+  border: 1px solid var(--packaging-red, #c0392b);
+  color: var(--packaging-red, #c0392b);
+  background: transparent;
+  border-radius: var(--r-sm);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all var(--dur-micro);
+}
+.adm-btn--danger:hover { background: var(--packaging-red, #c0392b); color: #fff; }
 .adm-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Spec order buttons ── */
+.adm-order-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.adm-order-btn {
+  background: none; border: 1px solid var(--sage-200); border-radius: 3px;
+  width: 22px; height: 16px; font-size: 9px; line-height: 1;
+  cursor: pointer; color: var(--sage-600); display: flex; align-items: center; justify-content: center;
+  transition: all var(--dur-micro);
+}
+.adm-order-btn:hover:not(:disabled) { background: var(--sage-100); border-color: var(--sage-400); }
+.adm-order-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── Confirm modal ── */
+.adm-modal--confirm { max-width: 400px; }
 
 /* ── Page header ── */
 .adm-page-head {
