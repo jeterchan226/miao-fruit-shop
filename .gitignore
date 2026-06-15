@@ -5,6 +5,7 @@
 # Tooling / local state (不進版控)
 .netlify/
 .playwright-mcp/
+.superpowers/
 .claude/settings.local.json
 
 # Secrets
