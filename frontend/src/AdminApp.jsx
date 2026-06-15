@@ -538,6 +538,7 @@ function SpecImageGallery({ specId, token }) {
     if (!over || active.id === over.id) return;
     const oldIndex = images.findIndex((i) => i.id === active.id);
     const newIndex = images.findIndex((i) => i.id === over.id);
+    setError('');
     const prevImages = images;
     const newImages = arrayMove(images, oldIndex, newIndex);
     setImages(newImages);

@@ -687,6 +687,9 @@ button { cursor: pointer; }
 }
 .img-gallery__item:hover .img-gallery__drag-handle { opacity: 1; }
 .img-gallery__item--dragging { opacity: 0.4; }
+@media (hover: none) {
+  .img-gallery__drag-handle { opacity: 1; }
+}
 .img-gallery__upload-btn {
   aspect-ratio: 4/3;
   border: 2px dashed var(--sage-300);
