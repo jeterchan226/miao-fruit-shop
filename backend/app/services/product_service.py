@@ -147,3 +147,11 @@ async def soft_delete_spec(session: AsyncSession, spec_id: int) -> None:
         raise NotFoundError("找不到規格")
     spec.is_active = False
     await session.commit()
+
+
+async def delete_spec(session: AsyncSession, spec_id: int) -> None:
+    spec = await spec_repo.get_by_id(session, spec_id)
+    if spec is None:
+        raise NotFoundError("找不到規格")
+    await spec_repo.delete(session, spec)
+    await session.commit()

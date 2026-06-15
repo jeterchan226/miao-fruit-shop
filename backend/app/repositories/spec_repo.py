@@ -24,3 +24,8 @@ async def add(session: AsyncSession, spec: ProductSpec) -> ProductSpec:
     session.add(spec)
     await session.flush()
     return spec
+
+
+async def delete(session: AsyncSession, spec: ProductSpec) -> None:
+    await session.delete(spec)
+    await session.flush()

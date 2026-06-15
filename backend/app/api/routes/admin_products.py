@@ -53,4 +53,4 @@ async def update_spec(
 
 @router.delete("/specs/{spec_id}", status_code=204)
 async def delete_spec(spec_id: int, session: SessionDep) -> None:
-    await product_service.soft_delete_spec(session, spec_id)
+    await product_service.delete_spec(session, spec_id)
