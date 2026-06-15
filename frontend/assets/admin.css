@@ -675,6 +675,18 @@ button { cursor: pointer; }
   cursor: pointer; opacity: 0; transition: opacity var(--dur-micro);
 }
 .img-gallery__item:hover .img-gallery__delete { opacity: 1; }
+.img-gallery__drag-handle {
+  position: absolute; top: 4px; left: 4px;
+  color: rgba(255,255,255,0.85);
+  font-size: 14px; line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity var(--dur-micro);
+  user-select: none;
+}
+.img-gallery__item:hover .img-gallery__drag-handle { opacity: 1; }
+.img-gallery__item--dragging { opacity: 0.4; }
 .img-gallery__upload-btn {
   aspect-ratio: 4/3;
   border: 2px dashed var(--sage-300);
