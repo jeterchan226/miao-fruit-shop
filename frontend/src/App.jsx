@@ -56,7 +56,7 @@ export default function App() {
       }
       return [...prev, {
         lineId, productId: p.id, specId: spec.id, name: p.name,
-        image: p.image, specLabel: spec.label, qty: spec.qty,
+        image: spec.images?.[0] || '', specLabel: spec.label, qty: spec.qty,
         price: spec.price, count
       }];
     });

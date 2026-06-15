@@ -64,7 +64,7 @@ async def test_list_orders_filter_by_status(
 ):
     headers = await _auth_header(db_session)
     await order_repo.add(db_session, _make_order("MM-API02", status="pending"))
-    await order_repo.add(db_session, _make_order("MM-API03", status="confirmed"))
+    await order_repo.add(db_session, _make_order("MM-API03", status="shipping"))
     await db_session.flush()
     resp = await client.get("/api/admin/orders?status=pending", headers=headers)
     assert resp.status_code == 200
@@ -99,11 +99,11 @@ async def test_change_status_valid_transition(
     await db_session.flush()
     resp = await client.patch(
         "/api/admin/orders/MM-CH01/status",
-        json={"status": "confirmed"},
+        json={"status": "shipping"},
         headers=headers,
     )
     assert resp.status_code == 200
-    assert resp.json()["status"] == "confirmed"
+    assert resp.json()["status"] == "shipping"
 
 
 async def test_change_status_invalid_transition(
@@ -127,7 +127,7 @@ async def test_change_status_order_not_found(
     headers = await _auth_header(db_session)
     resp = await client.patch(
         "/api/admin/orders/MM-GHOST/status",
-        json={"status": "confirmed"},
+        json={"status": "shipping"},
         headers=headers,
     )
     assert resp.status_code == 404

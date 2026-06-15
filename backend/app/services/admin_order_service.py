@@ -13,9 +13,8 @@ from app.schemas.order import (
 )
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
-    "pending":         {"confirmed", "cancelled"},
-    "pending_payment": {"confirmed", "cancelled"},
-    "confirmed":       {"shipping", "cancelled"},
+    "pending":         {"shipping", "cancelled"},
+    "pending_payment": {"shipping", "cancelled"},
     "shipping":        {"delivered"},
     "delivered":       set(),
     "cancelled":       set(),

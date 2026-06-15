@@ -23,16 +23,14 @@ const TOKEN_KEY = 'miao.admin.token';
 const STATUS_LABELS = {
   pending_payment: '待付款',
   pending: '待確認',
-  confirmed: '已確認',
   shipping: '出貨中',
   delivered: '已送達',
   cancelled: '已取消',
 };
 
 const NEXT_STATUS = {
-  pending_payment: ['confirmed', 'cancelled'],
-  pending: ['confirmed', 'cancelled'],
-  confirmed: ['shipping', 'cancelled'],
+  pending_payment: ['shipping', 'cancelled'],
+  pending: ['shipping', 'cancelled'],
   shipping: ['delivered'],
   delivered: [],
   cancelled: [],
@@ -42,11 +40,23 @@ const CHIP_OPTIONS = [
   { value: '', label: '全部' },
   { value: 'pending_payment', label: '待付款' },
   { value: 'pending', label: '待確認' },
-  { value: 'confirmed', label: '已確認' },
   { value: 'shipping', label: '出貨中' },
   { value: 'delivered', label: '已送達' },
   { value: 'cancelled', label: '已取消' },
 ];
+
+const DELIVERY_WINDOW_LABELS = {
+  any: '不指定',
+  am: '上午 9–13',
+  pm: '下午 14–18',
+};
+
+const PAYMENT_METHOD_LABELS = {
+  linepay: 'LINE Pay',
+  card: '信用卡',
+  atm: 'ATM 轉帳',
+  cod: '貨到付款',
+};
 
 const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
 const dateText = (s) =>
@@ -360,8 +370,8 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                     {detail.ship_city}{detail.ship_district}{detail.ship_street}
                   </dd>
                   <dt>希望送達</dt><dd>{detail.preferred_date}</dd>
-                  <dt>配送時段</dt><dd>{detail.delivery_window}</dd>
-                  <dt>付款方式</dt><dd>{detail.payment_method}</dd>
+                  <dt>配送時段</dt><dd>{DELIVERY_WINDOW_LABELS[detail.delivery_window] || detail.delivery_window}</dd>
+                  <dt>付款方式</dt><dd>{PAYMENT_METHOD_LABELS[detail.payment_method] || detail.payment_method}</dd>
                   <dt>備註</dt><dd>{detail.note || '—'}</dd>
                 </dl>
               </div>
