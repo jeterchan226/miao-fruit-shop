@@ -1,6 +1,21 @@
 /* Admin order management — redesigned 2026-06-14 */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import {
   createSpec,
@@ -13,6 +28,7 @@ import {
   listSpecImages,
   loginAdmin,
   registerSpecImage,
+  reorderSpecImages,
   signUpload,
   updateAdminOrderStatus,
   updateSpec,
@@ -449,11 +465,38 @@ const STOCK_STATUS_OPTIONS = [
   { value: 'out', label: '預購中' },
 ];
 
+/* ── Sortable image item ── */
+function SortableImageItem({ image, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: image.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`img-gallery__item${isDragging ? ' img-gallery__item--dragging' : ''}`}
+    >
+      <span className="img-gallery__drag-handle" {...attributes} {...listeners}>⠿</span>
+      <img src={image.url} alt="" className="img-gallery__thumb" />
+      <button
+        className="img-gallery__delete"
+        onClick={() => onDelete(image.id)}
+        title="移除"
+      >✕</button>
+    </div>
+  );
+}
+
 /* ── Spec image gallery (規格層級) ── */
 function SpecImageGallery({ specId, token }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   useEffect(() => {
     listSpecImages(token, specId).then(setImages).catch(() => {});
@@ -490,30 +533,47 @@ function SpecImageGallery({ specId, token }) {
     }
   };
 
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = images.findIndex((i) => i.id === active.id);
+    const newIndex = images.findIndex((i) => i.id === over.id);
+    const prevImages = images;
+    const newImages = arrayMove(images, oldIndex, newIndex);
+    setImages(newImages);
+    try {
+      await reorderSpecImages(
+        token,
+        specId,
+        newImages.map((img, idx) => ({ id: img.id, sort_order: idx })),
+      );
+    } catch {
+      setImages(prevImages);
+      setError('排序儲存失敗，請稍後再試');
+    }
+  };
+
   return (
     <div className="img-gallery">
-      <div className="img-gallery__grid">
-        {images.map((img) => (
-          <div key={img.id} className="img-gallery__item">
-            <img src={img.url} alt="" className="img-gallery__thumb" />
-            <button
-              className="img-gallery__delete"
-              onClick={() => handleDelete(img.id)}
-              title="移除"
-            >✕</button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={images.map((i) => i.id)} strategy={rectSortingStrategy}>
+          <div className="img-gallery__grid">
+            {images.map((img) => (
+              <SortableImageItem key={img.id} image={img} onDelete={handleDelete} />
+            ))}
+            <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
+              {uploading ? '上傳中…' : '＋'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                disabled={uploading}
+              />
+            </label>
           </div>
-        ))}
-        <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
-          {uploading ? '上傳中…' : '＋'}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-            disabled={uploading}
-          />
-        </label>
-      </div>
+        </SortableContext>
+      </DndContext>
       {error && <div className="adm-alert" style={{ marginTop: 8 }}>{error}</div>}
     </div>
   );
