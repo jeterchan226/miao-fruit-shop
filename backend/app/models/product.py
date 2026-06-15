@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.product_image import ProductImage
     from app.models.product_spec import ProductSpec
 
 
@@ -17,7 +18,7 @@ class Product(Base):
     slug: Mapped[str] = mapped_column(unique=True, index=True)
     name: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column(Text)
-    image: Mapped[str] = mapped_column()
+    image: Mapped[str | None] = mapped_column(default=None)  # nullable — GCS 上線後逐步淘汰
     season: Mapped[str] = mapped_column()
     tag: Mapped[str | None] = mapped_column(default=None)
     tag_color: Mapped[str | None] = mapped_column(default=None)
@@ -33,5 +34,11 @@ class Product(Base):
         back_populates="product",
         lazy="selectin",
         order_by="ProductSpec.sort_order, ProductSpec.id",
+        cascade="all, delete-orphan",
+    )
+    images: Mapped[list["ProductImage"]] = relationship(
+        back_populates="product",
+        lazy="selectin",
+        order_by="ProductImage.sort_order, ProductImage.id",
         cascade="all, delete-orphan",
     )
