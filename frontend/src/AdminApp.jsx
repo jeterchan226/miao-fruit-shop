@@ -22,6 +22,7 @@ const TOKEN_KEY = 'miao.admin.token';
 
 const STATUS_LABELS = {
   pending_payment: '待付款',
+  ready: '待出貨',
   confirmed: '待出貨',
   shipping: '出貨中',
   delivered: '已送達',
@@ -29,7 +30,8 @@ const STATUS_LABELS = {
 };
 
 const NEXT_STATUS = {
-  pending_payment: ['shipping', 'cancelled'],
+  pending_payment: ['ready', 'cancelled'],
+  ready: ['shipping', 'cancelled'],
   shipping: ['delivered'],
   delivered: [],
   cancelled: [],
@@ -38,6 +40,7 @@ const NEXT_STATUS = {
 const CHIP_OPTIONS = [
   { value: '', label: '全部' },
   { value: 'pending_payment', label: '待付款' },
+  { value: 'ready', label: '待出貨' },
   { value: 'shipping', label: '出貨中' },
   { value: 'delivered', label: '已送達' },
   { value: 'cancelled', label: '已取消' },

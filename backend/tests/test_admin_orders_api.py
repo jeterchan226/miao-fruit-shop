@@ -99,11 +99,11 @@ async def test_change_status_valid_transition(
     await db_session.flush()
     resp = await client.patch(
         "/api/admin/orders/MM-CH01/status",
-        json={"status": "shipping"},
+        json={"status": "ready"},
         headers=headers,
     )
     assert resp.status_code == 200
-    assert resp.json()["status"] == "shipping"
+    assert resp.json()["status"] == "ready"
 
 
 async def test_change_status_invalid_transition(

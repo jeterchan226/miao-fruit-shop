@@ -284,7 +284,9 @@ button { cursor: pointer; }
 .adm-badge--pending     { background: #FFF3CD; color: #856404; }
 .adm-badge--pending_payment::before,
 .adm-badge--pending::before     { background: #D9923B; }
+.adm-badge--ready,
 .adm-badge--confirmed   { background: #D1E7DD; color: #0f5132; }
+.adm-badge--ready::before,
 .adm-badge--confirmed::before   { background: #198754; }
 .adm-badge--shipping    { background: #CFE2FF; color: #084298; }
 .adm-badge--shipping::before    { background: #0d6efd; }

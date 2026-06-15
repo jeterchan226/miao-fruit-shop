@@ -104,8 +104,8 @@ async def test_get_order_detail_not_found(db_session: AsyncSession):
 async def test_change_status_valid_transition(db_session: AsyncSession):
     await order_repo.add(db_session, _make_order("MM-TR01", status="pending_payment"))
     await db_session.flush()
-    result = await admin_order_service.change_order_status(db_session, "MM-TR01", "shipping")
-    assert result.status == "shipping"
+    result = await admin_order_service.change_order_status(db_session, "MM-TR01", "ready")
+    assert result.status == "ready"
 
 
 async def test_change_status_invalid_transition_raises(db_session: AsyncSession):

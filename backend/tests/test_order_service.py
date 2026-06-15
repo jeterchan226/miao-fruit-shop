@@ -68,7 +68,7 @@ async def test_create_order_cod_status_and_fee(db_session: AsyncSession):
     result = await order_service.create_order(
         db_session, _payload(spec.id, 1, payment="cod", expected_total=6030)
     )
-    assert result.status == "pending_payment"
+    assert result.status == "ready"
     assert result.shipping_fee == 0
     assert result.cod_fee == 30
     assert result.total == 6030

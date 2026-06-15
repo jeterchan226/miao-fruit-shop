@@ -109,4 +109,4 @@ class AdminOrderRead(BaseModel):
 class OrderStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    status: Literal["pending_payment", "shipping", "delivered", "cancelled"]
+    status: Literal["pending_payment", "ready", "shipping", "delivered", "cancelled"]
