@@ -117,7 +117,7 @@ export const SpecCard = ({ p, spec, onAdd }) => {
               disabled={disabled}
               onClick={() => { onAdd(p, spec, qty); setQty(1); }}
             >
-              {disabled ? '預購登記' : '加入購物車'}
+              {disabled ? '已售完' : '加入購物車'}
             </button>
           </div>
         </div>
