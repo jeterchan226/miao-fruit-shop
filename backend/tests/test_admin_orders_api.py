@@ -9,7 +9,7 @@ from app.models.order import Order
 from app.repositories import admin_repo, order_repo
 
 
-def _make_order(order_no: str, *, status: str = "pending") -> Order:
+def _make_order(order_no: str, *, status: str = "pending_payment") -> Order:
     return Order(
         order_no=order_no,
         status=status,
@@ -63,10 +63,10 @@ async def test_list_orders_filter_by_status(
     client: AsyncClient, db_session: AsyncSession
 ):
     headers = await _auth_header(db_session)
-    await order_repo.add(db_session, _make_order("MM-API02", status="pending"))
-    await order_repo.add(db_session, _make_order("MM-API03", status="confirmed"))
+    await order_repo.add(db_session, _make_order("MM-API02", status="pending_payment"))
+    await order_repo.add(db_session, _make_order("MM-API03", status="shipping"))
     await db_session.flush()
-    resp = await client.get("/api/admin/orders?status=pending", headers=headers)
+    resp = await client.get("/api/admin/orders?status=pending_payment", headers=headers)
     assert resp.status_code == 200
     nos = [item["order_no"] for item in resp.json()["items"]]
     assert "MM-API02" in nos
@@ -95,15 +95,15 @@ async def test_change_status_valid_transition(
     client: AsyncClient, db_session: AsyncSession
 ):
     headers = await _auth_header(db_session)
-    await order_repo.add(db_session, _make_order("MM-CH01", status="pending"))
+    await order_repo.add(db_session, _make_order("MM-CH01", status="pending_payment"))
     await db_session.flush()
     resp = await client.patch(
         "/api/admin/orders/MM-CH01/status",
-        json={"status": "confirmed"},
+        json={"status": "ready"},
         headers=headers,
     )
     assert resp.status_code == 200
-    assert resp.json()["status"] == "confirmed"
+    assert resp.json()["status"] == "ready"
 
 
 async def test_change_status_invalid_transition(
@@ -127,7 +127,7 @@ async def test_change_status_order_not_found(
     headers = await _auth_header(db_session)
     resp = await client.patch(
         "/api/admin/orders/MM-GHOST/status",
-        json={"status": "confirmed"},
+        json={"status": "shipping"},
         headers=headers,
     )
     assert resp.status_code == 404

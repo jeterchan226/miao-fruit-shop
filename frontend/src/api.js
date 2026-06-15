@@ -57,10 +57,8 @@ const normalizeProduct = (product) => ({
   name: product.name,
   sub: product.sub || 'Kanro · 蜜糖之味',
   desc: product.description,
-  image: product.image,
+  images: product.images || [],
   season: product.season,
-  tag: product.tag,
-  tagColor: product.tag_color || 'sage',
   specs: (product.specs || []).map((spec) => ({
     id: spec.id,
     label: spec.label,
@@ -69,6 +67,7 @@ const normalizeProduct = (product) => ({
     stock: spec.stock_status,
     stockText: stockText[spec.stock_status] || '狀態確認中',
     note: spec.note,
+    images: spec.images || [],
   })),
 });
 
@@ -104,6 +103,83 @@ export const getCurrentAdmin = (token) => request('/api/admin/auth/me', {
   headers: authHeaders(token),
 });
 
+const adminRequest = (token, path, options = {}) =>
+  request(path, {
+    ...options,
+    headers: { ...authHeaders(token), ...(options.headers || {}) },
+  });
+
+// ── Admin products ──
+
+export const listAdminProducts = (token) =>
+  adminRequest(token, '/api/admin/products');
+
+export const updateAdminProduct = (token, productId, data) =>
+  adminRequest(token, `/api/admin/products/${productId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+// ── Admin image APIs ──
+
+export const signUpload = (token, filename, contentType) =>
+  adminRequest(token, '/api/admin/uploads/sign', {
+    method: 'POST',
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+
+export const listProductImages = (token, productId) =>
+  adminRequest(token, `/api/admin/products/${productId}/images`);
+
+export const registerProductImage = (token, productId, url, sortOrder = 0) =>
+  adminRequest(token, `/api/admin/products/${productId}/images`, {
+    method: 'POST',
+    body: JSON.stringify({ url, sort_order: sortOrder }),
+  });
+
+export const deleteProductImage = (token, imageId) =>
+  adminRequest(token, `/api/admin/images/${imageId}`, { method: 'DELETE' });
+
+export const reorderProductImages = (token, productId, items) =>
+  adminRequest(token, `/api/admin/products/${productId}/images/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items }),
+  });
+
+// ── Admin spec image APIs ──
+
+export const listSpecImages = (token, specId) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images`);
+
+export const registerSpecImage = (token, specId, url, sortOrder = 0) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images`, {
+    method: 'POST',
+    body: JSON.stringify({ url, sort_order: sortOrder }),
+  });
+
+export const reorderSpecImages = (token, specId, items) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items }),
+  });
+
+// ── Admin spec CRUD ──
+
+export const createSpec = (token, productId, data) =>
+  adminRequest(token, `/api/admin/products/${productId}/specs`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateSpec = (token, specId, data) =>
+  adminRequest(token, `/api/admin/specs/${specId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+export const deleteSpec = (token, specId) =>
+  adminRequest(token, `/api/admin/specs/${specId}`, { method: 'DELETE' });
+
 export const listAdminOrders = (token, filters = {}) => {
   const qs = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -136,10 +212,23 @@ export const updateAdminOrderStatus = (token, orderNo, status) => request(
 window.MiaoApi = {
   ApiError,
   createOrder,
+  createSpec,
+  deleteProductImage,
+  deleteSpec,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,
+  listAdminProducts,
+  listProductImages,
   listProducts,
+  listSpecImages,
   loginAdmin,
+  registerProductImage,
+  registerSpecImage,
+  reorderProductImages,
+  reorderSpecImages,
+  signUpload,
   updateAdminOrderStatus,
+  updateAdminProduct,
+  updateSpec,
 };

@@ -8,6 +8,7 @@ class PublicSpecRead(BaseModel):
     price: int
     stock_status: str
     note: str | None = None
+    images: list[str] = []
 
 
 class PublicProductRead(BaseModel):
@@ -15,7 +16,7 @@ class PublicProductRead(BaseModel):
     slug: str
     name: str
     description: str
-    image: str
+    images: list[str]
     season: str
     tag: str | None = None
     tag_color: str | None = None
@@ -33,6 +34,7 @@ class AdminSpecRead(BaseModel):
     low_stock_threshold: int
     sort_order: int
     is_active: bool
+    images: list[str] = []
 
 
 class AdminProductRead(BaseModel):
@@ -40,7 +42,7 @@ class AdminProductRead(BaseModel):
     slug: str
     name: str
     description: str
-    image: str
+    images: list[str]
     season: str
     tag: str | None = None
     tag_color: str | None = None

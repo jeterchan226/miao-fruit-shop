@@ -37,7 +37,7 @@ def compute_amounts(subtotal: int, payment_method: str) -> Amounts:
 
 
 def initial_status(payment_method: str) -> str:
-    return "pending" if payment_method == "cod" else "pending_payment"
+    return "ready" if payment_method == "cod" else "pending_payment"
 
 
 def _new_order_no() -> str:

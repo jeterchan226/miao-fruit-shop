@@ -3,28 +3,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  createSpec,
+  deleteProductImage,
+  deleteSpec,
   getAdminOrder,
   getCurrentAdmin,
   listAdminOrders,
+  listAdminProducts,
+  listSpecImages,
   loginAdmin,
+  registerSpecImage,
+  signUpload,
   updateAdminOrderStatus,
+  updateSpec,
 } from './api.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
 const STATUS_LABELS = {
   pending_payment: '待付款',
-  pending: '待確認',
-  confirmed: '已確認',
+  ready: '待出貨',
+  confirmed: '待出貨',
   shipping: '出貨中',
   delivered: '已送達',
   cancelled: '已取消',
 };
 
 const NEXT_STATUS = {
-  pending_payment: ['confirmed', 'cancelled'],
-  pending: ['confirmed', 'cancelled'],
-  confirmed: ['shipping', 'cancelled'],
+  pending_payment: ['ready', 'cancelled'],
+  ready: ['shipping', 'cancelled'],
   shipping: ['delivered'],
   delivered: [],
   cancelled: [],
@@ -33,17 +40,29 @@ const NEXT_STATUS = {
 const CHIP_OPTIONS = [
   { value: '', label: '全部' },
   { value: 'pending_payment', label: '待付款' },
-  { value: 'pending', label: '待確認' },
-  { value: 'confirmed', label: '已確認' },
+  { value: 'ready', label: '待出貨' },
   { value: 'shipping', label: '出貨中' },
   { value: 'delivered', label: '已送達' },
   { value: 'cancelled', label: '已取消' },
 ];
 
+const DELIVERY_WINDOW_LABELS = {
+  any: '不指定',
+  am: '上午 9–13',
+  pm: '下午 14–18',
+};
+
+const PAYMENT_METHOD_LABELS = {
+  linepay: 'LINE Pay',
+  card: '信用卡',
+  atm: 'ATM 轉帳',
+  cod: '貨到付款',
+};
+
 const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
 const dateText = (s) =>
   s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '—';
-const statusLabel = (s) => STATUS_LABELS[s] || s || '—';
+const statusLabel = (s) => STATUS_LABELS[s] || '—';
 
 /* ── Resolve search text → API params ──
    If the input looks like an order number (starts with MM-), send as order_no
@@ -142,7 +161,7 @@ function LoginView({ onLogin }) {
 }
 
 /* ── Filter strip ── */
-function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
+function FilterStrip({ statusCounts, filters, setFilters, onSearch }) {
   const debounceRef = useRef(null);
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
@@ -168,18 +187,20 @@ function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
   return (
     <div className="adm-filters">
       <div className="adm-chips">
-        {CHIP_OPTIONS.map(({ value, label }) => (
-          <button
-            key={value}
-            className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
-            onClick={() => setChipStatus(value)}
-          >
-            {label}
-            {value === '' && (
-              <span className="adm-chip__count">{totalAll}</span>
-            )}
-          </button>
-        ))}
+        {CHIP_OPTIONS.map(({ value, label }) => {
+          const grandTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+          const count = value === '' ? grandTotal : (statusCounts?.[value] ?? 0);
+          return (
+            <button
+              key={value}
+              className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
+              onClick={() => setChipStatus(value)}
+            >
+              {label}
+              <span className="adm-chip__count">{count}</span>
+            </button>
+          );
+        })}
       </div>
       <div className="adm-search-row">
         <div className="adm-search">
@@ -352,8 +373,8 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                     {detail.ship_city}{detail.ship_district}{detail.ship_street}
                   </dd>
                   <dt>希望送達</dt><dd>{detail.preferred_date}</dd>
-                  <dt>配送時段</dt><dd>{detail.delivery_window}</dd>
-                  <dt>付款方式</dt><dd>{detail.payment_method}</dd>
+                  <dt>配送時段</dt><dd>{DELIVERY_WINDOW_LABELS[detail.delivery_window] || detail.delivery_window}</dd>
+                  <dt>付款方式</dt><dd>{PAYMENT_METHOD_LABELS[detail.payment_method] || detail.payment_method}</dd>
                   <dt>備註</dt><dd>{detail.note || '—'}</dd>
                 </dl>
               </div>
@@ -421,11 +442,522 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   );
 }
 
+const STOCK_STATUS_LABELS = { in: '現貨供應', low: '剩量不多', out: '預購中' };
+const STOCK_STATUS_OPTIONS = [
+  { value: 'in', label: '現貨供應' },
+  { value: 'low', label: '剩量不多' },
+  { value: 'out', label: '預購中' },
+];
+
+/* ── Spec image gallery (規格層級) ── */
+function SpecImageGallery({ specId, token }) {
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    listSpecImages(token, specId).then(setImages).catch(() => {});
+  }, [specId, token]);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const { signed_url, public_url } = await signUpload(token, file.name, file.type);
+      await fetch(signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      const img = await registerSpecImage(token, specId, public_url, images.length);
+      setImages((prev) => [...prev, img]);
+    } catch (err) {
+      setError('上傳失敗：' + (err?.message || '請稍後再試'));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDelete = async (imageId) => {
+    try {
+      await deleteProductImage(token, imageId);
+      setImages((prev) => prev.filter((i) => i.id !== imageId));
+    } catch {
+      setError('刪除失敗，請稍後再試');
+    }
+  };
+
+  return (
+    <div className="img-gallery">
+      <div className="img-gallery__grid">
+        {images.map((img) => (
+          <div key={img.id} className="img-gallery__item">
+            <img src={img.url} alt="" className="img-gallery__thumb" />
+            <button
+              className="img-gallery__delete"
+              onClick={() => handleDelete(img.id)}
+              title="移除"
+            >✕</button>
+          </div>
+        ))}
+        <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
+          {uploading ? '上傳中…' : '＋'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+      {error && <div className="adm-alert" style={{ marginTop: 8 }}>{error}</div>}
+    </div>
+  );
+}
+
+/* ── Spec edit modal ── */
+function SpecEditModal({ spec, token, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    label: spec.label,
+    qty_text: spec.qty_text,
+    price: spec.price,
+    stock_qty: spec.stock_qty,
+    note: spec.note || '',
+    is_active: spec.is_active,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await updateSpec(token, spec.id, {
+        label: form.label,
+        qty_text: form.qty_text,
+        price: Number(form.price),
+        stock_qty: Number(form.stock_qty),
+        note: form.note || null,
+        is_active: form.is_active,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err?.data?.detail || '儲存失敗');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="adm-modal-overlay" onClick={onClose}>
+      <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+        <div className="adm-modal__head">
+          <div>
+            <div className="adm-modal__order-no">{spec.label}</div>
+            <div className="adm-modal__customer">規格 ID: {spec.id}</div>
+          </div>
+          <button className="adm-modal__close" onClick={onClose}>✕</button>
+        </div>
+        <div className="adm-modal__product-body">
+          {/* 圖片 */}
+          <div className="adm-modal__section">
+            <div className="adm-modal__section-title">規格圖片</div>
+            <SpecImageGallery specId={spec.id} token={token} />
+          </div>
+          {/* 規格資訊 */}
+          <div className="adm-modal__section">
+            <div className="adm-modal__section-title">規格資訊</div>
+            <div className="adm-spec-form">
+              <label className="adm-field">
+                <span className="adm-field__label">規格名稱</span>
+                <input
+                  className="adm-field__input"
+                  value={form.label}
+                  onChange={(e) => setField('label', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">容量說明</span>
+                <input
+                  className="adm-field__input"
+                  value={form.qty_text}
+                  onChange={(e) => setField('qty_text', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">售價（NT$）</span>
+                <input
+                  className="adm-field__input"
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => setField('price', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">庫存數量</span>
+                <input
+                  className="adm-field__input"
+                  type="number"
+                  min="0"
+                  value={form.stock_qty}
+                  onChange={(e) => setField('stock_qty', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">備註</span>
+                <input
+                  className="adm-field__input"
+                  value={form.note}
+                  onChange={(e) => setField('note', e.target.value)}
+                  placeholder="如：剩 3 箱"
+                />
+              </label>
+              <label className="adm-field adm-field--row">
+                <span className="adm-field__label">上架</span>
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(e) => setField('is_active', e.target.checked)}
+                />
+              </label>
+            </div>
+          </div>
+          {error && <div className="adm-alert">{error}</div>}
+        </div>
+        <div className="adm-modal__foot">
+          <span />
+          <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
+          <button
+            className="adm-modal__update-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? '儲存中…' : '儲存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const EMPTY_SPEC_FORM = {
+  label: '', qty_text: '', price: '', stock_qty: '', note: '', low_stock_threshold: 3,
+};
+
+/* ── Create spec modal ── */
+function CreateSpecModal({ productId, token, onClose, onCreated }) {
+  const [form, setForm] = useState(EMPTY_SPEC_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const handleCreate = async () => {
+    if (!form.label || !form.qty_text || form.price === '' || form.stock_qty === '') {
+      setError('請填寫所有必填欄位');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await createSpec(token, productId, {
+        label: form.label,
+        qty_text: form.qty_text,
+        price: Number(form.price),
+        stock_qty: Number(form.stock_qty),
+        low_stock_threshold: Number(form.low_stock_threshold),
+        note: form.note || null,
+      });
+      onCreated();
+    } catch (err) {
+      setError(err?.data?.detail || '新增失敗');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="adm-modal-overlay" onClick={onClose}>
+      <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+        <div className="adm-modal__head">
+          <div className="adm-modal__order-no">新增規格</div>
+          <button className="adm-modal__close" onClick={onClose}>✕</button>
+        </div>
+        <div className="adm-modal__product-body">
+          <div className="adm-modal__section">
+            <div className="adm-spec-form">
+              <label className="adm-field">
+                <span className="adm-field__label">規格名稱 *</span>
+                <input className="adm-field__input" value={form.label}
+                  onChange={(e) => setField('label', e.target.value)} placeholder="如：5 台斤家庭箱" />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">容量說明 *</span>
+                <input className="adm-field__input" value={form.qty_text}
+                  onChange={(e) => setField('qty_text', e.target.value)} placeholder="如：6–8 顆 · 5 台斤" />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">售價（NT$）*</span>
+                <input className="adm-field__input" type="number" min="0" value={form.price}
+                  onChange={(e) => setField('price', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">庫存數量 *</span>
+                <input className="adm-field__input" type="number" min="0" value={form.stock_qty}
+                  onChange={(e) => setField('stock_qty', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">低庫存警示（預設 3）</span>
+                <input className="adm-field__input" type="number" min="0" value={form.low_stock_threshold}
+                  onChange={(e) => setField('low_stock_threshold', e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">備註</span>
+                <input className="adm-field__input" value={form.note}
+                  onChange={(e) => setField('note', e.target.value)} placeholder="如：剩 3 箱" />
+              </label>
+            </div>
+          </div>
+          {error && <div className="adm-alert">{error}</div>}
+        </div>
+        <div className="adm-modal__foot">
+          <span />
+          <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
+          <button className="adm-modal__update-btn" onClick={handleCreate} disabled={saving}>
+            {saving ? '新增中…' : '新增規格'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Products tab — specs expanded under each product ── */
+function ProductsTab({ token }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [editSpec, setEditSpec] = useState(null);
+  const [createForProduct, setCreateForProduct] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [expanded, setExpanded] = useState({});
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await listAdminProducts(token);
+      setProducts(data);
+      setExpanded((prev) => {
+        const exp = { ...prev };
+        data.forEach((p) => { if (exp[p.id] === undefined) exp[p.id] = true; });
+        return exp;
+      });
+    } catch {
+      setError('無法載入商品資料');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [token]);
+
+  const moveSpec = async (specs, idx, direction) => {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= specs.length) return;
+    const a = specs[idx], b = specs[targetIdx];
+    const newOrderA = b.sort_order !== a.sort_order ? b.sort_order : b.sort_order + direction;
+    await Promise.all([
+      updateSpec(token, a.id, { sort_order: newOrderA }),
+      updateSpec(token, b.id, { sort_order: a.sort_order }),
+    ]);
+    load();
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await deleteSpec(token, confirmDelete.id);
+      setConfirmDelete(null);
+      load();
+    } catch (err) {
+      alert(err?.data?.detail || '刪除失敗');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) return <div className="adm-table-wrap"><div className="adm-empty">載入商品中…</div></div>;
+  if (error) return <div className="adm-table-wrap"><div className="adm-alert">{error}</div></div>;
+
+  return (
+    <div className="adm-table-wrap">
+      {products.map((p) => (
+        <div key={p.id} className="adm-table-card" style={{ marginBottom: 16 }}>
+          {/* Product header */}
+          <div
+            className="adm-product-header"
+            onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}
+          >
+            <span className="adm-product-header__toggle">{expanded[p.id] ? '▾' : '▸'}</span>
+            <strong className="adm-product-header__name">{p.name}</strong>
+            <span className="adm-product-header__meta">{p.season}</span>
+            <span className={`adm-badge adm-badge--${p.is_active ? 'confirmed' : 'cancelled'}`}>
+              {p.is_active ? '上架中' : '已下架'}
+            </span>
+            <span className="adm-product-header__meta">{p.specs?.length ?? 0} 個規格</span>
+          </div>
+
+          {/* Spec rows */}
+          {expanded[p.id] && (
+            <>
+              <table className="adm-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 56 }}>順序</th>
+                    <th>規格名稱</th>
+                    <th>容量</th>
+                    <th className="adm-num">售價</th>
+                    <th className="adm-num">庫存</th>
+                    <th>庫存狀態</th>
+                    <th>圖片</th>
+                    <th>狀態</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(p.specs || []).map((s, idx, arr) => (
+                    <tr key={s.id}>
+                      <td>
+                        <div className="adm-order-btns">
+                          <button
+                            className="adm-order-btn"
+                            disabled={idx === 0}
+                            onClick={() => moveSpec(arr, idx, -1)}
+                            title="往上移"
+                          >▲</button>
+                          <button
+                            className="adm-order-btn"
+                            disabled={idx === arr.length - 1}
+                            onClick={() => moveSpec(arr, idx, 1)}
+                            title="往下移"
+                          >▼</button>
+                        </div>
+                      </td>
+                      <td>{s.label}</td>
+                      <td className="adm-muted">{s.qty_text}</td>
+                      <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
+                      <td className="adm-num">{s.stock_qty}</td>
+                      <td>
+                        <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
+                          {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
+                        </span>
+                      </td>
+                      <td>{s.images?.length ?? 0}</td>
+                      <td>
+                        <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
+                          {s.is_active ? '上架' : '下架'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="adm-btn adm-btn--secondary"
+                            style={{ fontSize: 12 }}
+                            onClick={() => setEditSpec(s)}
+                          >編輯</button>
+                          <button
+                            className="adm-btn adm-btn--danger"
+                            style={{ fontSize: 12 }}
+                            onClick={() => setConfirmDelete(s)}
+                          >刪除</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ padding: '10px 16px' }}>
+                <button
+                  className="adm-btn adm-btn--secondary"
+                  style={{ fontSize: 13 }}
+                  onClick={() => setCreateForProduct(p)}
+                >＋ 新增規格</button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+
+      {editSpec && (
+        <SpecEditModal
+          spec={editSpec}
+          token={token}
+          onClose={() => setEditSpec(null)}
+          onSaved={() => { setEditSpec(null); load(); }}
+        />
+      )}
+
+      {createForProduct && (
+        <CreateSpecModal
+          productId={createForProduct.id}
+          token={token}
+          onClose={() => setCreateForProduct(null)}
+          onCreated={() => { setCreateForProduct(null); load(); }}
+        />
+      )}
+
+      {confirmDelete && (
+        <div className="adm-modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="adm-modal adm-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="adm-modal__head">
+              <div className="adm-modal__order-no">確認刪除</div>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <p>確定要永久刪除規格「<strong>{confirmDelete.label}</strong>」嗎？</p>
+              <p style={{ fontSize: 13, color: 'var(--packaging-red)', marginTop: 8 }}>
+                此操作無法復原，相關圖片將一併刪除。
+              </p>
+            </div>
+            <div className="adm-modal__foot">
+              <span />
+              <button className="adm-btn adm-btn--ghost" onClick={() => setConfirmDelete(null)}>取消</button>
+              <button className="adm-btn adm-btn--danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? '刪除中…' : '確認刪除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main app ── */
 export default function AdminApp() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
   const [admin, setAdmin] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState('orders');
 
   const [filters, setFilters] = useState({
     status: '',
@@ -509,10 +1041,18 @@ export default function AdminApp() {
       <header className="adm-topbar">
         <span className="adm-topbar__logo">妙媽媽果園</span>
         <nav className="adm-topbar__nav">
-          <button className="adm-topbar__nav-item adm-topbar__nav-item--active">
+          <button
+            className={`adm-topbar__nav-item${activeTab === 'orders' ? ' adm-topbar__nav-item--active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
             訂單管理
           </button>
-          <button className="adm-topbar__nav-item">商品管理</button>
+          <button
+            className={`adm-topbar__nav-item${activeTab === 'products' ? ' adm-topbar__nav-item--active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            商品管理
+          </button>
         </nav>
         <div className="adm-topbar__user">
           <span className="adm-topbar__username">{admin.username}</span>
@@ -520,72 +1060,77 @@ export default function AdminApp() {
         </div>
       </header>
 
-      {/* Page header */}
-      <div className="adm-page-head">
-        <h1 className="adm-page-head__title">訂單管理</h1>
-        <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
-      </div>
-
-      {/* Filter */}
-      <FilterStrip
-        totalAll={orders.total}
-        filters={filters}
-        setFilters={setFilters}
-        onSearch={(f) => loadOrders(1, f)}
-      />
-
-      {/* List error */}
-      <Alert message={listError} />
-
-      {/* Table + pagination */}
-      <div className="adm-table-wrap">
-        {listLoading ? (
-          <div className="adm-table-card">
-            <div className="adm-empty">載入訂單中…</div>
+      {/* Orders tab */}
+      {activeTab === 'orders' && (
+        <>
+          <div className="adm-page-head">
+            <h1 className="adm-page-head__title">訂單管理</h1>
+            <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
           </div>
-        ) : (
-          <OrdersTable
-            orders={orders.items}
-            selectedOrderNo={selectedOrderNo}
-            onSelect={openModal}
+          <FilterStrip
+            statusCounts={orders.status_counts || {}}
+            filters={filters}
+            setFilters={setFilters}
+            onSearch={(f) => loadOrders(1, f)}
           />
-        )}
-
-        {orders.total > 0 && (
-          <div className="adm-pagination">
-            <span>
-              第 {orders.page} 頁，共{' '}
-              {Math.ceil(orders.total / orders.page_size)} 頁
-            </span>
-            <div className="adm-pager">
-              <button
-                className="adm-pager-btn"
-                disabled={orders.page <= 1 || listLoading}
-                onClick={() => loadOrders(orders.page - 1)}
-              >
-                ← 上一頁
-              </button>
-              <div className="adm-pager-current">{orders.page}</div>
-              <button
-                className="adm-pager-btn"
-                disabled={orders.page * orders.page_size >= orders.total || listLoading}
-                onClick={() => loadOrders(orders.page + 1)}
-              >
-                下一頁 →
-              </button>
-            </div>
+          <Alert message={listError} />
+          <div className="adm-table-wrap">
+            {listLoading ? (
+              <div className="adm-table-card">
+                <div className="adm-empty">載入訂單中…</div>
+              </div>
+            ) : (
+              <OrdersTable
+                orders={orders.items}
+                selectedOrderNo={selectedOrderNo}
+                onSelect={openModal}
+              />
+            )}
+            {orders.total > 0 && (
+              <div className="adm-pagination">
+                <span>
+                  第 {orders.page} 頁，共{' '}
+                  {Math.ceil(orders.total / orders.page_size)} 頁
+                </span>
+                <div className="adm-pager">
+                  <button
+                    className="adm-pager-btn"
+                    disabled={orders.page <= 1 || listLoading}
+                    onClick={() => loadOrders(orders.page - 1)}
+                  >
+                    ← 上一頁
+                  </button>
+                  <div className="adm-pager-current">{orders.page}</div>
+                  <button
+                    className="adm-pager-btn"
+                    disabled={orders.page * orders.page_size >= orders.total || listLoading}
+                    onClick={() => loadOrders(orders.page + 1)}
+                  >
+                    下一頁 →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          {modalOpen && selectedOrderNo && (
+            <OrderModal
+              orderNo={selectedOrderNo}
+              token={token}
+              onClose={closeModal}
+              onStatusChange={() => loadOrders(orders.page)}
+            />
+          )}
+        </>
+      )}
 
-      {/* Modal */}
-      {modalOpen && selectedOrderNo && (
-        <OrderModal
-          orderNo={selectedOrderNo}
-          token={token}
-          onClose={closeModal}
-          onStatusChange={() => loadOrders(orders.page)}
-        />
+      {/* Products tab */}
+      {activeTab === 'products' && (
+        <>
+          <div className="adm-page-head">
+            <h1 className="adm-page-head__title">商品管理</h1>
+          </div>
+          <ProductsTab token={token} />
+        </>
       )}
     </div>
   );

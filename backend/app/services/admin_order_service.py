@@ -13,9 +13,8 @@ from app.schemas.order import (
 )
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
-    "pending":         {"confirmed", "cancelled"},
-    "pending_payment": {"confirmed", "cancelled"},
-    "confirmed":       {"shipping", "cancelled"},
+    "pending_payment": {"ready", "cancelled"},
+    "ready":           {"shipping", "cancelled"},
     "shipping":        {"delivered"},
     "delivered":       set(),
     "cancelled":       set(),
@@ -89,11 +88,13 @@ async def list_orders(
         page=page,
         page_size=page_size,
     )
+    status_counts = await order_repo.count_by_status(session)
     return AdminOrderListResponse(
         total=total,
         page=page,
         page_size=page_size,
         items=[_to_admin_list_item(o) for o in orders],
+        status_counts=status_counts,
     )
 
 

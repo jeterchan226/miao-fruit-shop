@@ -60,3 +60,10 @@ async def list_filtered(
         .offset((page - 1) * page_size)
     )
     return total, list(rows.scalars().all())
+
+
+async def count_by_status(session: AsyncSession) -> dict[str, int]:
+    rows = await session.execute(
+        select(Order.status, func.count()).group_by(Order.status)
+    )
+    return {status: count for status, count in rows.all()}
