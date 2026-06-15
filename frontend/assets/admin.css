@@ -677,18 +677,20 @@ button { cursor: pointer; }
 .img-gallery__item:hover .img-gallery__delete { opacity: 1; }
 .img-gallery__drag-handle {
   position: absolute; top: 4px; left: 4px;
-  color: rgba(255,255,255,0.85);
-  font-size: 14px; line-height: 1;
+  background: rgba(58,45,31,.65); color: #fff;
+  border-radius: 4px;
+  width: 22px; height: 22px; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
   cursor: grab;
   touch-action: none;
-  opacity: 0;
+  opacity: 0.45;
   transition: opacity var(--dur-micro);
   user-select: none;
 }
 .img-gallery__item:hover .img-gallery__drag-handle { opacity: 1; }
 .img-gallery__item--dragging { opacity: 0.4; }
 @media (hover: none) {
-  .img-gallery__drag-handle { opacity: 1; }
+  .img-gallery__drag-handle { opacity: 0.75; }
 }
 .img-gallery__upload-btn {
   aspect-ratio: 4/3;
