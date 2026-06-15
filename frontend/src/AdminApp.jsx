@@ -499,9 +499,7 @@ function ImageGallery({ productId, token }) {
 
 /* ── Product edit modal ── */
 function ProductEditModal({ product, token, onClose, onSaved }) {
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('images');
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
