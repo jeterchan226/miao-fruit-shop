@@ -15,7 +15,7 @@ class PublicProductRead(BaseModel):
     slug: str
     name: str
     description: str
-    image: str
+    images: list[str]
     season: str
     tag: str | None = None
     tag_color: str | None = None
@@ -40,7 +40,7 @@ class AdminProductRead(BaseModel):
     slug: str
     name: str
     description: str
-    image: str
+    images: list[str]
     season: str
     tag: str | None = None
     tag_color: str | None = None

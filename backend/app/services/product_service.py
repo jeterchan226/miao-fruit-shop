@@ -49,13 +49,21 @@ def _to_admin_spec(s: ProductSpec) -> AdminSpecRead:
     )
 
 
+def _get_images(p: Product) -> list[str]:
+    if p.images:
+        return [img.url for img in p.images]
+    if p.image:
+        return [p.image]
+    return []
+
+
 def _to_public_product(p: Product) -> PublicProductRead:
     return PublicProductRead(
         id=p.id,
         slug=p.slug,
         name=p.name,
         description=p.description,
-        image=p.image,
+        images=_get_images(p),
         season=p.season,
         tag=p.tag,
         tag_color=p.tag_color,
@@ -69,7 +77,7 @@ def _to_admin_product(p: Product) -> AdminProductRead:
         slug=p.slug,
         name=p.name,
         description=p.description,
-        image=p.image,
+        images=_get_images(p),
         season=p.season,
         tag=p.tag,
         tag_color=p.tag_color,
