@@ -79,6 +79,7 @@ class AdminOrderListResponse(BaseModel):
     page: int
     page_size: int
     items: list[AdminOrderListItem]
+    status_counts: dict[str, int] = {}
 
 
 class AdminOrderRead(BaseModel):
@@ -108,4 +109,4 @@ class AdminOrderRead(BaseModel):
 class OrderStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    status: Literal["pending", "pending_payment", "shipping", "delivered", "cancelled"]
+    status: Literal["pending_payment", "shipping", "delivered", "cancelled"]

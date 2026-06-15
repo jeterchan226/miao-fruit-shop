@@ -22,7 +22,6 @@ const TOKEN_KEY = 'miao.admin.token';
 
 const STATUS_LABELS = {
   pending_payment: '待付款',
-  pending: '待確認',
   confirmed: '待出貨',
   shipping: '出貨中',
   delivered: '已送達',
@@ -31,7 +30,6 @@ const STATUS_LABELS = {
 
 const NEXT_STATUS = {
   pending_payment: ['shipping', 'cancelled'],
-  pending: ['shipping', 'cancelled'],
   shipping: ['delivered'],
   delivered: [],
   cancelled: [],
@@ -40,7 +38,6 @@ const NEXT_STATUS = {
 const CHIP_OPTIONS = [
   { value: '', label: '全部' },
   { value: 'pending_payment', label: '待付款' },
-  { value: 'pending', label: '待確認' },
   { value: 'shipping', label: '出貨中' },
   { value: 'delivered', label: '已送達' },
   { value: 'cancelled', label: '已取消' },
@@ -161,7 +158,7 @@ function LoginView({ onLogin }) {
 }
 
 /* ── Filter strip ── */
-function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
+function FilterStrip({ totalAll, statusCounts, filters, setFilters, onSearch }) {
   const debounceRef = useRef(null);
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
@@ -187,18 +184,19 @@ function FilterStrip({ totalAll, filters, setFilters, onSearch }) {
   return (
     <div className="adm-filters">
       <div className="adm-chips">
-        {CHIP_OPTIONS.map(({ value, label }) => (
-          <button
-            key={value}
-            className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
-            onClick={() => setChipStatus(value)}
-          >
-            {label}
-            {value === '' && (
-              <span className="adm-chip__count">{totalAll}</span>
-            )}
-          </button>
-        ))}
+        {CHIP_OPTIONS.map(({ value, label }) => {
+          const count = value === '' ? totalAll : (statusCounts?.[value] ?? 0);
+          return (
+            <button
+              key={value}
+              className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
+              onClick={() => setChipStatus(value)}
+            >
+              {label}
+              <span className="adm-chip__count">{count}</span>
+            </button>
+          );
+        })}
       </div>
       <div className="adm-search-row">
         <div className="adm-search">
@@ -1067,6 +1065,7 @@ export default function AdminApp() {
           </div>
           <FilterStrip
             totalAll={orders.total}
+            statusCounts={orders.status_counts || {}}
             filters={filters}
             setFilters={setFilters}
             onSearch={(f) => loadOrders(1, f)}

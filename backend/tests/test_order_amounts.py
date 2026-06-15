@@ -28,14 +28,9 @@ def test_cod_fee_zero_for_non_cod():
     assert a.cod_fee == 0
 
 
-def test_initial_status_cod_is_pending():
-    assert initial_status("cod") == "pending"
-
-
-def test_initial_status_prepaid_is_pending_payment():
-    assert initial_status("linepay") == "pending_payment"
-    assert initial_status("card") == "pending_payment"
-    assert initial_status("atm") == "pending_payment"
+def test_initial_status_all_methods_are_pending_payment():
+    for method in ("cod", "linepay", "card", "atm"):
+        assert initial_status(method) == "pending_payment"
 
 
 def test_order_no_format():

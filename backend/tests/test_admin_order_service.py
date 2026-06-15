@@ -15,7 +15,7 @@ from app.services import admin_order_service
 def _make_order(
     order_no: str,
     *,
-    status: str = "pending",
+    status: str = "pending_payment",
     customer_name: str = "王小明",
     customer_phone: str = "0912345678",
 ) -> Order:
@@ -58,14 +58,14 @@ async def test_list_orders_returns_all(db_session: AsyncSession):
 
 
 async def test_list_orders_filter_by_status(db_session: AsyncSession):
-    await order_repo.add(db_session, _make_order("MM-ST01", status="pending"))
+    await order_repo.add(db_session, _make_order("MM-ST01", status="pending_payment"))
     await order_repo.add(db_session, _make_order("MM-ST02", status="shipping"))
     await db_session.flush()
-    resp = await admin_order_service.list_orders(db_session, status="pending")
+    resp = await admin_order_service.list_orders(db_session, status="pending_payment")
     nos = {item.order_no for item in resp.items}
     assert "MM-ST01" in nos
     assert "MM-ST02" not in nos
-    assert all(item.status == "pending" for item in resp.items)
+    assert all(item.status == "pending_payment" for item in resp.items)
 
 
 async def test_list_orders_filter_by_q(db_session: AsyncSession):
@@ -102,7 +102,7 @@ async def test_get_order_detail_not_found(db_session: AsyncSession):
 
 
 async def test_change_status_valid_transition(db_session: AsyncSession):
-    await order_repo.add(db_session, _make_order("MM-TR01", status="pending"))
+    await order_repo.add(db_session, _make_order("MM-TR01", status="pending_payment"))
     await db_session.flush()
     result = await admin_order_service.change_order_status(db_session, "MM-TR01", "shipping")
     assert result.status == "shipping"
@@ -138,7 +138,7 @@ async def test_cancel_restores_stock(db_session: AsyncSession):
     db_session.add(spec)
     await db_session.flush()
 
-    order = _make_order("MM-CANCEL1", status="pending")
+    order = _make_order("MM-CANCEL1", status="pending_payment")
     db_session.add(order)
     await db_session.flush()
 
@@ -161,7 +161,7 @@ async def test_cancel_restores_stock(db_session: AsyncSession):
 
 
 async def test_cancel_with_null_spec_id_skips_silently(db_session: AsyncSession):
-    order = _make_order("MM-CANCEL2", status="pending")
+    order = _make_order("MM-CANCEL2", status="pending_payment")
     db_session.add(order)
     await db_session.flush()
 
