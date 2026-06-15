@@ -88,7 +88,7 @@
 
 > **此 Task 需要人工操作**，無 checkbox 可自動執行。完成後在下方打勾。
 
-- [ ] **Step 1：建立 GCS Bucket**
+- [x] **Step 1：建立 GCS Bucket**
 
 ```bash
 # 替換為你的 project ID 和偏好的 bucket 名稱
@@ -101,7 +101,7 @@ gcloud storage buckets create gs://$BUCKET_NAME \
   --uniform-bucket-level-access
 ```
 
-- [ ] **Step 2：設定 Bucket 公開讀取（圖片可被前台直接存取）**
+- [x] **Step 2：設定 Bucket 公開讀取（圖片可被前台直接存取）**
 
 ```bash
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
@@ -109,7 +109,7 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
   --role="roles/storage.objectViewer"
 ```
 
-- [ ] **Step 3：設定 CORS（允許瀏覽器直接 PUT）**
+- [x] **Step 3：設定 CORS（允許瀏覽器直接 PUT）**
 
 建立 `backend/gcs-cors.json`：
 ```json
@@ -129,7 +129,7 @@ gcloud storage buckets update gs://$BUCKET_NAME \
   --cors-file=backend/gcs-cors.json
 ```
 
-- [ ] **Step 4：建立 Service Account**
+- [x] **Step 4：建立 Service Account**
 
 ```bash
 SA_NAME="miao-gcs-uploader"
@@ -148,7 +148,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --role="roles/storage.objectViewer"
 ```
 
-- [ ] **Step 5：下載 JSON Key 並轉為 base64**
+- [x] **Step 5：下載 JSON Key 並轉為 base64**
 
 ```bash
 gcloud iam service-accounts keys create backend/gcs-key.json \
@@ -166,7 +166,7 @@ GCS_CREDENTIALS_B64=<上面 base64 輸出>
 
 > ⚠️ `gcs-key.json` 已在 `.gitignore` 中（Task 2 Step 1 確認），**絕對不可 commit**。
 
-- [ ] **Step 6：確認 `.gitignore` 包含 key 檔**
+- [x] **Step 6：確認 `.gitignore` 包含 key 檔**
 
 `backend/.gitignore` 確認含有：
 ```
