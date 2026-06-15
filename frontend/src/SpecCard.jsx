@@ -16,7 +16,7 @@ export const SpecCard = ({ p, spec, onAdd }) => {
   const slidesRef = useRef(null);
   const disabled = spec.stock === 'out';
   const productSub = p.sub ? p.sub.split(' · ')[1] : p.slug;
-  const images = (spec.images && spec.images.length > 0) ? spec.images : (p.images || []);
+  const images = spec.images || [];
 
   const timerRef = useRef(null);
 
