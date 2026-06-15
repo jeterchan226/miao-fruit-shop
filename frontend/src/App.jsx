@@ -7,7 +7,6 @@ import { CartDrawer } from './Cart.jsx';
 import { Header } from './Header.jsx';
 import { Hero, scrollToId } from './Hero.jsx';
 import { SpecCard } from './SpecCard.jsx';
-import { PRODUCTS } from './data.js';
 import {
   Belief,
   Contact,
@@ -89,9 +88,8 @@ export default function App() {
       })
       .catch(err => {
         if (!shouldApply()) return;
-        console.warn('[products] API unavailable, falling back to static data:', err);
-        setProducts(PRODUCTS);
-        setProductsError('目前暫時無法同步即時庫存，已顯示預設商品資料。');
+        console.error('[products] API unavailable:', err);
+        setProductsError('目前無法載入商品資料，請稍後重新整理。');
         setProductsLoading(false);
       });
   };
