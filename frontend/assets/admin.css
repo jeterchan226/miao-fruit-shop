@@ -713,9 +713,26 @@ button { cursor: pointer; }
   .adm-modal__body { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .adm-topbar { padding: 0 14px; }
-  .adm-topbar__nav { display: none; }
+  .adm-topbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+  }
+  .adm-topbar__logo { flex: 1; }
+  .adm-topbar__username { display: none; }
+  .adm-topbar__nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,.1);
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  .adm-topbar__nav-item { flex: 1; text-align: center; }
   .adm-table-wrap { padding: 10px 14px; }
+  .adm-table-card { overflow-x: auto; }
+  .adm-table th:nth-child(4),
+  .adm-table td:nth-child(4) { display: none; }
   .adm-page-head { padding: 14px 14px 0; }
   .adm-filters { padding: 10px 14px 12px; }
   .adm-date-range { display: none; }
