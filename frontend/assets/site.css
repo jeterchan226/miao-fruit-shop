@@ -398,6 +398,38 @@ button { font-family: inherit; }
   font-size: 11px; padding: 4px 9px; border-radius: 6px;
   font-family: var(--font-mono); letter-spacing: 0.04em;
 }
+
+/* ── SpecCard carousel ── */
+.pcard__carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.pcard__slides {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.pcard__slides::-webkit-scrollbar { display: none; }
+.pcard__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  aspect-ratio: 4/3;
+  background-size: cover;
+  background-position: center;
+}
+.pcard__slide--empty { background: var(--sage-100); }
+.pcard__dots {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px;
+}
+.pcard__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,.55); border: none; padding: 0; cursor: pointer;
+  transition: background var(--dur-micro);
+}
+.pcard__dot.is-active { background: #fff; }
 .pcard__body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1; }
 .pcard__head { margin-bottom: 12px; }
 .pcard__name {

@@ -1,6 +1,6 @@
 /* Spec card — one card per spec, with qty stepper (single-product storefront) */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '預購中';
 
@@ -12,14 +12,47 @@ const Price = ({ value }) => (
 
 export const SpecCard = ({ p, spec, onAdd }) => {
   const [qty, setQty] = useState(1);
-  const tagClass = 'pill pill--' + (p.tagColor || 'sage');
+  const [imgIdx, setImgIdx] = useState(0);
+  const slidesRef = useRef(null);
   const disabled = spec.stock === 'out';
   const productSub = p.sub ? p.sub.split(' · ')[1] : p.slug;
+  const images = p.images || [];
+
+  const goTo = (i) => {
+    setImgIdx(i);
+    if (slidesRef.current) {
+      const slide = slidesRef.current.children[i];
+      if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  };
+
   return (
     <article className="pcard speccard">
-      <div className="pcard__img" style={{backgroundImage:`url(${p.image})`}}>
-        {p.tag && <span className={tagClass}>{p.tag}</span>}
+      <div className="pcard__carousel">
+        <div className="pcard__slides" ref={slidesRef}>
+          {images.length > 0 ? images.map((url, i) => (
+            <div
+              key={i}
+              className="pcard__slide"
+              style={{ backgroundImage: `url(${url})` }}
+            />
+          )) : (
+            <div className="pcard__slide pcard__slide--empty" />
+          )}
+        </div>
         <span className="pcard__season">產季 {p.season}</span>
+        {images.length > 1 && (
+          <div className="pcard__dots">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                className={'pcard__dot' + (i === imgIdx ? ' is-active' : '')}
+                onClick={() => goTo(i)}
+                aria-label={`圖片 ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className="pcard__body">
         <div className="pcard__head">
