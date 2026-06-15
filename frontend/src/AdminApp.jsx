@@ -161,7 +161,7 @@ function LoginView({ onLogin }) {
 }
 
 /* ── Filter strip ── */
-function FilterStrip({ totalAll, statusCounts, filters, setFilters, onSearch }) {
+function FilterStrip({ statusCounts, filters, setFilters, onSearch }) {
   const debounceRef = useRef(null);
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
@@ -188,7 +188,8 @@ function FilterStrip({ totalAll, statusCounts, filters, setFilters, onSearch }) 
     <div className="adm-filters">
       <div className="adm-chips">
         {CHIP_OPTIONS.map(({ value, label }) => {
-          const count = value === '' ? totalAll : (statusCounts?.[value] ?? 0);
+          const grandTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+          const count = value === '' ? grandTotal : (statusCounts?.[value] ?? 0);
           return (
             <button
               key={value}
@@ -1067,7 +1068,6 @@ export default function AdminApp() {
             <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
           </div>
           <FilterStrip
-            totalAll={orders.total}
             statusCounts={orders.status_counts || {}}
             filters={filters}
             setFilters={setFilters}
