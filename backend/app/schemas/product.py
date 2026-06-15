@@ -8,6 +8,7 @@ class PublicSpecRead(BaseModel):
     price: int
     stock_status: str
     note: str | None = None
+    images: list[str] = []
 
 
 class PublicProductRead(BaseModel):
@@ -33,6 +34,7 @@ class AdminSpecRead(BaseModel):
     low_stock_threshold: int
     sort_order: int
     is_active: bool
+    images: list[str] = []
 
 
 class AdminProductRead(BaseModel):

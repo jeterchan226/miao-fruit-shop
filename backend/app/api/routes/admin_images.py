@@ -52,3 +52,22 @@ async def reorder_images(
     product_id: int, req: ImageReorderRequest, session: SessionDep
 ) -> list[AdminImageRead]:
     return await image_service.reorder_images(session, product_id, req)
+
+
+@router.get("/specs/{spec_id}/images", response_model=list[AdminImageRead])
+async def list_spec_images(spec_id: int, session: SessionDep) -> list[AdminImageRead]:
+    return await image_service.list_spec_images(session, spec_id)
+
+
+@router.post("/specs/{spec_id}/images", response_model=AdminImageRead, status_code=201)
+async def register_spec_image(
+    spec_id: int, data: ImageRegister, session: SessionDep
+) -> AdminImageRead:
+    return await image_service.register_spec_image(session, spec_id, data)
+
+
+@router.patch("/specs/{spec_id}/images/reorder", response_model=list[AdminImageRead])
+async def reorder_spec_images(
+    spec_id: int, req: ImageReorderRequest, session: SessionDep
+) -> list[AdminImageRead]:
+    return await image_service.reorder_spec_images(session, spec_id, req)

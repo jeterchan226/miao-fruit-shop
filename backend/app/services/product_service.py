@@ -23,6 +23,10 @@ def derive_stock_status(stock_qty: int, low_stock_threshold: int) -> str:
     return "in"
 
 
+def _get_spec_images(s: ProductSpec) -> list[str]:
+    return [img.url for img in s.images] if s.images else []
+
+
 def _to_public_spec(s: ProductSpec) -> PublicSpecRead:
     return PublicSpecRead(
         id=s.id,
@@ -31,6 +35,7 @@ def _to_public_spec(s: ProductSpec) -> PublicSpecRead:
         price=s.price,
         stock_status=derive_stock_status(s.stock_qty, s.low_stock_threshold),
         note=s.note,
+        images=_get_spec_images(s),
     )
 
 
@@ -46,6 +51,7 @@ def _to_admin_spec(s: ProductSpec) -> AdminSpecRead:
         low_stock_threshold=s.low_stock_threshold,
         sort_order=s.sort_order,
         is_active=s.is_active,
+        images=_get_spec_images(s),
     )
 
 

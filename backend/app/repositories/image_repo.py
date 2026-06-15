@@ -7,7 +7,16 @@ from app.models.product_image import ProductImage
 async def list_by_product(session: AsyncSession, product_id: int) -> list[ProductImage]:
     result = await session.execute(
         select(ProductImage)
-        .where(ProductImage.product_id == product_id)
+        .where(ProductImage.product_id == product_id, ProductImage.spec_id.is_(None))
+        .order_by(ProductImage.sort_order, ProductImage.id)
+    )
+    return list(result.scalars().all())
+
+
+async def list_by_spec(session: AsyncSession, spec_id: int) -> list[ProductImage]:
+    result = await session.execute(
+        select(ProductImage)
+        .where(ProductImage.spec_id == spec_id)
         .order_by(ProductImage.sort_order, ProductImage.id)
     )
     return list(result.scalars().all())

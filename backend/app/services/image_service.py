@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, NotFoundError
 from app.models.product_image import ProductImage
-from app.repositories import image_repo, product_repo
+from app.repositories import image_repo, product_repo, spec_repo
 from app.schemas.image import (
     AdminImageRead,
     ImageRegister,
@@ -25,6 +25,11 @@ async def list_images(session: AsyncSession, product_id: int) -> list[AdminImage
     return [AdminImageRead.model_validate(i) for i in imgs]
 
 
+async def list_spec_images(session: AsyncSession, spec_id: int) -> list[AdminImageRead]:
+    imgs = await image_repo.list_by_spec(session, spec_id)
+    return [AdminImageRead.model_validate(i) for i in imgs]
+
+
 async def register_image(
     session: AsyncSession, product_id: int, data: ImageRegister
 ) -> AdminImageRead:
@@ -32,6 +37,24 @@ async def register_image(
     if product is None:
         raise NotFoundError("找不到商品")
     img = ProductImage(product_id=product_id, url=data.url, sort_order=data.sort_order)
+    await image_repo.add(session, img)
+    await session.commit()
+    await session.refresh(img)
+    return AdminImageRead.model_validate(img)
+
+
+async def register_spec_image(
+    session: AsyncSession, spec_id: int, data: ImageRegister
+) -> AdminImageRead:
+    spec = await spec_repo.get_by_id(session, spec_id)
+    if spec is None:
+        raise NotFoundError("找不到規格")
+    img = ProductImage(
+        product_id=spec.product_id,
+        spec_id=spec_id,
+        url=data.url,
+        sort_order=data.sort_order,
+    )
     await image_repo.add(session, img)
     await session.commit()
     await session.refresh(img)
@@ -54,7 +77,18 @@ async def reorder_images(
 ) -> list[AdminImageRead]:
     for item in req.items:
         img = await image_repo.get_by_id(session, item.id)
-        if img is not None and img.product_id == product_id:
+        if img is not None and img.product_id == product_id and img.spec_id is None:
             img.sort_order = item.sort_order
     await session.commit()
     return await list_images(session, product_id)
+
+
+async def reorder_spec_images(
+    session: AsyncSession, spec_id: int, req: ImageReorderRequest
+) -> list[AdminImageRead]:
+    for item in req.items:
+        img = await image_repo.get_by_id(session, item.id)
+        if img is not None and img.spec_id == spec_id:
+            img.sort_order = item.sort_order
+    await session.commit()
+    return await list_spec_images(session, spec_id)
