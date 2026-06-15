@@ -23,6 +23,7 @@ const TOKEN_KEY = 'miao.admin.token';
 const STATUS_LABELS = {
   pending_payment: '待付款',
   pending: '待確認',
+  confirmed: '待出貨',
   shipping: '出貨中',
   delivered: '已送達',
   cancelled: '已取消',
@@ -61,7 +62,7 @@ const PAYMENT_METHOD_LABELS = {
 const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
 const dateText = (s) =>
   s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '—';
-const statusLabel = (s) => STATUS_LABELS[s] || s || '—';
+const statusLabel = (s) => STATUS_LABELS[s] || '—';
 
 /* ── Resolve search text → API params ──
    If the input looks like an order number (starts with MM-), send as order_no
