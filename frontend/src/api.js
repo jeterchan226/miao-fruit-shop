@@ -67,6 +67,7 @@ const normalizeProduct = (product) => ({
     stock: spec.stock_status,
     stockText: stockText[spec.stock_status] || '狀態確認中',
     note: spec.note,
+    images: spec.images || [],
   })),
 });
 
@@ -145,6 +146,31 @@ export const reorderProductImages = (token, productId, items) =>
     body: JSON.stringify({ items }),
   });
 
+// ── Admin spec image APIs ──
+
+export const listSpecImages = (token, specId) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images`);
+
+export const registerSpecImage = (token, specId, url, sortOrder = 0) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images`, {
+    method: 'POST',
+    body: JSON.stringify({ url, sort_order: sortOrder }),
+  });
+
+export const reorderSpecImages = (token, specId, items) =>
+  adminRequest(token, `/api/admin/specs/${specId}/images/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items }),
+  });
+
+// ── Admin spec update ──
+
+export const updateSpec = (token, specId, data) =>
+  adminRequest(token, `/api/admin/specs/${specId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
 export const listAdminOrders = (token, filters = {}) => {
   const qs = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -184,10 +210,14 @@ window.MiaoApi = {
   listAdminProducts,
   listProductImages,
   listProducts,
+  listSpecImages,
   loginAdmin,
   registerProductImage,
+  registerSpecImage,
   reorderProductImages,
+  reorderSpecImages,
   signUpload,
   updateAdminOrderStatus,
   updateAdminProduct,
+  updateSpec,
 };

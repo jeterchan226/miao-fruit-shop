@@ -574,6 +574,41 @@ button { cursor: pointer; }
   background: #F8F5F0;
 }
 
+/* ── Product header (collapsible) ── */
+.adm-product-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: var(--sage-50, #f7f9f5);
+  border-bottom: 1px solid var(--sage-200);
+  user-select: none;
+}
+.adm-product-header:hover { background: var(--sage-100); }
+.adm-product-header__toggle { font-size: 12px; color: var(--sage-500); width: 12px; }
+.adm-product-header__name { font-size: 15px; font-weight: 600; flex: 1; }
+.adm-product-header__meta { font-size: 12px; color: var(--brown-500); }
+
+/* ── Spec edit form ── */
+.adm-spec-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.adm-field { display: flex; flex-direction: column; gap: 4px; }
+.adm-field--row { flex-direction: row; align-items: center; gap: 8px; }
+.adm-field__label { font-size: 12px; color: var(--brown-500); font-weight: 500; }
+.adm-field__input {
+  border: 1px solid var(--sage-200);
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--brown-900);
+  transition: border-color var(--dur-micro);
+}
+.adm-field__input:focus { outline: none; border-color: var(--sage-500); }
+
 /* ── Product modal ── */
 .adm-modal--product { max-width: 560px; }
 .adm-modal__product-body {

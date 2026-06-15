@@ -1,6 +1,6 @@
 /* Spec card — one card per spec, with qty stepper (single-product storefront) */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '預購中';
 
@@ -16,7 +16,9 @@ export const SpecCard = ({ p, spec, onAdd }) => {
   const slidesRef = useRef(null);
   const disabled = spec.stock === 'out';
   const productSub = p.sub ? p.sub.split(' · ')[1] : p.slug;
-  const images = p.images || [];
+  const images = (spec.images && spec.images.length > 0) ? spec.images : (p.images || []);
+
+  const timerRef = useRef(null);
 
   const goTo = (i) => {
     setImgIdx(i);
@@ -24,6 +26,31 @@ export const SpecCard = ({ p, spec, onAdd }) => {
       const slide = slidesRef.current.children[i];
       if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
+  };
+
+  const resetTimer = (newIdx) => {
+    clearInterval(timerRef.current);
+    if (images.length <= 1) return;
+    timerRef.current = setInterval(() => {
+      setImgIdx((prev) => {
+        const next = (prev + 1) % images.length;
+        if (slidesRef.current) {
+          const slide = slidesRef.current.children[next];
+          if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        return next;
+      });
+    }, 3500);
+  };
+
+  useEffect(() => {
+    resetTimer(0);
+    return () => clearInterval(timerRef.current);
+  }, [images.length]);
+
+  const handleDotClick = (i) => {
+    goTo(i);
+    resetTimer(i);
   };
 
   return (
@@ -47,7 +74,7 @@ export const SpecCard = ({ p, spec, onAdd }) => {
               <button
                 key={i}
                 className={'pcard__dot' + (i === imgIdx ? ' is-active' : '')}
-                onClick={() => goTo(i)}
+                onClick={() => handleDotClick(i)}
                 aria-label={`圖片 ${i + 1}`}
               />
             ))}

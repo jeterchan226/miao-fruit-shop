@@ -8,11 +8,12 @@ import {
   getCurrentAdmin,
   listAdminOrders,
   listAdminProducts,
-  listProductImages,
+  listSpecImages,
   loginAdmin,
-  registerProductImage,
+  registerSpecImage,
   signUpload,
   updateAdminOrderStatus,
+  updateSpec,
 } from './api.js';
 
 const TOKEN_KEY = 'miao.admin.token';
@@ -426,15 +427,22 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   );
 }
 
-/* ── Image Gallery (商品圖片管理) ── */
-function ImageGallery({ productId, token }) {
+const STOCK_STATUS_LABELS = { in: '現貨供應', low: '剩量不多', out: '預購中' };
+const STOCK_STATUS_OPTIONS = [
+  { value: 'in', label: '現貨供應' },
+  { value: 'low', label: '剩量不多' },
+  { value: 'out', label: '預購中' },
+];
+
+/* ── Spec image gallery (規格層級) ── */
+function SpecImageGallery({ specId, token }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    listProductImages(token, productId).then(setImages).catch(() => {});
-  }, [productId, token]);
+    listSpecImages(token, specId).then(setImages).catch(() => {});
+  }, [specId, token]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -448,8 +456,7 @@ function ImageGallery({ productId, token }) {
         headers: { 'Content-Type': file.type },
         body: file,
       });
-      const newSortOrder = images.length;
-      const img = await registerProductImage(token, productId, public_url, newSortOrder);
+      const img = await registerSpecImage(token, specId, public_url, images.length);
       setImages((prev) => [...prev, img]);
     } catch (err) {
       setError('上傳失敗：' + (err?.message || '請稍後再試'));
@@ -497,8 +504,17 @@ function ImageGallery({ productId, token }) {
   );
 }
 
-/* ── Product edit modal ── */
-function ProductEditModal({ product, token, onClose, onSaved }) {
+/* ── Spec edit modal ── */
+function SpecEditModal({ spec, token, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    label: spec.label,
+    qty_text: spec.qty_text,
+    price: spec.price,
+    stock_qty: spec.stock_qty,
+    note: spec.note || '',
+    is_active: spec.is_active,
+  });
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -507,44 +523,127 @@ function ProductEditModal({ product, token, onClose, onSaved }) {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await updateSpec(token, spec.id, {
+        label: form.label,
+        qty_text: form.qty_text,
+        price: Number(form.price),
+        stock_qty: Number(form.stock_qty),
+        note: form.note || null,
+        is_active: form.is_active,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err?.data?.detail || '儲存失敗');
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="adm-modal-overlay" onClick={onClose}>
       <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
         <div className="adm-modal__head">
           <div>
-            <div className="adm-modal__order-no">{product.name}</div>
-            <div className="adm-modal__customer">商品 ID: {product.id}</div>
+            <div className="adm-modal__order-no">{spec.label}</div>
+            <div className="adm-modal__customer">規格 ID: {spec.id}</div>
           </div>
           <button className="adm-modal__close" onClick={onClose}>✕</button>
         </div>
         <div className="adm-modal__product-body">
+          {/* 圖片 */}
           <div className="adm-modal__section">
-            <div className="adm-modal__section-title">商品圖片</div>
-            <ImageGallery productId={product.id} token={token} />
+            <div className="adm-modal__section-title">規格圖片</div>
+            <SpecImageGallery specId={spec.id} token={token} />
           </div>
+          {/* 規格資訊 */}
           <div className="adm-modal__section">
-            <div className="adm-modal__section-title">基本資訊</div>
-            <dl className="adm-modal__dl">
-              <dt>商品名稱</dt><dd>{product.name}</dd>
-              <dt>Slug</dt><dd>{product.slug}</dd>
-              <dt>產季</dt><dd>{product.season}</dd>
-              <dt>狀態</dt><dd>{product.is_active ? '上架中' : '已下架'}</dd>
-              <dt>描述</dt><dd>{product.description}</dd>
-            </dl>
+            <div className="adm-modal__section-title">規格資訊</div>
+            <div className="adm-spec-form">
+              <label className="adm-field">
+                <span className="adm-field__label">規格名稱</span>
+                <input
+                  className="adm-field__input"
+                  value={form.label}
+                  onChange={(e) => setField('label', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">容量說明</span>
+                <input
+                  className="adm-field__input"
+                  value={form.qty_text}
+                  onChange={(e) => setField('qty_text', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">售價（NT$）</span>
+                <input
+                  className="adm-field__input"
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => setField('price', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">庫存數量</span>
+                <input
+                  className="adm-field__input"
+                  type="number"
+                  min="0"
+                  value={form.stock_qty}
+                  onChange={(e) => setField('stock_qty', e.target.value)}
+                />
+              </label>
+              <label className="adm-field">
+                <span className="adm-field__label">備註</span>
+                <input
+                  className="adm-field__input"
+                  value={form.note}
+                  onChange={(e) => setField('note', e.target.value)}
+                  placeholder="如：剩 3 箱"
+                />
+              </label>
+              <label className="adm-field adm-field--row">
+                <span className="adm-field__label">上架</span>
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(e) => setField('is_active', e.target.checked)}
+                />
+              </label>
+            </div>
           </div>
           {error && <div className="adm-alert">{error}</div>}
+        </div>
+        <div className="adm-modal__foot">
+          <span />
+          <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
+          <button
+            className="adm-modal__update-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? '儲存中…' : '儲存'}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Products tab ── */
+/* ── Products tab — specs expanded under each product ── */
 function ProductsTab({ token }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [editProduct, setEditProduct] = useState(null);
+  const [editSpec, setEditSpec] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
   const load = async () => {
     setLoading(true);
@@ -552,6 +651,10 @@ function ProductsTab({ token }) {
     try {
       const data = await listAdminProducts(token);
       setProducts(data);
+      // auto-expand all products
+      const exp = {};
+      data.forEach((p) => { exp[p.id] = true; });
+      setExpanded(exp);
     } catch {
       setError('無法載入商品資料');
     } finally {
@@ -566,53 +669,78 @@ function ProductsTab({ token }) {
 
   return (
     <div className="adm-table-wrap">
-      <div className="adm-table-card">
-        <table className="adm-table">
-          <thead>
-            <tr>
-              <th>商品名稱</th>
-              <th>Slug</th>
-              <th>產季</th>
-              <th>圖片數</th>
-              <th>規格數</th>
-              <th>狀態</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id}>
-                <td><strong>{p.name}</strong></td>
-                <td><span className="adm-mono">{p.slug}</span></td>
-                <td>{p.season}</td>
-                <td>{p.images?.length ?? 0}</td>
-                <td>{p.specs?.length ?? 0}</td>
-                <td>
-                  <span className={`adm-badge adm-badge--${p.is_active ? 'confirmed' : 'cancelled'}`}>
-                    {p.is_active ? '上架中' : '已下架'}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    className="adm-btn adm-btn--ghost"
-                    onClick={() => setEditProduct(p)}
-                    style={{ fontSize: 12 }}
-                  >
-                    編輯圖片
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {products.map((p) => (
+        <div key={p.id} className="adm-table-card" style={{ marginBottom: 16 }}>
+          {/* Product header row */}
+          <div
+            className="adm-product-header"
+            onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}
+          >
+            <span className="adm-product-header__toggle">{expanded[p.id] ? '▾' : '▸'}</span>
+            <strong className="adm-product-header__name">{p.name}</strong>
+            <span className="adm-product-header__meta">{p.season}</span>
+            <span className={`adm-badge adm-badge--${p.is_active ? 'confirmed' : 'cancelled'}`}>
+              {p.is_active ? '上架中' : '已下架'}
+            </span>
+            <span className="adm-product-header__meta">{p.specs?.length ?? 0} 個規格</span>
+          </div>
 
-      {editProduct && (
-        <ProductEditModal
-          product={editProduct}
+          {/* Spec rows */}
+          {expanded[p.id] && (
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: 32 }}>規格名稱</th>
+                  <th>容量</th>
+                  <th className="adm-num">售價</th>
+                  <th className="adm-num">庫存</th>
+                  <th>庫存狀態</th>
+                  <th>圖片數</th>
+                  <th>狀態</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(p.specs || []).map((s) => (
+                  <tr key={s.id}>
+                    <td style={{ paddingLeft: 32 }}>{s.label}</td>
+                    <td className="adm-muted">{s.qty_text}</td>
+                    <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
+                    <td className="adm-num">{s.stock_qty}</td>
+                    <td>
+                      <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
+                        {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
+                      </span>
+                    </td>
+                    <td>{s.images?.length ?? 0}</td>
+                    <td>
+                      <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
+                        {s.is_active ? '上架' : '下架'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className="adm-btn adm-btn--secondary"
+                        style={{ fontSize: 12 }}
+                        onClick={() => setEditSpec(s)}
+                      >
+                        編輯規格
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ))}
+
+      {editSpec && (
+        <SpecEditModal
+          spec={editSpec}
           token={token}
-          onClose={() => setEditProduct(null)}
-          onSaved={() => { setEditProduct(null); load(); }}
+          onClose={() => setEditSpec(null)}
+          onSaved={() => { setEditSpec(null); load(); }}
         />
       )}
     </div>
