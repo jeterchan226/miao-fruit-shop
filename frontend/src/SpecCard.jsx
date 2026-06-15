@@ -107,11 +107,13 @@ export const SpecCard = ({ p, spec, onAdd }) => {
         <div className="pcard__foot speccard__foot">
           <Price value={spec.price} />
           <div className="speccard__actions">
-            <div className="qty">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="減少數量">−</button>
-              <span className="v">{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} aria-label="增加數量">+</button>
-            </div>
+            {!disabled && (
+              <div className="qty">
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="減少數量">−</button>
+                <span className="v">{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} aria-label="增加數量">+</button>
+              </div>
+            )}
             <button
               className="btn btn--primary"
               disabled={disabled}
