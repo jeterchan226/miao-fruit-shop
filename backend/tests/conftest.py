@@ -15,9 +15,9 @@ from app.core.database import Base, get_session
 from app.main import app
 
 # 從設定的 DATABASE_URL 推導測試 DB(只換資料庫名為 miao_test,保留 driver/帳密/查詢參數)
-TEST_DATABASE_URL = make_url(settings.database_url).set(database="miao_test").render_as_string(
-    hide_password=False
-)
+TEST_DATABASE_URL = make_url(settings.sqlalchemy_database_url).set(
+    database="miao_test"
+).render_as_string(hide_password=False)
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
