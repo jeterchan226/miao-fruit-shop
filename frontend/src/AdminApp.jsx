@@ -1,6 +1,21 @@
 /* Admin order management — redesigned 2026-06-14 */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import {
   createSpec,
@@ -13,6 +28,7 @@ import {
   listSpecImages,
   loginAdmin,
   registerSpecImage,
+  reorderSpecImages,
   signUpload,
   updateAdminOrderStatus,
   updateSpec,
@@ -252,7 +268,7 @@ function OrdersTable({ orders, selectedOrderNo, onSelect }) {
   }
   return (
     <div className="adm-table-card">
-      <table className="adm-table">
+      <table className="adm-table adm-table--orders">
         <thead>
           <tr>
             <th>訂單編號</th>
@@ -449,11 +465,38 @@ const STOCK_STATUS_OPTIONS = [
   { value: 'out', label: '預購中' },
 ];
 
+/* ── Sortable image item ── */
+function SortableImageItem({ image, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: image.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`img-gallery__item${isDragging ? ' img-gallery__item--dragging' : ''}`}
+    >
+      <span className="img-gallery__drag-handle" {...attributes} {...listeners}>⠿</span>
+      <img src={image.url} alt="" className="img-gallery__thumb" />
+      <button
+        className="img-gallery__delete"
+        onClick={() => onDelete(image.id)}
+        title="移除"
+      >✕</button>
+    </div>
+  );
+}
+
 /* ── Spec image gallery (規格層級) ── */
 function SpecImageGallery({ specId, token }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   useEffect(() => {
     listSpecImages(token, specId).then(setImages).catch(() => {});
@@ -490,30 +533,48 @@ function SpecImageGallery({ specId, token }) {
     }
   };
 
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = images.findIndex((i) => i.id === active.id);
+    const newIndex = images.findIndex((i) => i.id === over.id);
+    setError('');
+    const prevImages = images;
+    const newImages = arrayMove(images, oldIndex, newIndex);
+    setImages(newImages);
+    try {
+      await reorderSpecImages(
+        token,
+        specId,
+        newImages.map((img, idx) => ({ id: img.id, sort_order: idx })),
+      );
+    } catch {
+      setImages(prevImages);
+      setError('排序儲存失敗，請稍後再試');
+    }
+  };
+
   return (
     <div className="img-gallery">
-      <div className="img-gallery__grid">
-        {images.map((img) => (
-          <div key={img.id} className="img-gallery__item">
-            <img src={img.url} alt="" className="img-gallery__thumb" />
-            <button
-              className="img-gallery__delete"
-              onClick={() => handleDelete(img.id)}
-              title="移除"
-            >✕</button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={images.map((i) => i.id)} strategy={rectSortingStrategy}>
+          <div className="img-gallery__grid">
+            {images.map((img) => (
+              <SortableImageItem key={img.id} image={img} onDelete={handleDelete} />
+            ))}
+            <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
+              {uploading ? '上傳中…' : '＋'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                disabled={uploading}
+              />
+            </label>
           </div>
-        ))}
-        <label className={`img-gallery__upload-btn${uploading ? ' is-uploading' : ''}`}>
-          {uploading ? '上傳中…' : '＋'}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-            disabled={uploading}
-          />
-        </label>
-      </div>
+        </SortableContext>
+      </DndContext>
       {error && <div className="adm-alert" style={{ marginTop: 8 }}>{error}</div>}
     </div>
   );
@@ -661,12 +722,18 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_SPEC_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // After the spec exists we can attach images (needs a spec id), so switch the
+  // modal into a second phase showing the same gallery as the edit modal.
+  const [createdSpec, setCreatedSpec] = useState(null);
+
+  // Once a spec has been created, any close must refresh the parent list.
+  const close = createdSpec ? onCreated : onClose;
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [close]);
 
   const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -678,7 +745,7 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
     setSaving(true);
     setError('');
     try {
-      await createSpec(token, productId, {
+      const spec = await createSpec(token, productId, {
         label: form.label,
         qty_text: form.qty_text,
         price: Number(form.price),
@@ -686,12 +753,40 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
         low_stock_threshold: Number(form.low_stock_threshold),
         note: form.note || null,
       });
-      onCreated();
+      setCreatedSpec(spec);
+      setSaving(false);
     } catch (err) {
       setError(err?.data?.detail || '新增失敗');
       setSaving(false);
     }
   };
+
+  if (createdSpec) {
+    return (
+      <div className="adm-modal-overlay" onClick={onCreated}>
+        <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+          <div className="adm-modal__head">
+            <div>
+              <div className="adm-modal__order-no">{createdSpec.label}</div>
+              <div className="adm-modal__customer">規格已建立，可上傳圖片</div>
+            </div>
+            <button className="adm-modal__close" onClick={onCreated}>✕</button>
+          </div>
+          <div className="adm-modal__product-body">
+            <div className="adm-modal__section">
+              <div className="adm-modal__section-title">規格圖片</div>
+              <SpecImageGallery specId={createdSpec.id} token={token} />
+            </div>
+          </div>
+          <div className="adm-modal__foot">
+            <span />
+            <span />
+            <button className="adm-modal__update-btn" onClick={onCreated}>完成</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="adm-modal-overlay" onClick={onClose}>
@@ -741,7 +836,7 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
           <span />
           <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
           <button className="adm-modal__update-btn" onClick={handleCreate} disabled={saving}>
-            {saving ? '新增中…' : '新增規格'}
+            {saving ? '新增中…' : '新增並上傳圖片'}
           </button>
         </div>
       </div>
@@ -830,7 +925,8 @@ function ProductsTab({ token }) {
           {/* Spec rows */}
           {expanded[p.id] && (
             <>
-              <table className="adm-table">
+              <div className="adm-spec-scroll">
+              <table className="adm-table adm-table--specs">
                 <thead>
                   <tr>
                     <th style={{ width: 56 }}>順序</th>
@@ -896,6 +992,7 @@ function ProductsTab({ token }) {
                   ))}
                 </tbody>
               </table>
+              </div>
               <div style={{ padding: '10px 16px' }}>
                 <button
                   className="adm-btn adm-btn--secondary"

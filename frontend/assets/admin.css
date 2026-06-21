@@ -675,6 +675,23 @@ button { cursor: pointer; }
   cursor: pointer; opacity: 0; transition: opacity var(--dur-micro);
 }
 .img-gallery__item:hover .img-gallery__delete { opacity: 1; }
+.img-gallery__drag-handle {
+  position: absolute; top: 4px; left: 4px;
+  background: rgba(58,45,31,.65); color: #fff;
+  border-radius: 4px;
+  width: 22px; height: 22px; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.45;
+  transition: opacity var(--dur-micro);
+  user-select: none;
+}
+.img-gallery__item:hover .img-gallery__drag-handle { opacity: 1; }
+.img-gallery__item--dragging { opacity: 0.4; }
+@media (hover: none) {
+  .img-gallery__drag-handle { opacity: 0.75; }
+}
 .img-gallery__upload-btn {
   aspect-ratio: 4/3;
   border: 2px dashed var(--sage-300);
@@ -691,15 +708,57 @@ button { cursor: pointer; }
 }
 .img-gallery__upload-btn.is-uploading { font-size: 12px; cursor: wait; }
 
+/* ── Spec table scroll wrapper ── */
+.adm-spec-scroll { overflow-x: auto; }
+.adm-table--specs { min-width: 620px; }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .adm-modal__body { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .adm-topbar { padding: 0 14px; }
-  .adm-topbar__nav { display: none; }
+  /* Topbar: 雙列佈局 */
+  .adm-topbar { height: auto; flex-wrap: wrap; padding: 8px 14px; }
+  .adm-topbar__logo { flex: 1; }
+  .adm-topbar__username { display: none; }
+  .adm-topbar__nav {
+    display: flex; order: 3; width: 100%;
+    border-top: 1px solid rgba(255,255,255,.1);
+    margin-top: 6px; padding-top: 6px;
+  }
+  .adm-topbar__nav-item { flex: 1; text-align: center; }
+
+  /* Page layout */
   .adm-table-wrap { padding: 10px 14px; }
   .adm-page-head { padding: 14px 14px 0; }
+
+  /* Filter: 日期篩選換行顯示 */
   .adm-filters { padding: 10px 14px 12px; }
-  .adm-date-range { display: none; }
+  .adm-search-row { flex-wrap: wrap; }
+  .adm-date-range { display: flex; width: 100%; margin-top: 6px; }
+  .adm-date-input { flex: 1; }
+
+  /* Orders table: card 排版 */
+  .adm-table--orders thead { display: none; }
+  .adm-table--orders tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 3px 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--sage-100);
+    cursor: pointer;
+  }
+  .adm-table--orders tbody tr:last-child { border-bottom: none; }
+  .adm-table--orders tbody td { border: none; padding: 0; }
+  .adm-table--orders td:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 13px; }
+  .adm-table--orders td:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .adm-table--orders td:nth-child(3) { grid-column: 1; grid-row: 2; font-size: 12px; color: var(--brown-500); }
+  .adm-table--orders td:nth-child(4) { display: none; }
+  .adm-table--orders td:nth-child(5) { grid-column: 2; grid-row: 2; font-weight: 600; font-size: 13px; text-align: right; }
+  .adm-table--orders td:nth-child(6) { grid-column: 1 / -1; grid-row: 3; font-size: 11px; color: var(--brown-400); }
+  .adm-table--orders tbody tr:hover { background: #FAF5ED; }
+  .adm-table--orders tbody tr:hover td { background: transparent; }
+  .adm-table--orders tbody tr.is-selected { background: #F5EDE0; }
+  .adm-table--orders tbody tr.is-selected td { background: transparent; }
 }

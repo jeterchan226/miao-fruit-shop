@@ -25,7 +25,7 @@
 **Files:**
 - Rewrite: `frontend/assets/admin.css`
 
-- [ ] **Step 1: 確認 dev server 可以啟動**
+- [x] **Step 1: 確認 dev server 可以啟動**
 
 ```bash
 cd frontend && npm run dev
@@ -33,7 +33,7 @@ cd frontend && npm run dev
 
 開啟 `http://localhost:8080/admin`，確認當前後台可以正常顯示（不論樣式如何）。確認後 Ctrl-C 停止。
 
-- [ ] **Step 2: 改寫 `frontend/assets/admin.css`**
+- [x] **Step 2: 改寫 `frontend/assets/admin.css`**
 
 以下為完整新版 CSS（全數取代舊檔內容）：
 
@@ -628,7 +628,7 @@ button { cursor: pointer; }
 }
 ```
 
-- [ ] **Step 3: 啟動 dev server，驗證登入頁樣式**
+- [x] **Step 3: 啟動 dev server，驗證登入頁樣式**
 
 ```bash
 cd frontend && npm run dev
@@ -642,7 +642,7 @@ cd frontend && npm run dev
 
 若有 CSS syntax error，修正後繼續。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/assets/admin.css
@@ -656,7 +656,7 @@ git commit -m "style(admin): rewrite admin.css — new design system (sage topba
 **Files:**
 - Rewrite: `frontend/src/AdminApp.jsx`
 
-- [ ] **Step 1: 完整改寫 `frontend/src/AdminApp.jsx`**
+- [x] **Step 1: 完整改寫 `frontend/src/AdminApp.jsx`**
 
 以下為完整新版檔案內容（全數取代）：
 
@@ -1241,7 +1241,7 @@ export default function AdminApp() {
 }
 ```
 
-- [ ] **Step 2: 確認 dev server 仍在執行，開啟後台**
+- [x] **Step 2: 確認 dev server 仍在執行，開啟後台**
 
 若 dev server 已停止，重新啟動：
 
@@ -1251,7 +1251,7 @@ cd frontend && npm run dev
 
 開啟 `http://localhost:8080/admin`。
 
-- [ ] **Step 3: 驗證登入頁**
+- [x] **Step 3: 驗證登入頁**
 
 預期結果：
 - 頁面背景 `#F8F5F0` 淡米白
@@ -1261,7 +1261,7 @@ cd frontend && npm run dev
 - 「登入」按鈕為深 Sage 綠
 - 輸入錯誤帳號密碼（若後端未啟動），應看到紅色 error alert
 
-- [ ] **Step 4: 驗證登入後主頁面**
+- [x] **Step 4: 驗證登入後主頁面**
 
 若後端已在 `localhost:8000` 執行，使用正確帳號登入。
 
@@ -1273,7 +1273,7 @@ cd frontend && npm run dev
 - 表格：白底卡片 + 圓角，欄位 header 小寫灰字
 - 訂單編號 IBM Plex Mono 綠字；狀態 badge 帶色點
 
-- [ ] **Step 5: 驗證 Modal**
+- [x] **Step 5: 驗證 Modal**
 
 點擊表格任意一列。
 
@@ -1285,7 +1285,7 @@ cd frontend && npm run dev
 - Footer：「變更狀態」label + select + 「確認更新」按鈕
 - 按 Escape 或點遮罩可關閉
 
-- [ ] **Step 6: 驗證狀態更新**
+- [x] **Step 6: 驗證狀態更新**
 
 在 Modal footer，選擇一個合法的下一個狀態，點「確認更新」。
 
@@ -1294,7 +1294,7 @@ cd frontend && npm run dev
 - 成功後：Modal header 的狀態 badge 更新；表格列的 badge 也更新（重載後）
 - 若選非法轉移（應在 select 中不可見，因為只顯示合法選項）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx
@@ -1305,15 +1305,15 @@ git commit -m "feat(admin): rewrite AdminApp — chip filter, full-width table, 
 
 ## Definition of Done
 
-- [ ] `http://localhost:8080/admin` 登入頁符合新設計（白卡片 + 深 Sage header）
-- [ ] 登入後頂欄為深 Sage，含 Nav + 使用者資訊
-- [ ] Chip 篩選列可切換狀態，「全部」chip 顯示當前總筆數
-- [ ] 搜尋框輸入 300ms debounce 後觸發查詢；前綴 `MM-` 走 order_no，否則走 q
-- [ ] 日期起迄 input 改變後立即觸發查詢
-- [ ] 表格全幅，無側邊欄；列 hover 效果；選中列有 highlight
-- [ ] 點列 → Modal 出現；Escape / 點遮罩 / ✕ 均可關閉
-- [ ] Modal 雙欄：左收件資訊，右商品明細 + 金額總計
-- [ ] Modal footer 狀態 select 只顯示合法下一狀態；終態（delivered/cancelled）select disabled
-- [ ] 更新狀態成功後 Modal header badge 即時更新，表格重新載入
-- [ ] 401 回應 → 自動登出
-- [ ] `http://localhost:8080/` 前台商店頁面不受影響
+- [x] `http://localhost:8080/admin` 登入頁符合新設計（白卡片 + 深 Sage header）
+- [x] 登入後頂欄為深 Sage，含 Nav + 使用者資訊
+- [x] Chip 篩選列可切換狀態，「全部」chip 顯示當前總筆數
+- [x] 搜尋框輸入 300ms debounce 後觸發查詢；前綴 `MM-` 走 order_no，否則走 q
+- [x] 日期起迄 input 改變後立即觸發查詢
+- [x] 表格全幅，無側邊欄；列 hover 效果；選中列有 highlight
+- [x] 點列 → Modal 出現；Escape / 點遮罩 / ✕ 均可關閉
+- [x] Modal 雙欄：左收件資訊，右商品明細 + 金額總計
+- [x] Modal footer 狀態 select 只顯示合法下一狀態；終態（delivered/cancelled）select disabled
+- [x] 更新狀態成功後 Modal header badge 即時更新，表格重新載入
+- [x] 401 回應 → 自動登出
+- [x] `http://localhost:8080/` 前台商店頁面不受影響
