@@ -722,12 +722,18 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_SPEC_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // After the spec exists we can attach images (needs a spec id), so switch the
+  // modal into a second phase showing the same gallery as the edit modal.
+  const [createdSpec, setCreatedSpec] = useState(null);
+
+  // Once a spec has been created, any close must refresh the parent list.
+  const close = createdSpec ? onCreated : onClose;
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [close]);
 
   const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -739,7 +745,7 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
     setSaving(true);
     setError('');
     try {
-      await createSpec(token, productId, {
+      const spec = await createSpec(token, productId, {
         label: form.label,
         qty_text: form.qty_text,
         price: Number(form.price),
@@ -747,12 +753,40 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
         low_stock_threshold: Number(form.low_stock_threshold),
         note: form.note || null,
       });
-      onCreated();
+      setCreatedSpec(spec);
+      setSaving(false);
     } catch (err) {
       setError(err?.data?.detail || '新增失敗');
       setSaving(false);
     }
   };
+
+  if (createdSpec) {
+    return (
+      <div className="adm-modal-overlay" onClick={onCreated}>
+        <div className="adm-modal adm-modal--product" onClick={(e) => e.stopPropagation()}>
+          <div className="adm-modal__head">
+            <div>
+              <div className="adm-modal__order-no">{createdSpec.label}</div>
+              <div className="adm-modal__customer">規格已建立，可上傳圖片</div>
+            </div>
+            <button className="adm-modal__close" onClick={onCreated}>✕</button>
+          </div>
+          <div className="adm-modal__product-body">
+            <div className="adm-modal__section">
+              <div className="adm-modal__section-title">規格圖片</div>
+              <SpecImageGallery specId={createdSpec.id} token={token} />
+            </div>
+          </div>
+          <div className="adm-modal__foot">
+            <span />
+            <span />
+            <button className="adm-modal__update-btn" onClick={onCreated}>完成</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="adm-modal-overlay" onClick={onClose}>
@@ -802,7 +836,7 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
           <span />
           <button className="adm-btn adm-btn--ghost" onClick={onClose}>取消</button>
           <button className="adm-modal__update-btn" onClick={handleCreate} disabled={saving}>
-            {saving ? '新增中…' : '新增規格'}
+            {saving ? '新增中…' : '新增並上傳圖片'}
           </button>
         </div>
       </div>
