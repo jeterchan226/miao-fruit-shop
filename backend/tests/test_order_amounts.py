@@ -9,32 +9,22 @@ ORDER_NO_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
 def test_shipping_free_at_threshold():
-    a = compute_amounts(5000, "linepay")
+    a = compute_amounts(5000)
     assert a == Amounts(subtotal=5000, shipping_fee=0, cod_fee=0, total=5000)
 
 
 def test_shipping_charged_below_threshold():
-    a = compute_amounts(4999, "linepay")
+    a = compute_amounts(4999)
     assert a == Amounts(subtotal=4999, shipping_fee=150, cod_fee=0, total=5149)
 
 
-def test_cod_fee_added_for_cod():
-    a = compute_amounts(1000, "cod")
-    assert a == Amounts(subtotal=1000, shipping_fee=150, cod_fee=30, total=1180)
+def test_cod_fee_always_zero():
+    # 付款只剩轉帳,不再有貨到付款手續費。
+    assert compute_amounts(1000).cod_fee == 0
 
 
-def test_cod_fee_zero_for_non_cod():
-    a = compute_amounts(1000, "atm")
-    assert a.cod_fee == 0
-
-
-def test_initial_status_cod_is_ready():
-    assert initial_status("cod") == "ready"
-
-
-def test_initial_status_prepaid_is_pending_payment():
-    for method in ("linepay", "card", "atm"):
-        assert initial_status(method) == "pending_payment"
+def test_initial_status_is_pending_payment():
+    assert initial_status() == "pending_payment"
 
 
 def test_order_no_format():

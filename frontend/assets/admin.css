@@ -441,6 +441,24 @@ button { cursor: pointer; }
 }
 .adm-modal__dl dt { color: var(--brown-500); }
 .adm-modal__dl dd { color: var(--brown-700); }
+.adm-line { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.adm-line__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.adm-line__name { color: var(--brown-800); font-weight: 700; line-height: 1.35; }
+.adm-line__meta { color: var(--brown-500); font-size: 12px; line-height: 1.35; }
+.adm-line__id {
+  max-width: 260px;
+  margin-top: 2px;
+  color: var(--brown-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
 .adm-modal__items { display: flex; flex-direction: column; }
 .adm-modal__item {
   display: flex;

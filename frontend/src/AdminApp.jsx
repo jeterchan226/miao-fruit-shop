@@ -39,17 +39,14 @@ const TOKEN_KEY = 'miao.admin.token';
 const STATUS_LABELS = {
   pending_payment: '待付款',
   ready: '待出貨',
-  confirmed: '待出貨',
-  shipping: '出貨中',
-  delivered: '已送達',
+  shipping: '已出貨',
   cancelled: '已取消',
 };
 
 const NEXT_STATUS = {
   pending_payment: ['ready', 'cancelled'],
   ready: ['shipping', 'cancelled'],
-  shipping: ['delivered'],
-  delivered: [],
+  shipping: [],
   cancelled: [],
 };
 
@@ -57,8 +54,7 @@ const CHIP_OPTIONS = [
   { value: '', label: '全部' },
   { value: 'pending_payment', label: '待付款' },
   { value: 'ready', label: '待出貨' },
-  { value: 'shipping', label: '出貨中' },
-  { value: 'delivered', label: '已送達' },
+  { value: 'shipping', label: '已出貨' },
   { value: 'cancelled', label: '已取消' },
 ];
 
@@ -69,10 +65,18 @@ const DELIVERY_WINDOW_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
+  transfer: '銀行轉帳',
+  // 以下為舊資料相容用,新訂單一律為 transfer。
   linepay: 'LINE Pay',
   card: '信用卡',
   atm: 'ATM 轉帳',
   cod: '貨到付款',
+};
+
+const LINE_FRIENDSHIP_LABELS = {
+  friend: '已加入官方帳號',
+  not_friend: '尚未加入官方帳號',
+  unknown: '未確認',
 };
 
 const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
@@ -382,7 +386,27 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                 <div className="adm-modal__section-title">收件資訊</div>
                 <dl className="adm-modal__dl">
                   <dt>電話</dt><dd>{detail.customer_phone}</dd>
-                  <dt>Email</dt><dd>{detail.customer_email || '—'}</dd>
+                  <dt>LINE 通知</dt>
+                  <dd>
+                    <div className="adm-line">
+                      {detail.line_picture_url && (
+                        <img className="adm-line__avatar" src={detail.line_picture_url} alt="" />
+                      )}
+                      <div>
+                        <div className="adm-line__name">
+                          {detail.line_display_name || '—'}
+                        </div>
+                        <div className="adm-line__meta">
+                          {detail.line_notification_consent ? '已同意通知' : '未同意通知'}
+                          {' · '}
+                          {LINE_FRIENDSHIP_LABELS[detail.line_friendship_status] || '未確認'}
+                        </div>
+                        {detail.line_user_id && (
+                          <div className="adm-line__id">{detail.line_user_id}</div>
+                        )}
+                      </div>
+                    </div>
+                  </dd>
                   <dt>地址</dt>
                   <dd>
                     {detail.ship_zipcode}&nbsp;

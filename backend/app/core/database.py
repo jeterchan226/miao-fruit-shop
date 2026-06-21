@@ -14,7 +14,9 @@ class Base(DeclarativeBase):
     """所有 ORM model 的共同基底;Phase 2+ 的 model 繼承它。"""
 
 
-engine = create_async_engine(settings.database_url, echo=False, pool_pre_ping=True)
+engine = create_async_engine(
+    settings.sqlalchemy_database_url, echo=False, pool_pre_ping=True
+)
 
 AsyncSessionLocal = async_sessionmaker(
     engine, expire_on_commit=False, autoflush=False

@@ -17,9 +17,18 @@ async def _seed_spec(db_session, *, price=1880, stock=10):
     return product.specs[0]
 
 
-def _body(spec_id, qty, *, payment="linepay", expected_total):
+def _body(spec_id, qty, *, payment="transfer", expected_total):
     return {
-        "customer": {"name": "王小明", "phone": "0912345678", "email": None},
+        "customer": {
+            "name": "王小明",
+            "phone": "0912345678",
+            "email": None,
+            "line_user_id": "U123",
+            "line_display_name": "小明",
+            "line_picture_url": "https://example.com/line.jpg",
+            "line_friendship_status": "friend",
+            "line_notification_consent": True,
+        },
         "shipping": {
             "zipcode": "100", "city": "台北市", "district": "中正區",
             "street": "x", "preferred_date": "2026-10-12", "delivery_window": "any",

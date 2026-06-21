@@ -13,11 +13,10 @@ from app.schemas.order import (
 )
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
-    "pending_payment": {"ready", "cancelled"},
-    "ready":           {"shipping", "cancelled"},
-    "shipping":        {"delivered"},
-    "delivered":       set(),
-    "cancelled":       set(),
+    "pending_payment": {"ready", "cancelled"},      # 待付款
+    "ready":           {"shipping", "cancelled"},   # 待出貨
+    "shipping":        set(),                        # 已出貨(終態)
+    "cancelled":       set(),                        # 已取消
 }
 
 
@@ -40,6 +39,11 @@ def _to_admin_order_read(order: Order) -> AdminOrderRead:
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         customer_email=order.customer_email,
+        line_user_id=order.line_user_id,
+        line_display_name=order.line_display_name,
+        line_picture_url=order.line_picture_url,
+        line_friendship_status=order.line_friendship_status,
+        line_notification_consent=order.line_notification_consent,
         ship_zipcode=order.ship_zipcode,
         ship_city=order.ship_city,
         ship_district=order.ship_district,

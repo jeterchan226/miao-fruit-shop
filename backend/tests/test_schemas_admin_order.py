@@ -11,7 +11,16 @@ from app.schemas.order import (
 
 def test_admin_order_read_has_admin_only_fields():
     fields = set(AdminOrderRead.model_fields)
-    assert {"id", "customer_email", "ship_city", "updated_at", "items"} <= fields
+    assert {
+        "id",
+        "customer_email",
+        "line_user_id",
+        "line_display_name",
+        "line_notification_consent",
+        "ship_city",
+        "updated_at",
+        "items",
+    } <= fields
 
 
 def test_public_order_read_has_no_admin_fields():
@@ -33,6 +42,7 @@ def test_order_status_update_forbids_extra():
 
 
 def test_order_status_update_rejects_legacy_statuses():
-    for status in ("shipped", "completed"):
+    # delivered(已送達)已移除,連同其他舊狀態都要拒絕。
+    for status in ("shipped", "completed", "delivered"):
         with pytest.raises(ValidationError):
             OrderStatusUpdate(status=status)

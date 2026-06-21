@@ -8,6 +8,11 @@ class CustomerCreate(BaseModel):
     name: str
     phone: str
     email: str | None = None
+    line_user_id: str | None = None
+    line_display_name: str | None = None
+    line_picture_url: str | None = None
+    line_friendship_status: str | None = None
+    line_notification_consent: bool = False
 
 
 class ShippingCreate(BaseModel):
@@ -30,7 +35,7 @@ class OrderCreate(BaseModel):
     customer: CustomerCreate
     shipping: ShippingCreate
     items: list[OrderItemCreate] = Field(min_length=1)
-    payment_method: Literal["linepay", "card", "atm", "cod"]
+    payment_method: Literal["transfer"] = "transfer"
     note: str | None = None
     expected_total: int = Field(ge=0)
 
@@ -89,6 +94,11 @@ class AdminOrderRead(BaseModel):
     customer_name: str
     customer_phone: str
     customer_email: str | None
+    line_user_id: str | None
+    line_display_name: str | None
+    line_picture_url: str | None
+    line_friendship_status: str | None
+    line_notification_consent: bool
     ship_zipcode: str
     ship_city: str
     ship_district: str
@@ -109,4 +119,4 @@ class AdminOrderRead(BaseModel):
 class OrderStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    status: Literal["pending_payment", "ready", "shipping", "delivered", "cancelled"]
+    status: Literal["pending_payment", "ready", "shipping", "cancelled"]

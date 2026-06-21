@@ -3,7 +3,7 @@
 const DEFAULT_LOCAL_API = 'http://localhost:8000';
 
 const apiBase = () => {
-  const configured = window.MIAO_API_BASE_URL;
+  const configured = window.MIAO_API_BASE_URL || import.meta.env.VITE_MIAO_API_BASE_URL;
   if (configured && configured.trim()) return configured.trim().replace(/\/$/, '');
   const host = window.location.hostname;
   if (window.location.protocol === 'file:' || host === 'localhost' || host === '127.0.0.1') {

@@ -26,9 +26,18 @@ async def _seed_spec(db_session, *, price=1880, stock=10):
     return product.specs[0]
 
 
-def _payload(spec_id, qty, *, payment="linepay", expected_total):
+def _payload(spec_id, qty, *, payment="transfer", expected_total):
     return OrderCreate.model_validate({
-        "customer": {"name": "王小明", "phone": "0912345678", "email": None},
+        "customer": {
+            "name": "王小明",
+            "phone": "0912345678",
+            "email": None,
+            "line_user_id": "U123",
+            "line_display_name": "小明",
+            "line_picture_url": "https://example.com/line.jpg",
+            "line_friendship_status": "friend",
+            "line_notification_consent": True,
+        },
         "shipping": {
             "zipcode": "100", "city": "台北市", "district": "中正區",
             "street": "x", "preferred_date": "2026-10-12", "delivery_window": "any",
@@ -61,17 +70,21 @@ async def test_create_order_success_decrements_and_snapshots(db_session: AsyncSe
     assert result.items[0].line_total == 1880
     refreshed = await db_session.get(ProductSpec, spec.id)
     assert refreshed.stock_qty == 9
+    saved = (await db_session.execute(select(Order))).scalars().one()
+    assert saved.line_user_id == "U123"
+    assert saved.line_display_name == "小明"
+    assert saved.line_notification_consent is True
 
 
-async def test_create_order_cod_status_and_fee(db_session: AsyncSession):
+async def test_create_order_free_shipping_no_cod_fee(db_session: AsyncSession):
     spec = await _seed_spec(db_session, price=6000, stock=5)
     result = await order_service.create_order(
-        db_session, _payload(spec.id, 1, payment="cod", expected_total=6030)
+        db_session, _payload(spec.id, 1, expected_total=6000)
     )
-    assert result.status == "ready"
+    assert result.status == "pending_payment"
     assert result.shipping_fee == 0
-    assert result.cod_fee == 30
-    assert result.total == 6030
+    assert result.cod_fee == 0
+    assert result.total == 6000
 
 
 async def test_price_changed_blocks_and_keeps_stock(db_session: AsyncSession):

@@ -25,18 +25,23 @@ def _make_order(
         customer_name=customer_name,
         customer_phone=customer_phone,
         customer_email=None,
+        line_user_id="UADMIN123",
+        line_display_name="後台測試",
+        line_picture_url="https://example.com/admin-line.jpg",
+        line_friendship_status="friend",
+        line_notification_consent=True,
         ship_zipcode="100",
         ship_city="台北市",
         ship_district="中正區",
         ship_street="重慶南路1號",
         preferred_date=date_type(2026, 10, 1),
         delivery_window="any",
-        payment_method="cod",
+        payment_method="transfer",
         note=None,
         subtotal=880,
         shipping_fee=0,
-        cod_fee=30,
-        total=910,
+        cod_fee=0,
+        total=880,
     )
 
 
@@ -93,6 +98,9 @@ async def test_get_order_detail(db_session: AsyncSession):
     assert detail.order_no == "MM-DT01"
     assert detail.ship_city == "台北市"
     assert detail.customer_name == "王小明"
+    assert detail.line_user_id == "UADMIN123"
+    assert detail.line_display_name == "後台測試"
+    assert detail.line_notification_consent is True
     assert isinstance(detail.items, list)
 
 

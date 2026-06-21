@@ -12,7 +12,9 @@ def test_order_has_expected_columns():
     cols = set(Order.__table__.columns.keys())
     assert {
         "id", "order_no", "status", "customer_name", "customer_phone",
-        "customer_email", "ship_zipcode", "ship_city", "ship_district",
+        "customer_email", "line_user_id", "line_display_name", "line_picture_url",
+        "line_friendship_status", "line_notification_consent",
+        "ship_zipcode", "ship_city", "ship_district",
         "ship_street", "preferred_date", "delivery_window", "payment_method",
         "note", "subtotal", "shipping_fee", "cod_fee", "total",
         "created_at", "updated_at",
