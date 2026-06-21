@@ -20,12 +20,16 @@ export const SpecCard = ({ p, spec, onAdd }) => {
 
   const timerRef = useRef(null);
 
+  // Scroll only the horizontal carousel track. Avoid scrollIntoView, which also
+  // scrolls ancestor/window and would yank the whole page to this card.
+  const scrollToSlide = (i) => {
+    const track = slidesRef.current;
+    if (track) track.scrollTo({ left: track.clientWidth * i, behavior: 'smooth' });
+  };
+
   const goTo = (i) => {
     setImgIdx(i);
-    if (slidesRef.current) {
-      const slide = slidesRef.current.children[i];
-      if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    scrollToSlide(i);
   };
 
   const resetTimer = (newIdx) => {
@@ -34,10 +38,7 @@ export const SpecCard = ({ p, spec, onAdd }) => {
     timerRef.current = setInterval(() => {
       setImgIdx((prev) => {
         const next = (prev + 1) % images.length;
-        if (slidesRef.current) {
-          const slide = slidesRef.current.children[next];
-          if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
+        scrollToSlide(next);
         return next;
       });
     }, 3500);
