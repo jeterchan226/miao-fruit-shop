@@ -22,12 +22,12 @@ def _make_order(order_no: str, *, status: str = "pending_payment") -> Order:
         ship_street="重慶南路1號",
         preferred_date=date(2026, 10, 1),
         delivery_window="any",
-        payment_method="cod",
+        payment_method="transfer",
         note=None,
         subtotal=880,
         shipping_fee=0,
-        cod_fee=30,
-        total=910,
+        cod_fee=0,
+        total=880,
     )
 
 

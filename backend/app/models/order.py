@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Text, func
+from sqlalchemy import Boolean, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -19,6 +19,11 @@ class Order(Base):
     customer_name: Mapped[str] = mapped_column()
     customer_phone: Mapped[str] = mapped_column()
     customer_email: Mapped[str | None] = mapped_column(default=None)
+    line_user_id: Mapped[str | None] = mapped_column(index=True, default=None)
+    line_display_name: Mapped[str | None] = mapped_column(default=None)
+    line_picture_url: Mapped[str | None] = mapped_column(Text, default=None)
+    line_friendship_status: Mapped[str | None] = mapped_column(default=None)
+    line_notification_consent: Mapped[bool] = mapped_column(Boolean, default=False)
     ship_zipcode: Mapped[str] = mapped_column()
     ship_city: Mapped[str] = mapped_column()
     ship_district: Mapped[str] = mapped_column()

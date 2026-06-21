@@ -3,7 +3,7 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import COD_FEE, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE
+from app.core.constants import FREE_SHIPPING_THRESHOLD, SHIPPING_FEE
 from app.core.exceptions import (
     InsufficientStockError,
     NotFoundError,
@@ -14,6 +14,7 @@ from app.models.order_item import OrderItem
 from app.models.product_spec import ProductSpec
 from app.repositories import order_repo, spec_repo
 from app.schemas.order import OrderCreate, OrderItemRead, OrderRead
+from app.services import line_service
 
 ORDER_NO_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -25,19 +26,20 @@ class Amounts(NamedTuple):
     total: int
 
 
-def compute_amounts(subtotal: int, payment_method: str) -> Amounts:
+def compute_amounts(subtotal: int) -> Amounts:
+    # 付款方式只剩銀行轉帳:無貨到付款手續費,cod_fee 永遠為 0(保留欄位相容)。
     shipping_fee = 0 if subtotal >= FREE_SHIPPING_THRESHOLD else SHIPPING_FEE
-    cod_fee = COD_FEE if payment_method == "cod" else 0
     return Amounts(
         subtotal=subtotal,
         shipping_fee=shipping_fee,
-        cod_fee=cod_fee,
-        total=subtotal + shipping_fee + cod_fee,
+        cod_fee=0,
+        total=subtotal + shipping_fee,
     )
 
 
-def initial_status(payment_method: str) -> str:
-    return "ready" if payment_method == "cod" else "pending_payment"
+def initial_status() -> str:
+    # 轉帳訂單一律從待付款開始。
+    return "pending_payment"
 
 
 def _new_order_no() -> str:
@@ -86,7 +88,7 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
 
     # 2) 伺服器權威重算金額
     subtotal = sum(spec.price * qty for spec, qty in locked)
-    amounts = compute_amounts(subtotal, data.payment_method)
+    amounts = compute_amounts(subtotal)
 
     # 3) 價格確認:與前端顯示的 expected_total 不符 → 擋下,回新明細
     if amounts.total != data.expected_total:
@@ -110,10 +112,15 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
 
     order = Order(
         order_no=order_no,
-        status=initial_status(data.payment_method),
+        status=initial_status(),
         customer_name=data.customer.name,
         customer_phone=data.customer.phone,
         customer_email=data.customer.email,
+        line_user_id=data.customer.line_user_id,
+        line_display_name=data.customer.line_display_name,
+        line_picture_url=data.customer.line_picture_url,
+        line_friendship_status=data.customer.line_friendship_status,
+        line_notification_consent=data.customer.line_notification_consent,
         ship_zipcode=data.shipping.zipcode,
         ship_city=data.shipping.city,
         ship_district=data.shipping.district,
@@ -142,4 +149,5 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
     await order_repo.add(session, order)
     await session.commit()
     await session.refresh(order)
+    await line_service.send_order_created(order)
     return _to_order_read(order)

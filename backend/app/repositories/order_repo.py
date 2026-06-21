@@ -46,6 +46,8 @@ async def list_filtered(
         condition = or_(
             Order.customer_name.ilike(pattern),
             Order.customer_phone.ilike(pattern),
+            Order.line_display_name.ilike(pattern),
+            Order.line_user_id.ilike(pattern),
         )
         count_stmt = count_stmt.where(condition)
         list_stmt = list_stmt.where(condition)
