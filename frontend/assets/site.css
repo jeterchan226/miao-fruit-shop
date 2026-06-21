@@ -1033,6 +1033,72 @@ button { font-family: inherit; }
 .field--row .field { gap: 6px; }
 .field__hint { font-size: 10px; color: var(--fg-muted); font-weight: 400; margin-left: 4px; }
 
+.line-bind {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--sage-300);
+  border-radius: var(--r-sm);
+  background: var(--cream-card);
+}
+.line-bind--ok { border-color: var(--sage-600); background: var(--sage-100); }
+.line-bind__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.line-bind__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: var(--sage-700);
+  color: var(--cream-card);
+}
+.line-bind__avatar--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.line-bind__title {
+  color: var(--fg-strong);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.line-bind__meta {
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.line-bind__btn {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: #06C755;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+.line-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--fg);
+  line-height: 1.55;
+}
+.line-consent input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
 .window-opts { display: flex; gap: 6px; }
 .window-opt {
   flex: 1; padding: 9px 4px;
@@ -1274,6 +1340,17 @@ button { font-family: inherit; }
 .checkout-summary h5 { font-size: 13px; color: var(--fg-strong); margin: 0 0 10px; font-weight: 700; }
 .checkout-summary .ln { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--fg); }
 .checkout-summary .ln .t { color: var(--fg-muted); }
+
+/* 銀行轉帳資訊區塊(結帳第 3 步) */
+.transfer-box { border-color: var(--sage-700); background: var(--sage-100); }
+.transfer-box .ln { font-size: 13px; }
+.transfer-box__acct {
+  font-family: var(--font-mono); font-weight: 700; letter-spacing: .02em;
+  color: var(--fg-strong);
+}
+.transfer-note {
+  margin: 10px 0 0; font-size: 11px; line-height: 1.6; color: var(--fg-muted);
+}
 
 /* Success card */
 .success {

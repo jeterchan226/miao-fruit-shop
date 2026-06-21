@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { createOrder } from './api.js';
 import { StoreIcon } from './Icons.jsx';
+import { initLineProfile, openLineAddFriend, refreshLineFriendship } from './line.js';
 
 const FREE_SHIPPING = 5000;
 const SHIPPING_FEE  = 150;
@@ -168,7 +169,7 @@ const Steps = ({ step }) => (
     </span>
     <span className="div"></span>
     <span className={'s ' + (step === 'pay' ? 'is-active' : (step === 'done' ? 'is-done' : ''))}>
-      <span className="n">3</span>付款方式
+      <span className="n">3</span>轉帳資訊
     </span>
     <span className="div"></span>
     <span className={'s ' + (step === 'done' ? 'is-active' : '')}>
@@ -179,7 +180,47 @@ const Steps = ({ step }) => (
 
 /* ── Info Form ─────────────────────────────────────────────── */
 
-const InfoForm = ({ form, setForm, errors }) => {
+const lineStatusText = {
+  friend: '已加入官方帳號',
+  not_friend: '尚未加入官方帳號',
+  unknown: '狀態確認中',
+};
+
+const LineNoticeCard = ({ lineState, onRequestFriendship }) => {
+  const profile = lineState.profile;
+  const isBound = Boolean(profile?.userId);
+  const isFriend = lineState.friendshipStatus === 'friend';
+
+  return (
+    <div className={'line-bind' + (isBound ? ' line-bind--ok' : '')}>
+      <div className="line-bind__main">
+        {profile?.pictureUrl ? (
+          <img className="line-bind__avatar" src={profile.pictureUrl} alt="" />
+        ) : (
+          <span className="line-bind__avatar line-bind__avatar--empty">LINE</span>
+        )}
+        <div>
+          <div className="line-bind__title">
+            {isBound ? (profile.displayName || 'LINE 使用者') : 'LINE 通知'}
+          </div>
+          <div className="line-bind__meta">
+            {lineState.loading ? '綁定確認中...' :
+             isBound ? lineStatusText[lineState.friendshipStatus] :
+             lineState.available === false ? '尚未設定 LIFF' :
+             '請從 LINE 官方帳號開啟'}
+          </div>
+        </div>
+      </div>
+      {isBound && !isFriend && (
+        <button className="line-bind__btn" type="button" onClick={onRequestFriendship}>
+          加入好友
+        </button>
+      )}
+    </div>
+  );
+};
+
+const InfoForm = ({ form, setForm, errors, lineState, onRequestFriendship }) => {
   const set = (k, v) => setForm({ ...form, [k]: v });
   const [sheet,  setSheet]  = useState(null);   // null | 'city' | 'district'
   const [dpOpen, setDpOpen] = useState(false);
@@ -241,10 +282,19 @@ const InfoForm = ({ form, setForm, errors }) => {
         </div>
       </div>
 
-      {/* Email */}
+      {/* LINE notification */}
       <div className="field">
-        <label>E-mail（出貨通知）</label>
-        <input value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" inputMode="email" />
+        <label>LINE 通知</label>
+        <LineNoticeCard lineState={lineState} onRequestFriendship={onRequestFriendship} />
+        <label className="line-consent">
+          <input
+            type="checkbox"
+            checked={form.lineNotifyConsent}
+            onChange={e => set('lineNotifyConsent', e.target.checked)}
+          />
+          <span>我同意透過 LINE 官方帳號接收訂單確認、付款與配送通知。</span>
+        </label>
+        {errors.lineNotifyConsent && <span className="err">{errors.lineNotifyConsent}</span>}
       </div>
 
       {/* Address */}
@@ -328,49 +378,33 @@ const InfoForm = ({ form, setForm, errors }) => {
   );
 };
 
-/* ── Pay Form ──────────────────────────────────────────────── */
+/* ── Transfer Info ─────────────────────────────────────────── */
 
-const PayForm = ({ pay, setPay, form }) => {
+// TODO: 等實際匯款帳戶提供後替換以下假資料。
+const TRANSFER_INFO = {
+  bank: '(700) 中華郵政',
+  name: '妙媽媽果園',
+  account: '0000000-0000000',
+};
+
+const TransferInfo = ({ form }) => {
   const fullAddress = form.city
     ? `${form.zipcode} ${form.city}${form.district}${form.street}`
     : '—';
   return (
     <div style={{display:'flex', flexDirection:'column', gap:14}}>
-      <div className="pay-opts">
-        <label className={'pay-opt' + (pay === 'linepay' ? ' is-active' : '')}>
-          <input type="radio" checked={pay === 'linepay'} onChange={() => setPay('linepay')} />
-          <div style={{flex:1}}>
-            <p className="pay-opt__t">LINE Pay</p>
-            <p className="pay-opt__s">點付款後自動轉至 LINE Pay 結帳</p>
-          </div>
-          <span className="pill pill--sage" style={{background:'#06C755'}}>推薦</span>
-        </label>
-        <label className={'pay-opt' + (pay === 'card' ? ' is-active' : '')}>
-          <input type="radio" checked={pay === 'card'} onChange={() => setPay('card')} />
-          <div style={{flex:1}}>
-            <p className="pay-opt__t">信用卡</p>
-            <p className="pay-opt__s">VISA / MasterCard / JCB</p>
-          </div>
-        </label>
-        <label className={'pay-opt' + (pay === 'atm' ? ' is-active' : '')}>
-          <input type="radio" checked={pay === 'atm'} onChange={() => setPay('atm')} />
-          <div style={{flex:1}}>
-            <p className="pay-opt__t">ATM 轉帳</p>
-            <p className="pay-opt__s">下單後取得虛擬帳號，3 天內完成轉帳</p>
-          </div>
-        </label>
-        <label className={'pay-opt' + (pay === 'cod' ? ' is-active' : '')}>
-          <input type="radio" checked={pay === 'cod'} onChange={() => setPay('cod')} />
-          <div style={{flex:1}}>
-            <p className="pay-opt__t">貨到付款</p>
-            <p className="pay-opt__s">運費另加 NT$ 30</p>
-          </div>
-        </label>
+      <div className="checkout-summary transfer-box">
+        <h5>銀行轉帳資訊</h5>
+        <div className="ln"><span className="t">銀行</span><span>{TRANSFER_INFO.bank}</span></div>
+        <div className="ln"><span className="t">戶名</span><span>{TRANSFER_INFO.name}</span></div>
+        <div className="ln"><span className="t">帳號</span><span className="transfer-box__acct">{TRANSFER_INFO.account}</span></div>
+        <p className="transfer-note">下單後請於 3 日內完成轉帳，並保留交易明細以利對帳；款項確認後將安排出貨。</p>
       </div>
       <div className="checkout-summary">
         <h5>寄送資訊</h5>
         <div className="ln"><span className="t">收件人</span><span>{form.name || '—'}</span></div>
         <div className="ln"><span className="t">電話</span><span>{form.phone || '—'}</span></div>
+        <div className="ln"><span className="t">LINE 通知</span><span>{form.lineDisplayName || '—'}</span></div>
         <div className="ln"><span className="t">地址</span><span style={{maxWidth:'60%', textAlign:'right'}}>{fullAddress}</span></div>
         <div className="ln"><span className="t">送達日</span><span>{form.ship || '—'}</span></div>
       </div>
@@ -381,8 +415,9 @@ const PayForm = ({ pay, setPay, form }) => {
 /* ── Checkout Page ─────────────────────────────────────────── */
 
 const CheckoutPage = ({
-  step, form, setForm, errors, pay, setPay,
-  subtotal, shipping, codFee, total,
+  step, form, setForm, errors,
+  lineState, onRequestFriendship,
+  subtotal, shipping, total,
   submitting, submitError,
   onBack, onNext, onClose,
 }) => {
@@ -405,8 +440,16 @@ const CheckoutPage = ({
       </div>
       <div className="checkout-page__body">
         <div className="checkout-page__inner">
-          {step === 'info' && <InfoForm form={form} setForm={setForm} errors={errors} />}
-          {step === 'pay'  && <PayForm  pay={pay}  setPay={setPay}  form={form} />}
+          {step === 'info' && (
+            <InfoForm
+              form={form}
+              setForm={setForm}
+              errors={errors}
+              lineState={lineState}
+              onRequestFriendship={onRequestFriendship}
+            />
+          )}
+          {step === 'pay'  && <TransferInfo form={form} />}
           <div className="order-card">
             <div className="order-card__row">
               <span>商品小計</span>
@@ -416,12 +459,6 @@ const CheckoutPage = ({
               <span>運費</span>
               <span>{shipping === 0 ? '免運 🍐' : `NT$ ${shipping.toLocaleString()}`}</span>
             </div>
-            {codFee > 0 && (
-              <div className="order-card__row">
-                <span>貨到付款手續費</span>
-                <span>NT$ {codFee}</span>
-              </div>
-            )}
             <div className="order-card__total">
               <span>訂單合計</span>
               <strong>NT$ {total.toLocaleString()}</strong>
@@ -430,7 +467,7 @@ const CheckoutPage = ({
           <div className="checkout-page__actions">
             <button className="btn btn--ghost co-back" type="button" onClick={onBack}>上一步</button>
             <button className="btn btn--primary co-next" type="button" onClick={onNext} disabled={submitting}>
-              {submitting ? '送出中...' : (step === 'info' ? '下一步：選擇付款' : '送出訂單')}
+              {submitting ? '送出中...' : (step === 'info' ? '下一步：轉帳資訊' : '送出訂單')}
             </button>
           </div>
           {submitError && <div className="checkout-error">{submitError}</div>}
@@ -445,12 +482,19 @@ const CheckoutPage = ({
 export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder }) => {
   const [step, setStep]       = useState('cart');
   const [form, setForm]       = useState({
-    name: '', phone: '', email: '',
+    name: '', phone: '',
+    lineUserId: '', lineDisplayName: '', linePictureUrl: '',
+    lineFriendshipStatus: 'unknown', lineNotifyConsent: true,
     city: '', district: '', zipcode: '', street: '',
     ship: getTomorrowStr(), window: 'any', note: ''
   });
+  const [lineState, setLineState] = useState({
+    loading: false,
+    available: null,
+    profile: null,
+    friendshipStatus: 'unknown',
+  });
   const [errors, setErrors]   = useState({});
-  const [pay, setPay]         = useState('linepay');
   const [orderId, setOrderId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -459,10 +503,47 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     if (open && items.length === 0 && step !== 'cart' && step !== 'done') setStep('cart');
   }, [open, items.length]);
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLineState(prev => ({ ...prev, loading: true }));
+    initLineProfile()
+      .then((result) => {
+        if (cancelled) return;
+        const profile = result.profile;
+        setLineState({
+          loading: false,
+          available: result.available,
+          profile,
+          friendshipStatus: result.friendshipStatus,
+        });
+        if (profile?.userId) {
+          setForm(prev => ({
+            ...prev,
+            lineUserId: profile.userId,
+            lineDisplayName: profile.displayName || '',
+            linePictureUrl: profile.pictureUrl || '',
+            lineFriendshipStatus: result.friendshipStatus,
+          }));
+        }
+      })
+      .catch((err) => {
+        console.warn('[line] profile init failed:', err);
+        if (!cancelled) {
+          setLineState({
+            loading: false,
+            available: true,
+            profile: null,
+            friendshipStatus: 'unknown',
+          });
+        }
+      });
+    return () => { cancelled = true; };
+  }, [open]);
+
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.price * i.count, 0), [items]);
   const shipping = subtotal === 0 ? 0 : (subtotal >= FREE_SHIPPING ? 0 : SHIPPING_FEE);
-  const codFee   = pay === 'cod' && step === 'pay' ? 30 : 0;
-  const total    = subtotal + shipping + codFee;
+  const total    = subtotal + shipping;
 
   const validate = () => {
     const e = {};
@@ -472,6 +553,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     if (!form.city) e.city = '請選擇縣市';
     if (!form.district) e.district = '請選擇區域';
     if (!form.street.trim()) e.street = '請輸入詳細地址';
+    if (!form.lineNotifyConsent) e.lineNotifyConsent = '請勾選 LINE 通知同意';
     if (!form.ship) {
       e.ship = '請選擇送達日期';
     } else {
@@ -499,7 +581,12 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     customer: {
       name: form.name,
       phone: form.phone,
-      email: form.email || null,
+      email: null,
+      line_user_id: form.lineUserId || null,
+      line_display_name: form.lineDisplayName || null,
+      line_picture_url: form.linePictureUrl || null,
+      line_friendship_status: form.lineFriendshipStatus || 'unknown',
+      line_notification_consent: Boolean(form.lineNotifyConsent),
     },
     shipping: {
       zipcode: form.zipcode,
@@ -513,10 +600,29 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
       spec_id: i.specId,
       qty: i.count,
     })),
-    payment_method: pay,
+    payment_method: 'transfer',
     note: form.note || null,
     expected_total: total,
   });
+
+  const handleRequestFriendship = () => {
+    const opened = openLineAddFriend();
+    if (!opened) console.warn('[line] add-friend url not configured');
+  };
+
+  // 從加好友頁返回（頁面重新可見）時，自動重新查詢好友狀態。
+  useEffect(() => {
+    if (!open) return;
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const friendshipStatus = await refreshLineFriendship();
+      if (friendshipStatus === 'unknown') return;
+      setLineState(prev => ({ ...prev, friendshipStatus }));
+      setForm(prev => ({ ...prev, lineFriendshipStatus: friendshipStatus }));
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [open]);
 
   const next = async () => {
     if (step === 'cart') {
@@ -554,8 +660,13 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     setTimeout(() => {
       if (step === 'done') {
         setStep('cart');
-        setForm({ name:'', phone:'', email:'', city:'', district:'', zipcode:'', street:'', ship: getTomorrowStr(), window:'any', note:'' });
-        setPay('linepay');
+        setForm({
+          name:'', phone:'',
+          lineUserId:'', lineDisplayName:'', linePictureUrl:'',
+          lineFriendshipStatus:'unknown', lineNotifyConsent:true,
+          city:'', district:'', zipcode:'', street:'',
+          ship: getTomorrowStr(), window:'any', note:''
+        });
         setOrderId(null);
         setSubmitError(null);
       }
@@ -569,8 +680,9 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
       <CheckoutPage
         step={step}
         form={form} setForm={setForm} errors={errors}
-        pay={pay} setPay={setPay}
-        subtotal={subtotal} shipping={shipping} codFee={codFee} total={total}
+        lineState={lineState}
+        onRequestFriendship={handleRequestFriendship}
+        subtotal={subtotal} shipping={shipping} total={total}
         submitting={submitting}
         submitError={submitError}
         onBack={back}
@@ -603,7 +715,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
               <h4>訂單已成立</h4>
               <p>
                 我們已收到您的訂單，將於當日採收後盡快出貨。<br/>
-                出貨通知將透過 LINE / Email 寄送給您。
+                訂單明細與出貨通知將透過 LINE 官方帳號傳送給您。
               </p>
               <span className="order-id">訂單編號 {orderId}</span>
               <div style={{marginTop:24, display:'flex', gap:10, justifyContent:'center'}}>
