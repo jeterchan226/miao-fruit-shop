@@ -17,17 +17,10 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
+    # production 別名 frontend-theta-one-22（隨機後綴、無 team slug，regex 涵蓋不到）
+    # 必須透過 CORS_ORIGINS 精確白名單放行；正式環境的 CORS_ORIGINS 一定要含它，
+    # 否則前端會被 CORS 擋下、載不到資料。
     cors_origins: str = "http://localhost:8080"
-    # 放行本專案的 Vercel 部署，搭配 allow_credentials=True 必須收斂、不可放整個
-    # vercel.app。兩段：
-    #   1) production 別名 frontend-theta-one-22（隨機後綴、無 team slug）→ 精確字面
-    #   2) preview/分支 frontend-<...>-jeterchans-projects → 綁全域唯一的 team slug
-    # 綁專案名前綴(frontend-)不安全：任何人都能註冊 frontend-* 專案。
-    # 可用環境變數 CORS_ORIGIN_REGEX 覆寫（換團隊或自訂網域時）。
-    cors_origin_regex: str = (
-        r"https://(frontend-theta-one-22"
-        r"|frontend(-[a-z0-9]+)*-jeterchans-projects)\.vercel\.app"
-    )
     # 只放行本團隊（team slug 全域唯一、別人搶不到）的 Vercel 部署：
     # production 別名 frontend-jeterchans-projects.vercel.app 與
     # preview/分支網址 frontend-<hash>-jeterchans-projects.vercel.app。
