@@ -44,11 +44,125 @@ def _order_text(order: Order) -> str:
     return "\n".join(lines)
 
 
-def _post_push_message(token: str, user_id: str, text: str) -> None:
+BRAND_HEADER_BG = "#E89B3C"  # orange-cta
+LABEL_COLOR = "#6B7D52"      # sage-700
+TEXT_COLOR = "#6B4E32"       # brown-700
+TOTAL_COLOR = "#4A3A2A"      # brown-800
+DIVIDER_COLOR = "#E8D29E"    # cream-deep
+
+
+def _divider() -> dict:
+    return {"type": "separator", "color": DIVIDER_COLOR, "margin": "md"}
+
+
+def _kv_row(
+    label: str,
+    value: str,
+    *,
+    value_color: str = TEXT_COLOR,
+    value_bold: bool = False,
+) -> dict:
+    return {
+        "type": "box",
+        "layout": "baseline",
+        "contents": [
+            {"type": "text", "text": label, "size": "sm",
+             "color": LABEL_COLOR, "flex": 2},
+            {"type": "text", "text": value, "size": "sm",
+             "color": value_color, "flex": 5, "wrap": True, "align": "end",
+             "weight": "bold" if value_bold else "regular"},
+        ],
+    }
+
+
+def _item_rows(order: Order) -> list[dict]:
+    rows: list[dict] = []
+    for item in order.items:
+        rows.append(
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "sm",
+                "contents": [
+                    {"type": "text",
+                     "text": f"{item.product_name} {item.spec_label} x{item.qty}",
+                     "size": "sm", "color": TEXT_COLOR, "flex": 5, "wrap": True},
+                    {"type": "text", "text": f"NT$ {item.line_total:,}",
+                     "size": "sm", "color": TEXT_COLOR, "flex": 3, "align": "end"},
+                ],
+            }
+        )
+    return rows
+
+
+def _order_flex(order: Order) -> dict:
+    address = (
+        f"{order.ship_zipcode} "
+        f"{order.ship_city}{order.ship_district}{order.ship_street}"
+    )
+    return {
+        "type": "bubble",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": BRAND_HEADER_BG,
+            "paddingAll": "16px",
+            "contents": [
+                {"type": "text", "text": "🍐 妙媽媽果園", "color": "#FFFFFF",
+                 "weight": "bold", "size": "lg"},
+                {"type": "text", "text": "訂單已成立", "color": "#FFFFFF",
+                 "size": "sm"},
+            ],
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "sm",
+            "contents": [
+                _kv_row("訂單編號", order.order_no,
+                        value_color=TOTAL_COLOR, value_bold=True),
+                _divider(),
+                {"type": "text", "text": "訂單明細", "weight": "bold",
+                 "color": LABEL_COLOR, "size": "sm", "margin": "md"},
+                *_item_rows(order),
+                _divider(),
+                _kv_row("商品小計", f"NT$ {order.subtotal:,}"),
+                _kv_row("運費", f"NT$ {order.shipping_fee:,}"),
+                _kv_row("訂單合計", f"NT$ {order.total:,}",
+                        value_color=TOTAL_COLOR, value_bold=True),
+                _divider(),
+                _kv_row("收件人", order.customer_name),
+                _kv_row("電話", order.customer_phone),
+                _kv_row("地址", address),
+                _kv_row("希望送達", str(order.preferred_date)),
+            ],
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "paddingAll": "12px",
+            "contents": [
+                {"type": "text",
+                 "text": "請於 3 日內完成轉帳，款項確認後將安排出貨。",
+                 "size": "xs", "color": TEXT_COLOR, "wrap": True},
+            ],
+        },
+    }
+
+
+def _build_message(order: Order) -> dict:
+    return {
+        "type": "flex",
+        "altText": _order_text(order),
+        "contents": _order_flex(order),
+    }
+
+
+def _post_push_message(token: str, user_id: str, message: dict) -> None:
     body = json.dumps(
         {
             "to": user_id,
-            "messages": [{"type": "text", "text": text}],
+            "messages": [message],
         }
     ).encode("utf-8")
     request = urllib.request.Request(
@@ -77,7 +191,7 @@ async def send_order_created(order: Order) -> bool:
             _post_push_message,
             settings.line_channel_access_token,
             order.line_user_id,
-            _order_text(order),
+            _build_message(order),
         )
     except urllib.error.HTTPError as exc:
         logger.warning(

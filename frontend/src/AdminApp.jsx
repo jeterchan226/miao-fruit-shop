@@ -482,11 +482,11 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   );
 }
 
-const STOCK_STATUS_LABELS = { in: '現貨供應', low: '剩量不多', out: '預購中' };
+const STOCK_STATUS_LABELS = { in: '現貨供應', low: '剩量不多', out: '已售完' };
 const STOCK_STATUS_OPTIONS = [
   { value: 'in', label: '現貨供應' },
   { value: 'low', label: '剩量不多' },
-  { value: 'out', label: '預購中' },
+  { value: 'out', label: '已售完' },
 ];
 
 /* ── Sortable image item ── */
