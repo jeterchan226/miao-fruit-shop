@@ -183,13 +183,13 @@ const Steps = ({ step }) => (
 const lineStatusText = {
   friend: '已加入官方帳號',
   not_friend: '尚未加入官方帳號',
-  unknown: '狀態確認中',
+  unknown: '已綁定 LINE',
 };
 
 const LineNoticeCard = ({ lineState, onRequestFriendship }) => {
   const profile = lineState.profile;
   const isBound = Boolean(profile?.userId);
-  const isFriend = lineState.friendshipStatus === 'friend';
+  const shouldShowAddFriend = isBound && lineState.friendshipStatus === 'not_friend';
 
   return (
     <div className={'line-bind' + (isBound ? ' line-bind--ok' : '')}>
@@ -199,7 +199,7 @@ const LineNoticeCard = ({ lineState, onRequestFriendship }) => {
         ) : (
           <span className="line-bind__avatar line-bind__avatar--empty">LINE</span>
         )}
-        <div>
+        <div className="line-bind__text">
           <div className="line-bind__title">
             {isBound ? (profile.displayName || 'LINE 使用者') : 'LINE 通知'}
           </div>
@@ -211,7 +211,7 @@ const LineNoticeCard = ({ lineState, onRequestFriendship }) => {
           </div>
         </div>
       </div>
-      {isBound && !isFriend && (
+      {shouldShowAddFriend && (
         <button className="line-bind__btn" type="button" onClick={onRequestFriendship}>
           加入好友
         </button>

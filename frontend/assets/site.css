@@ -984,9 +984,11 @@ button { font-family: inherit; }
 .checkout__steps {
   display: flex; gap: 8px; align-items: center;
   margin: 0 0 4px; font-size: 12px; color: var(--fg-muted);
+  min-width: 0;
 }
 .checkout__steps .s {
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  min-width: 0;
 }
 .checkout__steps .s.is-active { color: var(--sage-700); font-weight: 600; }
 .checkout__steps .s .n {
@@ -1033,6 +1035,7 @@ button { font-family: inherit; }
 }
 .line-bind--ok { border-color: var(--sage-600); background: var(--sage-100); }
 .line-bind__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.line-bind__text { min-width: 0; }
 .line-bind__avatar {
   width: 42px;
   height: 42px;
@@ -1170,7 +1173,7 @@ button { font-family: inherit; }
   background: var(--cream-card);
   border-bottom: 1px solid var(--sage-200);
 }
-.checkout-page__head .checkout__steps { flex: 1; min-width: 0; justify-content: center; margin: 0; overflow: hidden; }
+.checkout-page__head .checkout__steps { flex: 1; min-width: 0; justify-content: center; margin: 0; }
 .checkout-page__back {
   background: none; border: none; cursor: pointer;
   font-size: 15px; font-weight: 600; color: var(--sage-700);
@@ -1253,7 +1256,7 @@ button { font-family: inherit; }
   font-size: 22px;
   color: var(--orange-cta);
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 /* ── Bottom sheet ───────────────────────────────────────────── */
@@ -1327,6 +1330,10 @@ button { font-family: inherit; }
 .checkout-summary h5 { font-size: 13px; color: var(--fg-strong); margin: 0 0 10px; font-weight: 700; }
 .checkout-summary .ln { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--fg); }
 .checkout-summary .ln .t { color: var(--fg-muted); }
+.checkout-summary .ln > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
 /* 銀行轉帳資訊區塊(結帳第 3 步) */
 .transfer-box { border-color: var(--sage-700); background: var(--sage-100); }
@@ -1752,11 +1759,19 @@ button { font-family: inherit; }
   .field input, .field textarea, .field select { font-size: 16px; }
   .field select option { font-size: 16px; }
 
-  /* Steps bar: compact on mobile so labels never wrap */
+  /* Checkout header → stepper drops to its own full-width row so it never
+     competes with the back/close buttons and gets clipped */
+  .checkout-page__head { flex-wrap: wrap; row-gap: 12px; padding: 12px 16px; }
+  .checkout-page__close { margin-left: auto; }
+  .checkout-page__head .checkout__steps {
+    order: 3; flex: 0 0 100%; width: 100%; justify-content: space-between;
+  }
+
+  /* Compact stepper; flexible connectors spread steps evenly, never overflow */
   .checkout__steps { gap: 4px; font-size: clamp(9px, 2.6vw, 11px); }
   .checkout__steps .s { gap: 3px; }
   .checkout__steps .s .n { width: 16px; height: 16px; font-size: 9px; }
-  .checkout__steps .div { width: 10px; }
+  .checkout__steps .div { flex: 1 1 auto; width: auto; min-width: 6px; }
 
   /* Collage hero — disable in favor of the photo only, keep visually quiet */
   .hero--collage .polaroid { box-shadow: var(--shadow-1); }
