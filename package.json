@@ -1,0 +1,7 @@
+{
+  "name": "miao-fruit-shop",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix frontend"
+  }
+}
