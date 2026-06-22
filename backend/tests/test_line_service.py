@@ -67,3 +67,12 @@ def test_order_flex_is_bubble_with_key_info():
     assert "0912345678" in joined
     assert "100 台北市中正區忠孝東路一段1號" in joined
     assert "2026-07-01" in joined
+
+
+def test_build_message_is_flex_with_text_alt():
+    order = _make_order()
+    message = line_service._build_message(order)
+
+    assert message["type"] == "flex"
+    assert message["altText"] == line_service._order_text(order)
+    assert message["contents"]["type"] == "bubble"

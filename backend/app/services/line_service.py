@@ -150,11 +150,19 @@ def _order_flex(order: Order) -> dict:
     }
 
 
-def _post_push_message(token: str, user_id: str, text: str) -> None:
+def _build_message(order: Order) -> dict:
+    return {
+        "type": "flex",
+        "altText": _order_text(order),
+        "contents": _order_flex(order),
+    }
+
+
+def _post_push_message(token: str, user_id: str, message: dict) -> None:
     body = json.dumps(
         {
             "to": user_id,
-            "messages": [{"type": "text", "text": text}],
+            "messages": [message],
         }
     ).encode("utf-8")
     request = urllib.request.Request(
@@ -183,7 +191,7 @@ async def send_order_created(order: Order) -> bool:
             _post_push_message,
             settings.line_channel_access_token,
             order.line_user_id,
-            _order_text(order),
+            _build_message(order),
         )
     except urllib.error.HTTPError as exc:
         logger.warning(
