@@ -27,7 +27,11 @@ def _order_text(order: Order) -> str:
         [
             "",
             f"商品小計: NT$ {order.subtotal:,}",
-            f"運費: NT$ {order.shipping_fee:,}",
+            (
+                "運費: 免運費"
+                if order.shipping_fee == 0
+                else f"運費: NT$ {order.shipping_fee:,}"
+            ),
             f"訂單合計: NT$ {order.total:,}",
             "",
             f"收件人: {order.customer_name}",
@@ -44,11 +48,21 @@ def _order_text(order: Order) -> str:
     return "\n".join(lines)
 
 
-BRAND_HEADER_BG = "#E89B3C"  # orange-cta
-LABEL_COLOR = "#6B7D52"      # sage-700
-TEXT_COLOR = "#6B4E32"       # brown-700
-TOTAL_COLOR = "#4A3A2A"      # brown-800
-DIVIDER_COLOR = "#E8D29E"    # cream-deep
+BRAND_HEADER_BG = "#E89B3C"     # orange-cta
+LABEL_COLOR = "#6B7D52"         # sage-700
+TEXT_COLOR = "#6B4E32"          # brown-700
+TOTAL_COLOR = "#4A3A2A"         # brown-800
+DIVIDER_COLOR = "#E8D29E"       # cream-deep
+FREE_SHIPPING_COLOR = "#3E8E41"  # green，免運費標示
+BANK_BOX_BG = "#FBF3E0"         # 轉帳資訊底色（淺奶油）
+
+# 固定店家轉帳資訊（不變）
+PAYMENT_METHOD_LABEL = "轉帳匯款"
+BANK_NAME = "中華郵政（代碼 700）"
+BANK_BRANCH = "卓蘭郵局"
+BANK_ACCOUNT_NAME = "劉芳妙"
+BANK_ACCOUNT_NO = "0291377-0159424"
+REMITTANCE_NOTE = "匯款完成後，請務必告知「匯款帳號末 5 碼」及「匯款金額」。"
 
 
 def _divider() -> dict:
@@ -95,6 +109,44 @@ def _item_rows(order: Order) -> list[dict]:
     return rows
 
 
+def _payment_rows() -> list[dict]:
+    return [
+        _divider(),
+        {"type": "text", "text": "付款方式", "weight": "bold",
+         "color": LABEL_COLOR, "size": "sm", "margin": "md"},
+        {"type": "text", "text": PAYMENT_METHOD_LABEL, "size": "sm",
+         "color": TEXT_COLOR},
+        {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "xs",
+            "backgroundColor": BANK_BOX_BG,
+            "cornerRadius": "8px",
+            "paddingAll": "12px",
+            "margin": "sm",
+            "contents": [
+                {"type": "text", "text": BANK_NAME, "size": "sm",
+                 "color": TOTAL_COLOR, "weight": "bold"},
+                {"type": "text", "text": BANK_BRANCH, "size": "sm",
+                 "color": TEXT_COLOR},
+                {"type": "text", "text": f"戶名：{BANK_ACCOUNT_NAME}",
+                 "size": "sm", "color": TEXT_COLOR},
+                {"type": "text", "text": f"帳號：{BANK_ACCOUNT_NO}",
+                 "size": "sm", "color": TOTAL_COLOR, "weight": "bold"},
+            ],
+        },
+        {"type": "text", "text": REMITTANCE_NOTE, "size": "xs",
+         "color": TEXT_COLOR, "wrap": True, "margin": "sm"},
+    ]
+
+
+def _shipping_row(order: Order) -> dict:
+    if order.shipping_fee == 0:
+        return _kv_row("運費", "免運費",
+                       value_color=FREE_SHIPPING_COLOR, value_bold=True)
+    return _kv_row("運費", f"NT$ {order.shipping_fee:,}")
+
+
 def _order_flex(order: Order) -> dict:
     address = (
         f"{order.ship_zipcode} "
@@ -127,7 +179,7 @@ def _order_flex(order: Order) -> dict:
                 *_item_rows(order),
                 _divider(),
                 _kv_row("商品小計", f"NT$ {order.subtotal:,}"),
-                _kv_row("運費", f"NT$ {order.shipping_fee:,}"),
+                _shipping_row(order),
                 _kv_row("訂單合計", f"NT$ {order.total:,}",
                         value_color=TOTAL_COLOR, value_bold=True),
                 _divider(),
@@ -135,6 +187,7 @@ def _order_flex(order: Order) -> dict:
                 _kv_row("電話", order.customer_phone),
                 _kv_row("地址", address),
                 _kv_row("希望送達", str(order.preferred_date)),
+                *_payment_rows(),
             ],
         },
         "footer": {
