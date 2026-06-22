@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
     cors_origins: str = "http://localhost:8080"
+    # 只放行本專案的 Vercel 部署（production 別名 + preview/分支網址），
+    # 不放行整個 vercel.app；搭配 allow_credentials=True 必須收斂到自家專案。
+    cors_origin_regex: str = r"https://frontend-[a-z0-9-]+\.vercel\.app"
 
     # GCS
     gcs_bucket_name: str = ""

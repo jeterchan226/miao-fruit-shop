@@ -67,11 +67,6 @@ const HeroSplit = () => {
           </div>
         </div>
       </div>
-      <div className="hero__dots">
-        <button className="is-active" aria-label="slide 1"></button>
-        <button aria-label="slide 2"></button>
-        <button aria-label="slide 3"></button>
-      </div>
     </section>
   );
 };
