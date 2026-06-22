@@ -48,7 +48,7 @@ const request = async (path, options = {}) => {
 const stockText = {
   in: '現貨供應',
   low: '剩量不多',
-  out: '預購中',
+  out: '已售完',
 };
 
 const normalizeProduct = (product) => ({

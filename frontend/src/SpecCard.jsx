@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '預購中';
+const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '已售完';
 
 const Price = ({ value }) => (
   <span className="price">
