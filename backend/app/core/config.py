@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
     cors_origins: str = "http://localhost:8080"
+    # 放行所有 Vercel 部署網址（preview + production），避免每次部署換網址就壞掉。
+    cors_origin_regex: str = r"https://.*\.vercel\.app"
 
     # GCS
     gcs_bucket_name: str = ""
