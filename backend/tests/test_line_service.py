@@ -76,3 +76,71 @@ def test_build_message_is_flex_with_text_alt():
     assert message["type"] == "flex"
     assert message["altText"] == line_service._order_text(order)
     assert message["contents"]["type"] == "bubble"
+
+
+def _find_text_node(node, text):
+    """找出 text 等於指定字串的 text node dict（找不到回 None）。"""
+    if isinstance(node, dict):
+        if node.get("type") == "text" and node.get("text") == text:
+            return node
+        for value in node.values():
+            found = _find_text_node(value, text)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for value in node:
+            found = _find_text_node(value, text)
+            if found is not None:
+                return found
+    return None
+
+
+def test_bank_transfer_constants_match_expected():
+    # 固定店家帳號（核對自 LINE 訂單通知圖）
+    assert line_service.BANK_ACCOUNT_NO == "0291377-0159424"
+    assert line_service.BANK_ACCOUNT_NAME == "劉芳妙"
+    assert line_service.BANK_BRANCH == "卓蘭郵局"
+
+
+def test_order_flex_free_shipping_shows_green_label():
+    order = _make_order()  # shipping_fee=0
+    flex = line_service._order_flex(order)
+
+    texts = _all_text(flex)
+    assert "免運費" in texts
+    assert "NT$ 0" not in "\n".join(texts)  # 免運不顯示 0 元
+
+    node = _find_text_node(flex, "免運費")
+    assert node is not None
+    assert node["color"] == line_service.FREE_SHIPPING_COLOR
+
+
+def test_order_flex_paid_shipping_shows_amount():
+    order = _make_order()
+    order.shipping_fee = 150
+    order.total = order.subtotal + 150
+    flex = line_service._order_flex(order)
+
+    joined = "\n".join(_all_text(flex))
+    assert "NT$ 150" in joined
+    assert "免運費" not in joined
+
+
+def test_order_flex_includes_bank_transfer_info():
+    order = _make_order()
+    joined = "\n".join(_all_text(line_service._order_flex(order)))
+
+    assert line_service.PAYMENT_METHOD_LABEL in joined  # 轉帳匯款
+    assert line_service.BANK_NAME in joined
+    assert line_service.BANK_BRANCH in joined
+    assert f"戶名：{line_service.BANK_ACCOUNT_NAME}" in joined
+    assert f"帳號：{line_service.BANK_ACCOUNT_NO}" in joined
+    assert "末 5 碼" in joined  # 匯款提醒語
+
+
+def test_order_text_free_shipping_label():
+    order = _make_order()  # shipping_fee=0
+    text = line_service._order_text(order)
+
+    assert "免運費" in text
+    assert "運費: NT$ 0" not in text
