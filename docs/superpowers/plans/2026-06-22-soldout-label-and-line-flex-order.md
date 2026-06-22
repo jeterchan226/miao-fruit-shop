@@ -334,7 +334,7 @@ git commit -m "feat(line): 新增 _order_flex 建構訂單明細 Flex 卡片"
   - `_build_message(order: Order) -> dict` — 回傳 `{"type": "flex", "altText": <純文字>, "contents": <bubble>}`。
   - `_post_push_message(token: str, user_id: str, message: dict) -> None` — 簽章由 `text: str` 改為 `message: dict`，送出 `{"to": user_id, "messages": [message]}`。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_line_service.py` 末端新增：
 
@@ -348,12 +348,12 @@ def test_build_message_is_flex_with_text_alt():
     assert message["contents"]["type"] == "bubble"
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && pytest tests/test_line_service.py::test_build_message_is_flex_with_text_alt -v`
 Expected: FAIL，`AttributeError: module 'app.services.line_service' has no attribute '_build_message'`。
 
-- [ ] **Step 3: 實作 `_build_message` 並改 `_post_push_message` 與 `send_order_created`**
+- [x] **Step 3: 實作 `_build_message` 並改 `_post_push_message` 與 `send_order_created`**
 
 在 `_order_flex` 之後新增：
 
@@ -414,17 +414,17 @@ def _post_push_message(token: str, user_id: str, message: dict) -> None:
         )
 ```
 
-- [ ] **Step 4: 跑測試確認通過**
+- [x] **Step 4: 跑測試確認通過**
 
 Run: `cd backend && pytest tests/test_line_service.py -v`
 Expected: 三個測試全部 PASS。
 
-- [ ] **Step 5: 跑後端完整測試確認無回歸**
+- [x] **Step 5: 跑後端完整測試確認無回歸**
 
 Run: `cd backend && pytest -q`
 Expected: 全綠（無因簽章變更導致的失敗）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/services/line_service.py backend/tests/test_line_service.py
