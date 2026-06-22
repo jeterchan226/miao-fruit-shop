@@ -9,6 +9,15 @@ def test_cors_origins_list_splits_and_trims(monkeypatch):
     assert s.cors_origins_list == ["http://localhost:8080", "https://miao.example"]
 
 
+def test_cors_origins_list_strips_trailing_slash(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("CORS_ORIGINS", "https://frontend-theta-one-22.vercel.app/")
+    s = Settings()
+    # 結尾斜線必須被去掉，否則對不上瀏覽器送的 Origin（不含斜線）。
+    assert s.cors_origins_list == ["https://frontend-theta-one-22.vercel.app"]
+
+
 def test_defaults_apply(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
     monkeypatch.setenv("JWT_SECRET", "test-secret")
