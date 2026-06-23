@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from linebot.v3 import WebhookParser
 from linebot.v3.messaging import (
     ApiClient,
     Configuration,
@@ -8,8 +9,11 @@ from linebot.v3.messaging import (
     FlexMessage,
     MessagingApi,
     PushMessageRequest,
+    ReplyMessageRequest,
+    TextMessage,
 )
 from linebot.v3.messaging.exceptions import ApiException
+from linebot.v3.webhooks import PostbackEvent
 from urllib3.exceptions import HTTPError as Urllib3HTTPError
 
 from app.core.config import settings
@@ -271,3 +275,54 @@ async def send_order_created(order: Order) -> bool:
         )
         return False
     return True
+
+
+REPORT_PAYMENT_REPLY = (
+    "感謝您的訂購 🍐\n"
+    "請依下列格式回覆，確認款項後盡快為您安排出貨：\n\n"
+    "訂單編號：MM-______\n"
+    "帳號末5碼：______\n"
+    "匯款金額：______"
+)
+
+PURCHASE_NOTICE_REPLY = (
+    "🍐 妙媽媽果園 購買須知\n\n"
+    "・運費 NT$150，單筆滿 NT$5,000 免運\n"
+    "・付款方式：轉帳匯款，請於下單後 3 日內完成\n"
+    "・匯款後請點選「匯款回報」告知帳號末5碼與金額\n"
+    "・確認款項後安排出貨\n\n"
+    "有任何問題歡迎直接傳訊息給我們 😊"
+)
+
+POSTBACK_REPLIES = {
+    "action=report_payment": REPORT_PAYMENT_REPLY,
+    "action=purchase_notice": PURCHASE_NOTICE_REPLY,
+}
+
+
+def _reply(reply_token: str, text: str) -> None:
+    with ApiClient(_configuration()) as api_client:
+        MessagingApi(api_client).reply_message(
+            ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=text)])
+        )
+
+
+def handle_webhook_events(body: str, signature: str) -> None:
+    if not settings.line_channel_secret:
+        logger.warning("LINE webhook secret 未設定，略過事件處理")
+        return
+
+    parser = WebhookParser(settings.line_channel_secret)
+    events = parser.parse(body, signature)
+    for event in events:
+        if not isinstance(event, PostbackEvent):
+            continue
+        reply_text = POSTBACK_REPLIES.get(event.postback.data)
+        if reply_text is None or event.reply_token is None:
+            continue
+        try:
+            _reply(event.reply_token, reply_text)
+        except (ApiException, OSError):
+            logger.warning(
+                "LINE reply failed: data=%s", event.postback.data, exc_info=True
+            )
