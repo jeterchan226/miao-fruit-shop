@@ -11,17 +11,21 @@
 
 - 本版實作三格：**立即訂購（A）、匯款回報（C）、購買須知（F）**。
 - C、F 的聊天室回覆由**後端 Webhook** 處理。
+- 導入 **line-bot-sdk（v3）**；同時將既有推播 `send_order_created` 一併遷移到 SDK，避免兩套風格並存。
 - 未來擴充：**訂單查詢（B）** 待後端查詢 API 完成後再加入。
 
-> 設計變更紀錄：初版曾規劃以 LINE OA Manager 手動設定（Rich Menu + 關鍵字自動回覆）。為統一維護，改為以 Messaging API 程式化建立 Rich Menu，並自建 Webhook 處理 C／F 回覆。本文件為改寫後版本。
+> 設計變更紀錄：
+> 1. 初版規劃以 LINE OA Manager 手動設定（Rich Menu + 關鍵字自動回覆）。為統一維護，改為以 Messaging API 程式化建立 Rich Menu，並自建 Webhook 處理 C／F 回覆。
+> 2. 第二版曾規劃以標準庫（urllib/hmac）手刻、不引入 SDK。考量官方帳號後續會持續長大（B 訂單查詢、更多事件互動），改為導入 **line-bot-sdk v3**，並連同既有推播一起遷移以維持一致。本文件為最新版本。
 
 ## 實作方式
 
-**Messaging API 程式化建立 Rich Menu + 自建 Webhook**
+**line-bot-sdk（v3）：程式化建立 Rich Menu + 自建 Webhook**
 
-- Rich Menu：以管理腳本（`cli.py` 子指令）呼叫 Messaging API 建立選單、上傳圖片、設為預設選單。
-- C／F 互動：Rich Menu 動作為 **postback**，後端 Webhook 收到事件後以 **Reply API** 在聊天室回覆。
-- 沿用現有慣例：**不引入 `line-bot-sdk`**，以標準庫（`hmac`／`hashlib`／`base64`／`urllib`）實作，外呼以 `asyncio.to_thread` 包裝，與既有 `send_order_created` 一致。
+- Rich Menu：以管理腳本（`cli.py` 子指令）用 SDK 的 `MessagingApi` / `MessagingApiBlob` 建立選單、上傳圖片、設為預設選單。
+- C／F 互動：Rich Menu 動作為 **postback**，後端 Webhook 用 SDK 的 `WebhookParser` 驗簽 + 解析事件，再以 **Reply API**（`MessagingApi.reply_message`）回覆。
+- 既有推播 `send_order_created`：由手寫 `urllib` 遷移為 `MessagingApi.push_message`，flex 內容以 `FlexMessage` + `FlexContainer.from_dict(_order_flex(order))` 包裝（沿用現有手建 flex dict，輸出不變）。
+- 套件：`pyproject.toml` 新增 `line-bot-sdk`（pin 至最新 3.x）。同步移除原本手寫的 `urllib` 推播程式。
 
 ## 版面與圖片規格
 
@@ -77,21 +81,21 @@
                          顧客在聊天室看到回覆
 ```
 
-### 簽章驗證
+### 簽章驗證（由 SDK 處理）
 
 - 目的：webhook 為公開網址，驗證可確保請求**確實來自 LINE**，防止偽造事件與濫用。
-- 原理：LINE 以 channel secret 對 **raw request body** 算 HMAC-SHA256 → base64，置於 `X-Line-Signature`。後端用同一把 secret 重算比對。
-- 後端須以 `await request.body()` 取得**原始 bytes**（不可重新序列化 JSON，否則簽章不符）。
-- 比對失敗 → 回 `400`，不處理。
+- 原理：LINE 以 channel secret 對 **raw request body** 算 HMAC-SHA256 → base64，置於 `X-Line-Signature`。
+- 實作：用 SDK 的 `WebhookParser(channel_secret).parse(body_text, signature)` —— 它內建驗簽，簽章不符會丟 `InvalidSignatureError`，後端攔截後回 `400`。
+- 後端須以 `await request.body()` 取得**原始內容**（不可重新序列化 JSON，否則簽章不符）。
 - 開發便利：未設定 `LINE_CHANNEL_SECRET` 時略過驗證（記 log），正式上線前務必設定。
 
 ### 事件路由與回覆
 
-- 僅處理 `type == "postback"` 的事件，依 `postback.data`：
+- `WebhookParser.parse` 回傳型別化事件；僅處理 `PostbackEvent`，依 `event.postback.data`：
   - `action=report_payment` → 回覆 C 文案
   - `action=purchase_notice` → 回覆 F 文案
   - 其他／未知 → 忽略不回覆
-- 回覆走 **Reply API**（`POST /v2/bot/message/reply`，使用 `replyToken`）——不消耗 push 額度。
+- 回覆用 `MessagingApi.reply_message(ReplyMessageRequest(reply_token=..., messages=[TextMessage(text=...)]))` —— 走 Reply API，不消耗 push 額度。
 
 ### 回覆文案（模組常數，比照現有 `BANK_*`）
 
@@ -129,21 +133,24 @@ F（`action=purchase_notice`）：
 
 | 檔案 | 內容 |
 | --- | --- |
+| `pyproject.toml` | 新增相依 `line-bot-sdk`（pin 最新 3.x） |
 | `app/core/config.py` | 新增 `line_channel_secret: str = ""` |
-| `app/services/line_service.py` | 擴充：`verify_signature(body, signature)`、`reply_message(reply_token, messages)`、`handle_webhook_events(body_bytes, signature)`；C／F 回覆文案常數 |
-| `app/api/routes/line_webhook.py` | 新路由 `POST /api/line/webhook`（讀 raw body + header，呼叫 `handle_webhook_events`，回 200／400） |
+| `app/services/line_service.py` | 改用 SDK：推播改 `MessagingApi.push_message` + `FlexMessage`；新增 `handle_webhook_events(body, signature)`（`WebhookParser` 驗簽 + 解析 + 路由）、`reply_message(...)`；移除手寫 `urllib` 推播；C／F 回覆文案常數 |
+| `app/api/routes/line_webhook.py` | 新路由 `POST /api/line/webhook`（讀 raw body + `X-Line-Signature`，呼叫 `handle_webhook_events`，回 200／400） |
 | `app/main.py` | `include_router(line_webhook.router)` |
-| `app/cli.py` | 新子指令 `setup-richmenu`：建立 Rich Menu（A／C／F bounds + 動作）、上傳圖片、設為預設 |
+| `app/cli.py` | 新子指令 `setup-richmenu`：用 SDK 建立 Rich Menu（A／C／F bounds + 動作）、上傳圖片、設為預設 |
 | `backend/assets/richmenu/richmenu-compact.png` | Rich Menu 圖片（需另製） |
 | `.env.example` | 新增 `LINE_CHANNEL_SECRET=` |
+| `tests/test_line_service.py` | 既有：更新推播相關測試以對應 SDK 遷移（flex 內容輸出不變） |
 | `tests/test_line_webhook.py` | 新測試檔 |
 
 ## 測試（pytest）
 
-- `verify_signature`：正確簽章 → True；竄改 body／錯 secret → False。
+- 推播遷移：`_order_flex` 內容與既有斷言維持不變；以 mock 攔截 `MessagingApi.push_message`，斷言帶入正確 flex 與 user id。
+- Webhook 簽章：合法簽章可解析；`InvalidSignatureError` → 端點回 400。
 - 路由：`report_payment` postback → C 文案；`purchase_notice` → F 文案；未知 data → 不回覆。
 - 端點：合法簽章回 200；非法簽章回 400；空 events 回 200。
-- 以 monkeypatch 攔截 Reply API 外呼（不真打 LINE），斷言送出內容正確。
+- 以 mock 攔截 `MessagingApi.reply_message`（不真打 LINE），斷言送出內容正確。
 
 ## 部署 / 一次性設定（非程式碼）
 
