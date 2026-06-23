@@ -138,6 +138,41 @@ def test_order_flex_includes_bank_transfer_info():
     assert "末 5 碼" in joined  # 匯款提醒語
 
 
+def test_order_flex_address_is_stacked_full_width():
+    """地址改為上下兩行：標籤獨立一行、內容換到下一行佔滿寬度（非 baseline 並排）。"""
+    order = _make_order()
+    flex = line_service._order_flex(order)
+
+    label_node = _find_text_node(flex, "地址")
+    addr_node = _find_text_node(flex, "100 台北市中正區忠孝東路一段1號")
+    assert label_node is not None
+    assert addr_node is not None
+    # 地址內容不再靠右對齊（堆疊版面無 align=end）
+    assert addr_node.get("align") != "end"
+
+
+def test_order_flex_shows_delivery_window_label():
+    order = _make_order()  # delivery_window="any"
+    joined = "\n".join(_all_text(line_service._order_flex(order)))
+    assert "送達時段" in joined
+    assert "不指定" in joined
+
+    order.delivery_window = "am"
+    joined_am = "\n".join(_all_text(line_service._order_flex(order)))
+    assert "上午 9–13" in joined_am
+
+    order.delivery_window = "pm"
+    joined_pm = "\n".join(_all_text(line_service._order_flex(order)))
+    assert "下午 14–18" in joined_pm
+
+
+def test_order_text_includes_delivery_window():
+    order = _make_order()
+    order.delivery_window = "am"
+    text = line_service._order_text(order)
+    assert "送達時段: 上午 9–13" in text
+
+
 def test_order_text_free_shipping_label():
     order = _make_order()  # shipping_fee=0
     text = line_service._order_text(order)
