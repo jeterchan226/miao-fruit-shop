@@ -1,13 +1,19 @@
 import asyncio
-import json
 import logging
-import urllib.error
-import urllib.request
+
+from linebot.v3.messaging import (
+    ApiClient,
+    Configuration,
+    FlexContainer,
+    FlexMessage,
+    MessagingApi,
+    PushMessageRequest,
+)
+from linebot.v3.messaging.exceptions import ApiException
+from urllib3.exceptions import MaxRetryError
 
 from app.core.config import settings
 from app.models.order import Order
-
-LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
 logger = logging.getLogger(__name__)
 
@@ -229,32 +235,22 @@ def _order_flex(order: Order) -> dict:
     }
 
 
-def _build_message(order: Order) -> dict:
-    return {
-        "type": "flex",
-        "altText": _order_text(order),
-        "contents": _order_flex(order),
-    }
+def _configuration() -> Configuration:
+    return Configuration(access_token=settings.line_channel_access_token)
 
 
-def _post_push_message(token: str, user_id: str, message: dict) -> None:
-    body = json.dumps(
-        {
-            "to": user_id,
-            "messages": [message],
-        }
-    ).encode("utf-8")
-    request = urllib.request.Request(
-        LINE_PUSH_URL,
-        data=body,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+def _flex_message(order: Order) -> FlexMessage:
+    return FlexMessage(
+        alt_text=_order_text(order),
+        contents=FlexContainer.from_dict(_order_flex(order)),
     )
-    with urllib.request.urlopen(request, timeout=10):
-        return
+
+
+def _push_flex(user_id: str, message: FlexMessage) -> None:
+    with ApiClient(_configuration()) as api_client:
+        MessagingApi(api_client).push_message(
+            PushMessageRequest(to=user_id, messages=[message])
+        )
 
 
 async def send_order_created(order: Order) -> bool:
@@ -266,22 +262,10 @@ async def send_order_created(order: Order) -> bool:
         return False
 
     try:
-        await asyncio.to_thread(
-            _post_push_message,
-            settings.line_channel_access_token,
-            order.line_user_id,
-            _build_message(order),
-        )
-    except urllib.error.HTTPError as exc:
+        await asyncio.to_thread(_push_flex, order.line_user_id, _flex_message(order))
+    except (ApiException, MaxRetryError, OSError):
         logger.warning(
-            "LINE order notification failed: status=%s order_no=%s",
-            exc.code,
-            order.order_no,
-        )
-        return False
-    except OSError:
-        logger.warning(
-            "LINE order notification failed: network_error order_no=%s",
+            "LINE order notification failed: order_no=%s",
             order.order_no,
             exc_info=True,
         )
