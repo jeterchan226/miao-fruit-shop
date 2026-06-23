@@ -8,9 +8,16 @@ from linebot.v3.messaging import (
     FlexContainer,
     FlexMessage,
     MessagingApi,
+    MessagingApiBlob,
+    PostbackAction,
     PushMessageRequest,
     ReplyMessageRequest,
+    RichMenuArea,
+    RichMenuBounds,
+    RichMenuRequest,
+    RichMenuSize,
     TextMessage,
+    URIAction,
 )
 from linebot.v3.messaging.exceptions import ApiException
 from linebot.v3.webhooks import PostbackEvent
@@ -326,3 +333,54 @@ def handle_webhook_events(body: str, signature: str) -> None:
             logger.warning(
                 "LINE reply failed: data=%s", event.postback.data, exc_info=True
             )
+
+
+RICH_MENU_NAME = "妙媽媽果園選單"
+RICH_MENU_CHAT_BAR_TEXT = "選單"
+
+
+def build_rich_menu_request(liff_id: str) -> RichMenuRequest:
+    return RichMenuRequest(
+        size=RichMenuSize(width=2500, height=843),
+        selected=True,
+        name=RICH_MENU_NAME,
+        chatBarText=RICH_MENU_CHAT_BAR_TEXT,
+        areas=[
+            RichMenuArea(
+                bounds=RichMenuBounds(x=0, y=0, width=833, height=843),
+                action=URIAction(label="立即訂購", uri=f"https://liff.line.me/{liff_id}"),
+            ),
+            RichMenuArea(
+                bounds=RichMenuBounds(x=833, y=0, width=833, height=843),
+                action=PostbackAction(
+                    label="匯款回報",
+                    data="action=report_payment",
+                    displayText="我要回報匯款",
+                ),
+            ),
+            RichMenuArea(
+                bounds=RichMenuBounds(x=1666, y=0, width=834, height=843),
+                action=PostbackAction(
+                    label="購買須知",
+                    data="action=purchase_notice",
+                    displayText="購買須知",
+                ),
+            ),
+        ],
+    )
+
+
+def setup_rich_menu(image_path: str, liff_id: str) -> str:
+    with ApiClient(_configuration()) as api_client:
+        api = MessagingApi(api_client)
+        blob_api = MessagingApiBlob(api_client)
+        result = api.create_rich_menu(build_rich_menu_request(liff_id))
+        rich_menu_id: str = result.rich_menu_id
+        with open(image_path, "rb") as image_file:
+            blob_api.set_rich_menu_image(
+                rich_menu_id=rich_menu_id,
+                body=bytearray(image_file.read()),
+                _headers={"Content-Type": "image/png"},
+            )
+        api.set_default_rich_menu(rich_menu_id)
+    return rich_menu_id
