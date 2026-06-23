@@ -41,6 +41,7 @@ def _order_text(order: Order) -> str:
                 f"{order.ship_city}{order.ship_district}{order.ship_street}"
             ),
             f"希望送達: {order.preferred_date}",
+            f"送達時段: {_delivery_window_label(order)}",
             "",
             "請於 3 日內完成轉帳，款項確認後將安排出貨。",
         ]
@@ -64,6 +65,17 @@ BANK_ACCOUNT_NAME = "劉芳妙"
 BANK_ACCOUNT_NO = "0291377-0159424"
 REMITTANCE_NOTE = "匯款完成後，請務必告知「匯款帳號末 5 碼」及「匯款金額」。"
 
+# 送達時段顯示文字（對應 Order.delivery_window）
+DELIVERY_WINDOW_LABELS = {
+    "any": "不指定",
+    "am": "上午 9–13",
+    "pm": "下午 14–18",
+}
+
+
+def _delivery_window_label(order: Order) -> str:
+    return DELIVERY_WINDOW_LABELS.get(order.delivery_window, order.delivery_window)
+
 
 def _divider() -> dict:
     return {"type": "separator", "color": DIVIDER_COLOR, "margin": "md"}
@@ -85,6 +97,19 @@ def _kv_row(
             {"type": "text", "text": value, "size": "sm",
              "color": value_color, "flex": 5, "wrap": True, "align": "end",
              "weight": "bold" if value_bold else "regular"},
+        ],
+    }
+
+
+def _stacked_row(label: str, value: str) -> dict:
+    """標籤獨立一行（靠左），內容換到下一行佔滿寬度顯示。"""
+    return {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+            {"type": "text", "text": label, "size": "sm", "color": LABEL_COLOR},
+            {"type": "text", "text": value, "size": "sm",
+             "color": TEXT_COLOR, "wrap": True},
         ],
     }
 
@@ -185,8 +210,9 @@ def _order_flex(order: Order) -> dict:
                 _divider(),
                 _kv_row("收件人", order.customer_name),
                 _kv_row("電話", order.customer_phone),
-                _kv_row("地址", address),
+                _stacked_row("地址", address),
                 _kv_row("希望送達", str(order.preferred_date)),
+                _kv_row("送達時段", _delivery_window_label(order)),
                 *_payment_rows(),
             ],
         },
