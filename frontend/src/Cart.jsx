@@ -380,11 +380,10 @@ const InfoForm = ({ form, setForm, errors, lineState, onRequestFriendship }) => 
 
 /* ── Transfer Info ─────────────────────────────────────────── */
 
-// TODO: 等實際匯款帳戶提供後替換以下假資料。
 const TRANSFER_INFO = {
-  bank: '(700) 中華郵政',
-  name: '妙媽媽果園',
-  account: '0000000-0000000',
+  bank: '(700) 中華郵政・卓蘭郵局',
+  name: '劉芳妙',
+  account: '0291366-0159424',
 };
 
 const TransferInfo = ({ form }) => {
@@ -405,7 +404,7 @@ const TransferInfo = ({ form }) => {
         <div className="ln"><span className="t">收件人</span><span>{form.name || '—'}</span></div>
         <div className="ln"><span className="t">電話</span><span>{form.phone || '—'}</span></div>
         <div className="ln"><span className="t">LINE 通知</span><span>{form.lineDisplayName || '—'}</span></div>
-        <div className="ln"><span className="t">地址</span><span style={{maxWidth:'60%', textAlign:'right'}}>{fullAddress}</span></div>
+        <div className="ln" style={{flexDirection:'column', alignItems:'flex-start', gap:4}}><span className="t">地址</span><span style={{textAlign:'left', wordBreak:'break-all'}}>{fullAddress}</span></div>
         <div className="ln"><span className="t">送達日</span><span>{form.ship || '—'}</span></div>
       </div>
     </div>
@@ -720,7 +719,6 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
               <span className="order-id">訂單編號 {orderId}</span>
               <div style={{marginTop:24, display:'flex', gap:10, justifyContent:'center'}}>
                 <button className="btn btn--sage" onClick={closeAll}>繼續逛逛</button>
-                <button className="btn btn--ghost" onClick={() => { window.print(); }}>列印訂單</button>
               </div>
             </div>
           ) : (
