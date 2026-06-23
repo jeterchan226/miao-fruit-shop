@@ -76,3 +76,17 @@ def test_no_secret_skips(monkeypatch):
     body = _postback_body("action=report_payment")
     line_service.handle_webhook_events(body, "anything")
     assert calls == []
+
+
+def test_reply_failure_is_swallowed(monkeypatch):
+    from urllib3.exceptions import HTTPError as Urllib3HTTPError
+
+    monkeypatch.setattr(line_service.settings, "line_channel_secret", TEST_SECRET)
+
+    def boom(*_args):
+        raise Urllib3HTTPError("timeout")
+
+    monkeypatch.setattr(line_service, "_reply", boom)
+    body = _postback_body("action=report_payment")
+    # must not raise
+    line_service.handle_webhook_events(body, _sign(TEST_SECRET, body))

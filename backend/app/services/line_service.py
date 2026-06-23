@@ -322,7 +322,7 @@ def handle_webhook_events(body: str, signature: str) -> None:
             continue
         try:
             _reply(event.reply_token, reply_text)
-        except (ApiException, OSError):
+        except (ApiException, Urllib3HTTPError, OSError):
             logger.warning(
                 "LINE reply failed: data=%s", event.postback.data, exc_info=True
             )
