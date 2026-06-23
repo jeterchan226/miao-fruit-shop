@@ -70,4 +70,4 @@ class Settings(BaseSettings):
         return bool(self.gcs_bucket_name and self.gcs_credentials_b64)
 
 
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()
