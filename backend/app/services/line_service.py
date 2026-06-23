@@ -1,13 +1,30 @@
 import asyncio
-import json
 import logging
-import urllib.error
-import urllib.request
+
+from linebot.v3 import WebhookParser
+from linebot.v3.messaging import (
+    ApiClient,
+    Configuration,
+    FlexContainer,
+    FlexMessage,
+    MessagingApi,
+    MessagingApiBlob,
+    PostbackAction,
+    PushMessageRequest,
+    ReplyMessageRequest,
+    RichMenuArea,
+    RichMenuBounds,
+    RichMenuRequest,
+    RichMenuSize,
+    TextMessage,
+    URIAction,
+)
+from linebot.v3.messaging.exceptions import ApiException
+from linebot.v3.webhooks import PostbackEvent
+from urllib3.exceptions import HTTPError as Urllib3HTTPError
 
 from app.core.config import settings
 from app.models.order import Order
-
-LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
 logger = logging.getLogger(__name__)
 
@@ -229,32 +246,22 @@ def _order_flex(order: Order) -> dict:
     }
 
 
-def _build_message(order: Order) -> dict:
-    return {
-        "type": "flex",
-        "altText": _order_text(order),
-        "contents": _order_flex(order),
-    }
+def _configuration() -> Configuration:
+    return Configuration(access_token=settings.line_channel_access_token)
 
 
-def _post_push_message(token: str, user_id: str, message: dict) -> None:
-    body = json.dumps(
-        {
-            "to": user_id,
-            "messages": [message],
-        }
-    ).encode("utf-8")
-    request = urllib.request.Request(
-        LINE_PUSH_URL,
-        data=body,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+def _flex_message(order: Order) -> FlexMessage:
+    return FlexMessage(
+        alt_text=_order_text(order),
+        contents=FlexContainer.from_dict(_order_flex(order)),
     )
-    with urllib.request.urlopen(request, timeout=10):
-        return
+
+
+def _push_flex(user_id: str, message: FlexMessage) -> None:
+    with ApiClient(_configuration()) as api_client:
+        MessagingApi(api_client).push_message(
+            PushMessageRequest(to=user_id, messages=[message])
+        )
 
 
 async def send_order_created(order: Order) -> bool:
@@ -266,24 +273,114 @@ async def send_order_created(order: Order) -> bool:
         return False
 
     try:
-        await asyncio.to_thread(
-            _post_push_message,
-            settings.line_channel_access_token,
-            order.line_user_id,
-            _build_message(order),
-        )
-    except urllib.error.HTTPError as exc:
+        await asyncio.to_thread(_push_flex, order.line_user_id, _flex_message(order))
+    except (ApiException, Urllib3HTTPError, OSError):
         logger.warning(
-            "LINE order notification failed: status=%s order_no=%s",
-            exc.code,
-            order.order_no,
-        )
-        return False
-    except OSError:
-        logger.warning(
-            "LINE order notification failed: network_error order_no=%s",
+            "LINE order notification failed: order_no=%s",
             order.order_no,
             exc_info=True,
         )
         return False
     return True
+
+
+REPORT_PAYMENT_REPLY = (
+    "感謝您的訂購 🍐\n"
+    "請依下列格式回覆，確認款項後盡快為您安排出貨：\n\n"
+    "訂單編號：MM-______\n"
+    "帳號末5碼：______\n"
+    "匯款金額：______"
+)
+
+PURCHASE_NOTICE_REPLY = (
+    "🍐 妙媽媽果園 購買須知\n\n"
+    "・運費 NT$150，單筆滿 NT$5,000 免運\n"
+    "・付款方式：轉帳匯款，請於下單後 3 日內完成\n"
+    "・匯款後請點選「匯款回報」告知帳號末5碼與金額\n"
+    "・確認款項後安排出貨\n\n"
+    "有任何問題歡迎直接傳訊息給我們 😊"
+)
+
+POSTBACK_REPLIES = {
+    "action=report_payment": REPORT_PAYMENT_REPLY,
+    "action=purchase_notice": PURCHASE_NOTICE_REPLY,
+}
+
+
+def _reply(reply_token: str, text: str) -> None:
+    with ApiClient(_configuration()) as api_client:
+        MessagingApi(api_client).reply_message(
+            ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=text)])
+        )
+
+
+def handle_webhook_events(body: str, signature: str) -> None:
+    if not settings.line_channel_secret:
+        logger.warning("LINE webhook secret 未設定，略過事件處理")
+        return
+
+    parser = WebhookParser(settings.line_channel_secret)
+    events = parser.parse(body, signature)
+    for event in events:
+        if not isinstance(event, PostbackEvent):
+            continue
+        reply_text = POSTBACK_REPLIES.get(event.postback.data)
+        if reply_text is None or event.reply_token is None:
+            continue
+        try:
+            _reply(event.reply_token, reply_text)
+        except (ApiException, Urllib3HTTPError, OSError):
+            logger.warning(
+                "LINE reply failed: data=%s", event.postback.data, exc_info=True
+            )
+
+
+RICH_MENU_NAME = "妙媽媽果園選單"
+RICH_MENU_CHAT_BAR_TEXT = "選單"
+
+
+def build_rich_menu_request(liff_id: str) -> RichMenuRequest:
+    return RichMenuRequest(
+        size=RichMenuSize(width=2500, height=843),
+        selected=True,
+        name=RICH_MENU_NAME,
+        chatBarText=RICH_MENU_CHAT_BAR_TEXT,
+        areas=[
+            RichMenuArea(
+                bounds=RichMenuBounds(x=0, y=0, width=833, height=843),
+                action=URIAction(label="立即訂購", uri=f"https://liff.line.me/{liff_id}"),
+            ),
+            RichMenuArea(
+                bounds=RichMenuBounds(x=833, y=0, width=833, height=843),
+                action=PostbackAction(
+                    label="匯款回報",
+                    data="action=report_payment",
+                    displayText="我要回報匯款",
+                ),
+            ),
+            RichMenuArea(
+                bounds=RichMenuBounds(x=1666, y=0, width=834, height=843),
+                action=PostbackAction(
+                    label="購買須知",
+                    data="action=purchase_notice",
+                    displayText="購買須知",
+                ),
+            ),
+        ],
+    )
+
+
+def setup_rich_menu(image_path: str, liff_id: str) -> str:
+    with ApiClient(_configuration()) as api_client:
+        api = MessagingApi(api_client)
+        blob_api = MessagingApiBlob(api_client)
+        result = api.create_rich_menu(build_rich_menu_request(liff_id))
+        rich_menu_id: str = result.rich_menu_id
+        with open(image_path, "rb") as image_file:
+            blob_api.set_rich_menu_image(
+                rich_menu_id=rich_menu_id,
+                body=bytearray(image_file.read()),
+                _headers={"Content-Type": "image/png"},
+            )
+        api.set_default_rich_menu(rich_menu_id)
+    return rich_menu_id

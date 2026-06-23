@@ -69,13 +69,53 @@ def test_order_flex_is_bubble_with_key_info():
     assert "2026-07-01" in joined
 
 
-def test_build_message_is_flex_with_text_alt():
+def test_flex_message_alt_text_matches_order_text():
     order = _make_order()
-    message = line_service._build_message(order)
+    msg = line_service._flex_message(order)
+    assert msg.alt_text == line_service._order_text(order)
 
-    assert message["type"] == "flex"
-    assert message["altText"] == line_service._order_text(order)
-    assert message["contents"]["type"] == "bubble"
+
+async def test_send_order_created_pushes_flex(monkeypatch):
+    order = _make_order()
+    order.line_user_id = "U123"
+    order.line_notification_consent = True
+    monkeypatch.setattr(line_service.settings, "line_channel_access_token", "token")
+
+    captured = {}
+
+    def fake_push(user_id, message):
+        captured["user_id"] = user_id
+        captured["message"] = message
+
+    monkeypatch.setattr(line_service, "_push_flex", fake_push)
+
+    ok = await line_service.send_order_created(order)
+    assert ok is True
+    assert captured["user_id"] == "U123"
+    assert captured["message"].alt_text == line_service._order_text(order)
+
+
+async def test_send_order_created_skips_without_token(monkeypatch):
+    order = _make_order()
+    order.line_user_id = "U123"
+    order.line_notification_consent = True
+    monkeypatch.setattr(line_service.settings, "line_channel_access_token", "")
+    assert await line_service.send_order_created(order) is False
+
+
+async def test_send_order_created_swallows_push_failure(monkeypatch):
+    from urllib3.exceptions import HTTPError as Urllib3HTTPError
+
+    order = _make_order()
+    order.line_user_id = "U123"
+    order.line_notification_consent = True
+    monkeypatch.setattr(line_service.settings, "line_channel_access_token", "token")
+
+    def boom(*_args):
+        raise Urllib3HTTPError("timeout")
+
+    monkeypatch.setattr(line_service, "_push_flex", boom)
+    assert await line_service.send_order_created(order) is False
 
 
 def _find_text_node(node, text):

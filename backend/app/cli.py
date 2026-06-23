@@ -4,12 +4,14 @@ import getpass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.admin_user import AdminUser
 from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.repositories import admin_repo, product_repo
+from app.services import line_service
 
 MIN_PASSWORD_LEN = 8
 
@@ -89,17 +91,31 @@ async def _run_create_admin(username: str) -> None:
     print(f"已建立管理員:{admin.username}")
 
 
+def _run_setup_richmenu(image: str, liff_id: str) -> None:
+    if not liff_id:
+        raise SystemExit("缺少 LIFF ID（請用 --liff-id 或設定 LINE_LIFF_ID）")
+    if not settings.line_channel_access_token:
+        raise SystemExit("缺少 LINE_CHANNEL_ACCESS_TOKEN")
+    rich_menu_id = line_service.setup_rich_menu(image, liff_id)
+    print(f"已建立並套用 Rich Menu：{rich_menu_id}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
     create = sub.add_parser("create-admin", help="建立後台管理員")
     create.add_argument("--username", required=True)
     sub.add_parser("seed-product", help="建立初始商品(甘露梨)")
+    richmenu = sub.add_parser("setup-richmenu", help="建立並套用 Rich Menu")
+    richmenu.add_argument("--image", required=True, help="Rich Menu 圖片路徑（2500x843 PNG）")
+    richmenu.add_argument("--liff-id", default=None, help="LIFF App ID（預設取 LINE_LIFF_ID）")
     args = parser.parse_args()
     if args.command == "create-admin":
         asyncio.run(_run_create_admin(args.username))
     elif args.command == "seed-product":
         asyncio.run(_run_seed_product())
+    elif args.command == "setup-richmenu":
+        _run_setup_richmenu(args.image, args.liff_id or settings.line_liff_id)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,8 @@ class Settings(BaseSettings):
 
     # LINE Messaging API
     line_channel_access_token: str = ""
+    line_channel_secret: str = ""
+    line_liff_id: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -68,4 +70,4 @@ class Settings(BaseSettings):
         return bool(self.gcs_bucket_name and self.gcs_credentials_b64)
 
 
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()
