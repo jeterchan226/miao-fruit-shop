@@ -16,7 +16,7 @@ dependencies = [
     "python-multipart==0.0.32",
     "greenlet>=3.5.1",
     "google-cloud-storage==2.19.0",
-    "line-bot-sdk>=3.23.1",
+    "line-bot-sdk==3.23.1",
 ]
 
 [dependency-groups]

@@ -986,7 +986,7 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.136.3" },
     { name = "google-cloud-storage", specifier = "==2.19.0" },
     { name = "greenlet", specifier = ">=3.5.1" },
-    { name = "line-bot-sdk", specifier = ">=3.23.1" },
+    { name = "line-bot-sdk", specifier = "==3.23.1" },
     { name = "pwdlib", extras = ["argon2"], specifier = "==0.3.0" },
     { name = "pydantic", specifier = "==2.13.4" },
     { name = "pydantic-settings", specifier = "==2.14.1" },
