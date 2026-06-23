@@ -10,7 +10,7 @@ from linebot.v3.messaging import (
     PushMessageRequest,
 )
 from linebot.v3.messaging.exceptions import ApiException
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import HTTPError as Urllib3HTTPError
 
 from app.core.config import settings
 from app.models.order import Order
@@ -263,7 +263,7 @@ async def send_order_created(order: Order) -> bool:
 
     try:
         await asyncio.to_thread(_push_flex, order.line_user_id, _flex_message(order))
-    except (ApiException, MaxRetryError, OSError):
+    except (ApiException, Urllib3HTTPError, OSError):
         logger.warning(
             "LINE order notification failed: order_no=%s",
             order.order_no,

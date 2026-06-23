@@ -103,6 +103,21 @@ async def test_send_order_created_skips_without_token(monkeypatch):
     assert await line_service.send_order_created(order) is False
 
 
+async def test_send_order_created_swallows_push_failure(monkeypatch):
+    from urllib3.exceptions import HTTPError as Urllib3HTTPError
+
+    order = _make_order()
+    order.line_user_id = "U123"
+    order.line_notification_consent = True
+    monkeypatch.setattr(line_service.settings, "line_channel_access_token", "token")
+
+    def boom(*_args):
+        raise Urllib3HTTPError("timeout")
+
+    monkeypatch.setattr(line_service, "_push_flex", boom)
+    assert await line_service.send_order_created(order) is False
+
+
 def _find_text_node(node, text):
     """找出 text 等於指定字串的 text node dict（找不到回 None）。"""
     if isinstance(node, dict):
