@@ -1,5 +1,13 @@
 # CI/CD 流水線 Implementation Plan
 
+> **⚠️ 決策變更（2026-06-24）：CD 已取消，僅保留 CI。**
+> 評估後認為對本專案(單人、低頻發版)而言,全自動 CD(WIF + 部署 SA + Artifact Registry + tag 觸發 release)維護成本不划算。
+> - `release.yml` 已移除;部署改為手動(`gcloud run deploy --source` / `vercel --prod`)。
+> - `docs/ci-cd-console-setup.md` 已改寫為「CI + 手動部署」精簡版。
+> - 仍有效:**Task 1(CI workflow)** 全數完成且保留。
+> - 已作廢:**Task 2 §1–§6(deploy SA/WIF/AR/release secrets)**、**Task 3(release.yml)**、**Task 4(tag 端到端驗證)**。下方這些任務內容僅留作歷史紀錄。
+> - 仍建議保留:branch protection(Task 4 Step 3 / 原 §7)——已移至新文件 D 節。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 為 `JeterChan/miao-fruit-shop` 建立 GitHub Actions CI(品質閘)與 tag 觸發的 CD(後端 Cloud Run + 前端 Vercel,前後端鎖步)。
