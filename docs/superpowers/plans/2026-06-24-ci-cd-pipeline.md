@@ -43,7 +43,7 @@
 - Consumes:無(僅用 repo 內既有指令)。
 - Produces:GitHub check 名稱 `CI / backend`、`CI / frontend`(Task 4 的 branch protection 會引用這兩個名稱)。
 
-- [ ] **Step 1: 確認本機等效指令為綠(先驗證 CI 會跑的指令本身正確)**
+- [x] **Step 1: 確認本機等效指令為綠(先驗證 CI 會跑的指令本身正確)**
 
 Run（於 `backend/`）:
 ```bash
@@ -57,7 +57,7 @@ npm install --prefix frontend && npm run build --prefix frontend
 ```
 Expected:`vite build` 成功,輸出 `frontend/dist`。
 
-- [ ] **Step 2: 建立 `.github/workflows/ci.yml`**
+- [x] **Step 2: 建立 `.github/workflows/ci.yml`**
 
 ```yaml
 name: CI
@@ -116,7 +116,7 @@ jobs:
 
 說明:conftest 用 `make_url(...).set(database="miao_test")`,故 `DATABASE_URL` 的 user/pass/host/port 會被沿用、資料庫名一律換成 `miao_test`,因此 postgres service 必須 `POSTGRES_DB: miao_test`。
 
-- [ ] **Step 3: 本機驗證 YAML 語法正確**
+- [x] **Step 3: 本機驗證 YAML 語法正確**
 
 Run:
 ```bash
@@ -124,7 +124,7 @@ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print
 ```
 Expected:印出 `ci.yml OK`,無 traceback。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add .github/workflows/ci.yml
@@ -160,7 +160,7 @@ gcloud run services describe miao-api --region asia-east1 \
 ```
 Expected:取得專案號碼、服務 runtime SA、Cloud SQL 連線名稱、以及 `DATABASE_URL`(或 `DB_*`)的來源(明文 env 或掛載的 Secret 名)。把這些值填入 Step 2 文件對應處。
 
-- [ ] **Step 2: 建立 `docs/ci-cd-console-setup.md`**
+- [x] **Step 2: 建立 `docs/ci-cd-console-setup.md`**
 
 ````markdown
 # CI/CD 一次性雲端設定指引
@@ -255,11 +255,11 @@ Repo → Settings → Branches → Add rule(`master`):
 - Require branches to be up to date before merging
 ````
 
-- [ ] **Step 3: 文件完整性自檢**
+- [x] **Step 3: 文件完整性自檢**
 
 確認文件涵蓋:AR、deploy SA + 4 個角色(含 `serviceAccountUser` on runtime SA)、WIF pool/provider(含 repo 限制)、`workloadIdentityUser` 綁定、migration Job(image/SA/cloudsql/command/DB 連線)、Vercel(token/IDs/關自動 prod)、全部 Secrets+Variables、branch protection 引用的 check 名稱與 Task 1 一致(`CI / backend`、`CI / frontend`)。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add docs/ci-cd-console-setup.md
@@ -277,7 +277,7 @@ git commit -m "$(printf 'docs(ci): 新增 CI/CD 一次性 console 設定指引\n
 - Consumes:Task 2 定義的 Secrets(`GCP_WIF_PROVIDER`、`GCP_DEPLOY_SA`、`VERCEL_TOKEN`)與 Variables(`GCP_PROJECT`、`GCP_REGION`、`CLOUD_RUN_SERVICE`、`MIGRATE_JOB`、`AR_REPO`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID`)。
 - Produces:tag `v*` 觸發的完整 release 流水線。
 
-- [ ] **Step 1: 建立 `.github/workflows/release.yml`**
+- [x] **Step 1: 建立 `.github/workflows/release.yml`**
 
 ```yaml
 name: Release
@@ -374,7 +374,7 @@ jobs:
 - `gcloud run deploy --image` 不帶 env 旗標 → 沿用服務上既有 env/secret/Cloud SQL 設定。
 - 任一步驟非 0 結束即中止後續(GitHub Actions 預設 fail-fast;smoke test 以 `set -e` + 比對碼確保失敗會擋住 Vercel 部署)。
 
-- [ ] **Step 2: 本機驗證 YAML 語法正確**
+- [x] **Step 2: 本機驗證 YAML 語法正確**
 
 Run:
 ```bash
@@ -382,7 +382,7 @@ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release.yml')); 
 ```
 Expected:印出 `release.yml OK`,無 traceback。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add .github/workflows/release.yml
