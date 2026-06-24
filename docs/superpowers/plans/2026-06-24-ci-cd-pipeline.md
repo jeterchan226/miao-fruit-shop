@@ -4,16 +4,16 @@
 
 **Goal:** 為 `JeterChan/miao-fruit-shop` 建立 GitHub Actions CI(品質閘)與 tag 觸發的 CD(後端 Cloud Run + 前端 Vercel,前後端鎖步)。
 
-**Architecture:** 兩個 workflow——`ci.yml`(PR/push 跑 ruff+pytest+前端 build,mypy 非阻擋)與 `release.yml`(tag `v*` 觸發:build image 一次 → migration Cloud Run Job → deploy Cloud Run → smoke test → Vercel prod)。GCP 認證用 Workload Identity Federation(無金鑰)。一次性雲端資源由使用者依 `docs/ci-cd-console-setup.md` 於 console 建立。
+**Architecture:** 兩個 workflow——`ci.yml`(PR/push 跑 pytest+前端 build,mypy 非阻擋)與 `release.yml`(tag `v*` 觸發:build image 一次 → migration Cloud Run Job → deploy Cloud Run → smoke test → Vercel prod)。GCP 認證用 Workload Identity Federation(無金鑰)。一次性雲端資源由使用者依 `docs/ci-cd-console-setup.md` 於 console 建立。
 
-**Tech Stack:** GitHub Actions、uv、pytest、ruff、PostgreSQL(service container)、Docker、Google Artifact Registry、Cloud Run(service + job)、Cloud SQL、Vercel CLI。
+**Tech Stack:** GitHub Actions、uv、pytest、PostgreSQL(service container)、Docker、Google Artifact Registry、Cloud Run(service + job)、Cloud SQL、Vercel CLI。
 
 ## Global Constraints
 
 - 部署觸發:merge/push `master` 只跑 CI;**只有 push tag `v*` 才部署**。
 - GCP 認證一律 **Workload Identity Federation**,repo 不存任何長期金鑰。
 - migration 用**獨立 Cloud Run Job `miao-api-migrate`**,部署服務前執行;與服務**共用同一個 image**(以 git tag 當版本號)。
-- CI 必過閘:`ruff check` + `pytest` + 前端 `vite build`;**`mypy` 跑但非阻擋**(`continue-on-error: true`)。
+- CI 必過閘:`pytest` + 前端 `vite build`;**`mypy` 跑但非阻擋**(`continue-on-error: true`);**不在 CI 跑 ruff**。
 - 既有值(verbatim):GCP 專案 `miao-fruit-shop-499505`、region `asia-east1`、Cloud Run service `miao-api`、Dockerfile 於 `backend/`、uv 版本 `0.11.19`、Python `3.13`。
 - 測試需 PostgreSQL:conftest 由 `DATABASE_URL` 衍生 `miao_test` 資料庫,CI 須提供 postgres service 並設 `DATABASE_URL`。
 - 回覆/文件用繁體中文;commit 訊息結尾加 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`。
@@ -24,7 +24,7 @@
 
 ## File Structure
 
-- `.github/workflows/ci.yml` — **建立**。CI:backend job(postgres service + ruff/pytest/mypy)、frontend job(vite build)。觸發 PR + push master。
+- `.github/workflows/ci.yml` — **建立**。CI:backend job(postgres service + pytest/mypy)、frontend job(vite build)。觸發 PR + push master。
 - `.github/workflows/release.yml` — **建立**。CD:tag `v*` 觸發,單一 job 依序 build→push→migrate→deploy→smoke→vercel。
 - `docs/ci-cd-console-setup.md` — **建立**。使用者於 console 操作的逐步指引:AR、WIF、deploy SA + IAM、migration Job、Vercel、GitHub Secrets/Variables、branch protection,含 gcloud 查值指令。
 - `backend/deploy.sh` — **不動**。
@@ -47,9 +47,9 @@
 
 Run（於 `backend/`）:
 ```bash
-cd backend && uv sync --frozen && uv run ruff check && uv run pytest -q
+cd backend && uv sync --frozen && uv run pytest -q
 ```
-Expected:ruff 無錯、pytest 全數通過(本機 `.env` 已指向可用的 postgres,衍生 `miao_test`)。
+Expected:pytest 全數通過(本機 `.env` 已指向可用的 postgres,衍生 `miao_test`)。
 
 Run（於專案根）:
 ```bash
@@ -95,8 +95,6 @@ jobs:
         with:
           version: "0.11.19"
       - run: uv sync --frozen
-      - name: Ruff lint
-        run: uv run ruff check
       - name: Pytest
         run: uv run pytest -q
       - name: Mypy (non-blocking)
@@ -446,7 +444,7 @@ Expected:整條流水線綠燈,前後端皆為此 tag 版本。
 - §2 觸發模型 → Task 1(PR/push CI)、Task 3(tag release)。✓
 - §3 release 五步(build once / migrate / deploy / smoke / vercel)→ Task 3 各步驟;§3.2 三項 smoke 檢查 → Task 3 Step 1 Smoke test + Task 4 Step 5。✓
 - §4 一次性設定(WIF/AR/Job/Vercel/Secrets/branch protection)→ Task 2 指引 + Task 4 啟用。✓
-- §5 CI 閘(ruff+pytest+前端 build 必過、mypy 非阻擋)→ Task 1。✓
+- §5 CI 閘(pytest+前端 build 必過、mypy 非阻擋、不跑 ruff)→ Task 1。✓
 - §6 檔案結構 → 與本計畫 File Structure 一致(ci.yml/release.yml/console-setup.md;deploy.sh 不動)。✓
 - §1 假設(tag-based、WIF、migration Job、前端鎖步、mypy 非阻擋、branch protection、console 手動、deploy.sh 保留)→ 散見各 Task 與 Global Constraints。✓
 

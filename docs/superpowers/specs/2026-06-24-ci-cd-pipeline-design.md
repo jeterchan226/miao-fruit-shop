@@ -32,7 +32,7 @@
 2. GCP 認證採 **Workload Identity Federation（WIF，無金鑰）**。
 3. Migration 採**獨立 Cloud Run Job**，於部署服務前執行。
 4. 前端 production 改為**僅在 tag 時**上線（關閉 Vercel 對 `master` 的自動 prod），與後端鎖步；PR preview 維持自動。
-5. CI 必過閘 = `ruff` + `pytest` + 前端 `vite build`；**mypy 跑但非阻擋**。
+5. CI 必過閘 = `pytest` + 前端 `vite build`；**mypy 跑但非阻擋**(不在 CI 跑 ruff)。
 6. 開啟 `master` **branch protection**，要求 CI 通過才能合併。
 7. 一次性前置雲端設定（WIF / Artifact Registry / migration Job / Vercel）**由使用者於 console 手動操作**；本 spec 提供逐步 checklist，不寫自動化腳本。
 8. 保留 `deploy.sh` 作為 **break-glass 手動 fallback**。
@@ -43,7 +43,7 @@
 
 | 觸發事件 | 執行內容 | 是否上 production |
 |---|---|---|
-| 開 PR / push 到 PR 分支 | CI:後端 `ruff` + `pytest`（+ `mypy` 非阻擋）；前端 `vite build`。Vercel 自動出 preview | ❌ |
+| 開 PR / push 到 PR 分支 | CI:後端 `pytest`（+ `mypy` 非阻擋）；前端 `vite build`。Vercel 自動出 preview | ❌ |
 | merge / push 到 `master` | 同上 CI（確保 `master` 綠） | ❌ 只跑 CI，不部署 |
 | push tag `v*`（如 `v1.2.0`） | 完整 release 流水線（見 §3） | ✅ 前後端一起上 prod |
 
@@ -128,19 +128,18 @@
 
 | 檢查 | 指令（於對應目錄） | 是否阻擋合併 |
 |---|---|---|
-| 後端 lint | `ruff check`（`backend/`） | ✅ 必過 |
 | 後端測試 | `pytest`（`backend/`） | ✅ 必過 |
 | 前端建置 | `vite build`（`frontend/`） | ✅ 必過 |
 | 後端型別 | `mypy app`（`backend/`） | ⚠️ 跑但**非阻擋**（顯示結果，不擋；目前 10 個既有錯誤待另開 PR 清乾淨後升級為必過） |
 
-說明:`ruff`、`pytest` 經本次驗證皆為綠燈，可立即設為必過；前端目前無 lint/test，僅 build。
+說明:`pytest` 經驗證為綠燈，設為必過；前端目前無 lint/test，僅 build。本專案不在 CI 跑 ruff。
 
 ---
 
 ## 6. 預計新增 / 變更的檔案
 
 ```
-.github/workflows/ci.yml          # PR/push:後端 ruff + pytest (+ mypy 非阻擋)、前端 vite build
+.github/workflows/ci.yml          # PR/push:後端 pytest (+ mypy 非阻擋)、前端 vite build
 .github/workflows/release.yml     # tag v*:build → migrate(Job) → deploy(Run) → smoke test → vercel --prod
 docs/superpowers/specs/2026-06-24-ci-cd-pipeline-design.md   # 本文件
 docs/ci-cd-console-setup.md       # 一次性 console 前置設定逐步指引（WIF / AR / Job / Vercel / Secrets / branch protection）
