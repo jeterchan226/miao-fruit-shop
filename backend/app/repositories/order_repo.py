@@ -69,3 +69,27 @@ async def count_by_status(session: AsyncSession) -> dict[str, int]:
         select(Order.status, func.count()).group_by(Order.status)
     )
     return {status: count for status, count in rows.all()}
+
+
+async def summary(session: AsyncSession) -> dict[str, int]:
+    """後台儀表板統計:總訂單量、總營收(排除已取消)、待出貨筆數。"""
+    total_orders: int = (
+        await session.execute(select(func.count()).select_from(Order))
+    ).scalar_one()
+    total_revenue: int = (
+        await session.execute(
+            select(func.coalesce(func.sum(Order.total), 0)).where(
+                Order.status != "cancelled"
+            )
+        )
+    ).scalar_one()
+    pending_shipment: int = (
+        await session.execute(
+            select(func.count()).select_from(Order).where(Order.status == "ready")
+        )
+    ).scalar_one()
+    return {
+        "total_orders": total_orders,
+        "total_revenue": total_revenue,
+        "pending_shipment": pending_shipment,
+    }

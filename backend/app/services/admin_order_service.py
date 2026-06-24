@@ -9,6 +9,7 @@ from app.schemas.order import (
     AdminOrderListItem,
     AdminOrderListResponse,
     AdminOrderRead,
+    AdminOrderSummary,
     OrderItemRead,
 )
 
@@ -100,6 +101,10 @@ async def list_orders(
         items=[_to_admin_list_item(o) for o in orders],
         status_counts=status_counts,
     )
+
+
+async def get_summary(session: AsyncSession) -> AdminOrderSummary:
+    return AdminOrderSummary(**await order_repo.summary(session))
 
 
 async def get_order_detail(session: AsyncSession, order_no: str) -> AdminOrderRead:
