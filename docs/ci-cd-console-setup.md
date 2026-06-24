@@ -37,11 +37,17 @@ gcloud run jobs execute miao-api-migrate \
   --region=$REGION --project=$PROJECT --wait
 ```
 > ⚠️ 此 job 必須掛上 Cloud SQL 才連得到 DB(`DB_HOST` 是 `/cloudsql/...` socket)。
-> 若曾遇到連線失敗,先補掛載(只需做一次):
+> **此掛載已於 2026-06-24 補上**;若日後重建 job 或遇到連線失敗,重補(只需做一次):
 > ```bash
 > gcloud run jobs update miao-api-migrate \
 >   --region=$REGION --project=$PROJECT \
 >   --set-cloudsql-instances=miao-fruit-shop-499505:asia-east1:miao-fruit-shop-db
+> ```
+> 驗證已掛上(注意 job 的 annotation 路徑是 `spec.template.metadata.annotations`,
+> 比 service 少一層;應印出連線名):
+> ```bash
+> gcloud run jobs describe miao-api-migrate --region=$REGION --project=$PROJECT \
+>   --format="value(spec.template.metadata.annotations['run.googleapis.com/cloudsql-instances'])"
 > ```
 
 ### 3. 前端(Vercel production)
