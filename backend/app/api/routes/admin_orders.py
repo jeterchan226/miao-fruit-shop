@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.database import get_session
-from app.schemas.order import AdminOrderListResponse, AdminOrderRead, OrderStatusUpdate
+from app.schemas.order import (
+    AdminOrderListResponse,
+    AdminOrderRead,
+    AdminOrderSummary,
+    OrderStatusUpdate,
+)
 from app.services import admin_order_service
 
 router = APIRouter(
@@ -39,6 +44,12 @@ async def list_orders(
         page=page,
         page_size=page_size,
     )
+
+
+# 注意:此路由須宣告於 /orders/{order_no} 之前,否則 "summary" 會被當成 order_no。
+@router.get("/orders/summary", response_model=AdminOrderSummary)
+async def order_summary(session: SessionDep) -> AdminOrderSummary:
+    return await admin_order_service.get_summary(session)
 
 
 @router.get("/orders/{order_no}", response_model=AdminOrderRead)

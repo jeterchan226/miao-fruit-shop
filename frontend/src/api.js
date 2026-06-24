@@ -193,6 +193,13 @@ export const listAdminOrders = (token, filters = {}) => {
   });
 };
 
+export const getAdminOrderSummary = (token) => request(
+  '/api/admin/orders/summary',
+  {
+    headers: authHeaders(token),
+  }
+);
+
 export const getAdminOrder = (token, orderNo) => request(
   `/api/admin/orders/${encodeURIComponent(orderNo)}`,
   {
@@ -216,6 +223,7 @@ window.MiaoApi = {
   deleteProductImage,
   deleteSpec,
   getAdminOrder,
+  getAdminOrderSummary,
   getCurrentAdmin,
   listAdminOrders,
   listAdminProducts,

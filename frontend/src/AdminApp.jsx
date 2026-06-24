@@ -22,6 +22,7 @@ import {
   deleteProductImage,
   deleteSpec,
   getAdminOrder,
+  getAdminOrderSummary,
   getCurrentAdmin,
   listAdminOrders,
   listAdminProducts,
@@ -176,6 +177,94 @@ function LoginView({ onLogin }) {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ── Dashboard stat icons ── */
+const STAT_ICON = {
+  orders: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4" />
+      <path d="M8.5 10h7M8.5 14h7M8.5 18h4" />
+    </svg>
+  ),
+  revenue: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="6" width="19" height="13" rx="2.5" />
+      <path d="M2.5 10.5h19" />
+      <circle cx="17" cy="14.5" r="1.3" />
+    </svg>
+  ),
+  pending: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 6.5h10v9h-10z" />
+      <path d="M12.5 9.5h4l3 3v3h-7z" />
+      <circle cx="6" cy="17" r="1.8" />
+      <circle cx="16.5" cy="17" r="1.8" />
+    </svg>
+  ),
+};
+
+/* ── Dashboard stat cards（訂單查詢上方的三個統計區塊）── */
+function StatCards({ token, reloadSignal }) {
+  const [summary, setSummary] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFailed(false);
+    getAdminOrderSummary(token)
+      .then((data) => { if (!cancelled) setSummary(data); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [token, reloadSignal]);
+
+  const cards = [
+    {
+      key: 'orders', tone: 'sage', icon: STAT_ICON.orders, label: '總訂單',
+      value: summary ? summary.total_orders.toLocaleString() : '—',
+      unit: '筆', note: '累積至今',
+    },
+    {
+      key: 'revenue', tone: 'orange', icon: STAT_ICON.revenue, label: '總營收',
+      prefix: 'NT$',
+      value: summary ? summary.total_revenue.toLocaleString() : '—',
+      note: '已完成訂單（不含取消）',
+    },
+    {
+      key: 'pending', tone: 'red', icon: STAT_ICON.pending, label: '待出貨',
+      value: summary ? summary.pending_shipment.toLocaleString() : '—',
+      unit: '筆', note: '待安排出貨',
+    },
+  ];
+
+  return (
+    <div className="adm-stats">
+      {cards.map((c) => (
+        <div key={c.key} className={`adm-stat adm-stat--${c.tone}`}>
+          <svg className="adm-stat__leaf" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M40 8C20 8 8 20 8 40c20 0 32-12 32-32Z" fill="currentColor" />
+            <path d="M14 34 34 14" stroke="#fff" strokeWidth="1.4" fill="none" opacity=".5" />
+          </svg>
+          <div className="adm-stat__head">
+            <span className="adm-stat__icon">{c.icon}</span>
+            <span className="adm-stat__label">{c.label}</span>
+          </div>
+          <div className="adm-stat__value">
+            {c.prefix && <span className="adm-stat__prefix">{c.prefix}</span>}
+            <span className="adm-stat__num">{c.value}</span>
+            {c.unit && <span className="adm-stat__unit">{c.unit}</span>}
+          </div>
+          <div className="adm-stat__note">
+            {failed ? '資料載入失敗' : c.note}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1002,12 +1091,12 @@ function ProductsTab({ token }) {
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button
                             className="adm-btn adm-btn--secondary"
-                            style={{ fontSize: 12 }}
+                            style={{ fontSize: 13.5 }}
                             onClick={() => setEditSpec(s)}
                           >編輯</button>
                           <button
                             className="adm-btn adm-btn--danger"
-                            style={{ fontSize: 12 }}
+                            style={{ fontSize: 13.5 }}
                             onClick={() => setConfirmDelete(s)}
                           >刪除</button>
                         </div>
@@ -1020,7 +1109,7 @@ function ProductsTab({ token }) {
               <div style={{ padding: '10px 16px' }}>
                 <button
                   className="adm-btn adm-btn--secondary"
-                  style={{ fontSize: 13 }}
+                  style={{ fontSize: 14 }}
                   onClick={() => setCreateForProduct(p)}
                 >＋ 新增規格</button>
               </div>
@@ -1092,6 +1181,7 @@ export default function AdminApp() {
 
   const [selectedOrderNo, setSelectedOrderNo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [summaryKey, setSummaryKey] = useState(0);
 
   const initialLoadDone = useRef(false);
   const reqCountRef = useRef(0);
@@ -1188,6 +1278,7 @@ export default function AdminApp() {
             <h1 className="adm-page-head__title">訂單管理</h1>
             <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
           </div>
+          <StatCards token={token} reloadSignal={summaryKey} />
           <FilterStrip
             statusCounts={orders.status_counts || {}}
             filters={filters}
@@ -1238,7 +1329,10 @@ export default function AdminApp() {
               orderNo={selectedOrderNo}
               token={token}
               onClose={closeModal}
-              onStatusChange={() => loadOrders(orders.page)}
+              onStatusChange={() => {
+                loadOrders(orders.page);
+                setSummaryKey((k) => k + 1);
+              }}
             />
           )}
         </>

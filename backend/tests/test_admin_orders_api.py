@@ -73,6 +73,24 @@ async def test_list_orders_filter_by_status(
     assert "MM-API03" not in nos
 
 
+async def test_orders_summary_requires_auth(client: AsyncClient):
+    assert (await client.get("/api/admin/orders/summary")).status_code == 401
+
+
+async def test_orders_summary(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-SM01", status="ready"))
+    await order_repo.add(db_session, _make_order("MM-SM02", status="shipping"))
+    await order_repo.add(db_session, _make_order("MM-SM03", status="cancelled"))
+    await db_session.flush()
+    resp = await client.get("/api/admin/orders/summary", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_orders"] == 3
+    assert body["pending_shipment"] == 1  # 只有 ready 狀態計入待出貨
+    assert body["total_revenue"] == 1760  # 880 × 2,已取消不計營收
+
+
 async def test_get_order_detail(client: AsyncClient, db_session: AsyncSession):
     headers = await _auth_header(db_session)
     await order_repo.add(db_session, _make_order("MM-DT01"))

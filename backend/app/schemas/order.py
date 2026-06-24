@@ -87,6 +87,12 @@ class AdminOrderListResponse(BaseModel):
     status_counts: dict[str, int] = {}
 
 
+class AdminOrderSummary(BaseModel):
+    pending_shipment: int
+    total_orders: int
+    total_revenue: int
+
+
 class AdminOrderRead(BaseModel):
     id: int
     order_no: str
