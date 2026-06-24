@@ -59,7 +59,7 @@ def main() -> None:
     emoji_font = ImageFont.truetype(EMOJI_FONT_PATH, EMOJI_STRIKE)
 
     centers = [(COL_EDGES[i] + COL_EDGES[i + 1]) // 2 for i in range(3)]
-    for (emoji_char, label), cx in zip(ITEMS, centers):
+    for (emoji_char, label), cx in zip(ITEMS, centers, strict=True):
         draw.ellipse(
             [cx - ICON_R, ICON_CY - ICON_R, cx + ICON_R, ICON_CY + ICON_R],
             fill=ICON_BG,

@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # WIF 需要
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ vars.AR_REPO }}:${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- 認證 GCP(WIF,無金鑰)----
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT }}
+
+      # ---- 1. Build & push image(只 build 一次)----
+      - name: Docker auth for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      - name: Build image
+        run: docker build --platform linux/amd64 -t "$IMAGE" backend
+      - name: Push image
+        run: docker push "$IMAGE"
+
+      # ---- 2. Migration(Cloud Run Job,用同一個 image)----
+      - name: Update & run migration job
+        run: |
+          gcloud run jobs update ${{ vars.MIGRATE_JOB }} \
+            --image "$IMAGE" --region ${{ vars.GCP_REGION }} --project ${{ vars.GCP_PROJECT }}
+          gcloud run jobs execute ${{ vars.MIGRATE_JOB }} \
+            --region ${{ vars.GCP_REGION }} --project ${{ vars.GCP_PROJECT }} --wait
+
+      # ---- 3. Deploy 後端(同一個 image;保留既有 env/secret/cloudsql)----
+      - name: Deploy Cloud Run service
+        run: |
+          gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE }} \
+            --image "$IMAGE" --region ${{ vars.GCP_REGION }} \
+            --project ${{ vars.GCP_PROJECT }} --quiet
+
+      # ---- 4. Smoke test(部署後驗證)----
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          URL=$(gcloud run services describe ${{ vars.CLOUD_RUN_SERVICE }} \
+            --region ${{ vars.GCP_REGION }} --project ${{ vars.GCP_PROJECT }} \
+            --format='value(status.url)')
+          echo "Service URL: $URL"
+          check() { # $1=method $2=path $3=expected
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X "$1" "$URL$2")
+            echo "$1 $2 → $code (expected $3)"
+            [ "$code" = "$3" ]
+          }
+          check GET  /health 200
+          check POST /api/line/webhook 400
+          check GET  /api/admin/orders/summary 401
+
+      # ---- 5. Deploy 前端(Vercel prod)----
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Deploy frontend to Vercel (production)
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm i -g vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

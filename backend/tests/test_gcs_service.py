@@ -2,8 +2,6 @@ import base64
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from app.services.gcs_service import GcsService
 
 
@@ -12,7 +10,10 @@ def _fake_credentials_b64() -> str:
         "type": "service_account",
         "project_id": "test-project",
         "private_key_id": "key-id",
-        "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
+        "private_key": (
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n"
+            "-----END RSA PRIVATE KEY-----\n"
+        ),
         "client_email": "test@test-project.iam.gserviceaccount.com",
         "token_uri": "https://oauth2.googleapis.com/token",
     }
