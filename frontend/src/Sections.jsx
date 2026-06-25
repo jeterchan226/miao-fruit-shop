@@ -204,7 +204,12 @@ export const Contact = () => {
               我們會親自回覆您。
             </p>
             <div className="contact-band__rows">
-              <a className="contact-row">
+              <a
+                className="contact-row"
+                href="https://page.line.me/475dhpfn"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <span className="contact-row__chip line"><I name="line" size={22} /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">LINE 官方帳號（最快回覆）</p>
@@ -212,7 +217,7 @@ export const Contact = () => {
                 </div>
                 <span className="pill pill--sage">加入好友</span>
               </a>
-              <a className="contact-row">
+              <a className="contact-row" href="tel:+886910567118">
                 <span className="contact-row__chip"><I name="phone" /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">客服電話</p>
@@ -220,7 +225,12 @@ export const Contact = () => {
                 </div>
                 <span className="pill pill--ghost">9:00 – 18:00</span>
               </a>
-              <a className="contact-row">
+              <a
+                className="contact-row"
+                href="https://www.google.com/maps/search/?api=1&query=苗栗縣卓蘭鎮雙連45號"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <span className="contact-row__chip"><I name="pin" /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">果園地址</p>
