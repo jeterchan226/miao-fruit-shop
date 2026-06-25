@@ -24,7 +24,7 @@ export const Rail = () => {
   const I = StoreIcon;
   return (
     <aside className="rail">
-      <h4 className="rail__title">🍐 訂購快速資訊</h4>
+      <h4 className="rail__title">訂購快速資訊</h4>
       <div className="rail__item">
         <span className="rail__chip"><I name="calendar" /></span>
         <div><h4>產季</h4><p>每年 7 月下旬 – 10 月中旬，依品種陸續採收</p></div>
@@ -257,7 +257,7 @@ export const Footer = () => {
       <div className="container">
         <div className="footer__grid">
           <div className="footer__brand">
-            <p className="mark">🍐 妙媽媽果園</p>
+            <p className="mark">妙媽媽果園</p>
             <p className="tag">來自梨園的好滋味</p>
             <p className="blurb">
               卓蘭高接梨產地直送，<br />三十年用心栽培，<br />給家人最安心的美味。

@@ -59,7 +59,7 @@ export default function App() {
         price: spec.price, count
       }];
     });
-    setToast(`${p.name} · ${spec.label} ×${count} 已加入購物車 🍐`);
+    setToast(`${p.name} · ${spec.label} ×${count} 已加入購物車`);
   };
 
   const setQty = (lineId, count) => {

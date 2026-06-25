@@ -199,17 +199,32 @@ button { font-family: inherit; }
   text-wrap: pretty;
 }
 .hero__ctas { display: flex; gap: 14px; margin-bottom: 44px; }
+/* 品牌徽章:白底圓形,內嵌正確的妙媽媽果園 logo */
 .hero__seal {
-  position: absolute; right: 56px; top: 50%; transform: translateY(-50%);
-  width: 146px; height: 146px; border-radius: 999px;
-  background: rgba(253,246,229,0.94); border: 1.5px solid var(--sage-300);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: var(--font-serif-cjk); color: var(--sage-700); font-weight: 600;
-  font-size: 16px; text-align: center; line-height: 1.45;
+  position: absolute; right: 56px; top: 50%;
+  width: 150px; height: 150px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--sage-200);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; padding: 16px; box-sizing: border-box;
   box-shadow: var(--shadow-2); z-index: 3;
+  transform: translateY(-50%);
+  animation: sealIn 560ms var(--ease) both;
 }
-.hero__seal .yr { font-size: 11px; letter-spacing: 0.2em; color: var(--brown-500); margin-bottom: 4px; }
-.hero__seal .leaf { font-size: 18px; margin-top: 6px; opacity: 0.7; }
+.hero__seal img {
+  width: 100%; height: 100%;
+  object-fit: contain; display: block;
+  animation: sealPop 560ms var(--ease) both;
+}
+/* 位置位移由 .hero__seal 的 transform 負責(各斷點不同),
+   進場縮放只作用在內層 img,避免覆蓋外層的置中位移 */
+@keyframes sealIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sealPop {
+  from { transform: scale(0.88); }
+  to   { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero__seal, .hero__seal img { animation: none; }
+}
 
 /* trust row */
 .trust { display: flex; gap: 28px; flex-wrap: wrap; padding-top: 4px; }
@@ -1555,9 +1570,8 @@ button { font-family: inherit; }
   }
   .hero__seal {
     right: 20px; top: auto; bottom: 18px; transform: none;
-    width: 108px; height: 108px; font-size: 13px;
+    width: 108px; height: 108px; padding: 12px;
   }
-  .hero__seal .yr { font-size: 9px; }
 
   .hero .lede { max-width: none; }
 
@@ -1649,10 +1663,9 @@ button { font-family: inherit; }
 
   .hero--split .hero__photo { min-height: 260px; }
   .hero__seal {
-    width: 92px; height: 92px; font-size: 12px;
+    width: 92px; height: 92px; padding: 10px;
     right: 14px; bottom: 14px;
   }
-  .hero__seal .leaf { font-size: 14px; margin-top: 2px; }
 
   .hero--fullbleed .hero__bleed { min-height: 460px; }
   .hero--fullbleed .hero__overlay { padding: 40px 18px 32px; }
@@ -1788,7 +1801,7 @@ button { font-family: inherit; }
 
   .hero h1 { font-size: clamp(26px, 8.5vw, 34px); }
   .hero--split .hero__col { padding: 40px 18px 32px; }
-  .hero__seal { width: 80px; height: 80px; font-size: 11px; }
+  .hero__seal { width: 80px; height: 80px; padding: 9px; }
 
   .trust__item { flex-basis: 100%; }
 

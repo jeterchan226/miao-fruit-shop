@@ -152,7 +152,7 @@ const Empty = ({ onBrowse }) => {
     <div className="drawer__empty">
       <span className="ill"><I name="cart" size={42} stroke={1.4} /></span>
       <h4>購物車是空的</h4>
-      <p>來看看現在正當季的水梨吧 🍐</p>
+      <p>來看看現在正當季的水梨吧</p>
       <button className="btn btn--sage" onClick={onBrowse}>逛逛商品</button>
     </div>
   );
@@ -456,7 +456,7 @@ const CheckoutPage = ({
             </div>
             <div className="order-card__row">
               <span>運費</span>
-              <span>{shipping === 0 ? '免運 🍐' : `NT$ ${shipping.toLocaleString()}`}</span>
+              <span>{shipping === 0 ? '免運' : `NT$ ${shipping.toLocaleString()}`}</span>
             </div>
             <div className="order-card__total">
               <span>訂單合計</span>
@@ -744,7 +744,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
             )}
             <div className="drawer__totals">
               <div className="row"><span>商品小計</span><span>NT$ {subtotal.toLocaleString()}</span></div>
-              <div className="row"><span>運費</span><span>{shipping === 0 ? '免運 🍐' : 'NT$ ' + shipping}</span></div>
+              <div className="row"><span>運費</span><span>{shipping === 0 ? '免運' : 'NT$ ' + shipping}</span></div>
               <div className="row total"><span>合計</span><span className="v">NT$ {total.toLocaleString()}</span></div>
             </div>
             <button className="btn btn--primary btn--full" onClick={next}>前往結帳 →</button>
