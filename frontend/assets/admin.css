@@ -890,3 +890,138 @@ button { cursor: pointer; }
   .adm-table--orders tbody tr.is-selected { background: #F5EDE0; }
   .adm-table--orders tbody tr.is-selected td { background: transparent; }
 }
+
+/* ── 通知中心 + 查看前台 ── */
+.adm-topbar__store {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adm-notif {
+  position: relative;
+  display: inline-flex;
+}
+
+.adm-notif__bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.adm-notif__bell:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.adm-notif__badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #d9534f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.adm-notif__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.adm-notif__panel {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  z-index: 41;
+  width: 320px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e8d29e;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.adm-notif__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0e6cc;
+  font-weight: 700;
+  color: #6b4e32;
+}
+
+.adm-notif__head-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.adm-notif__sound,
+.adm-notif__readall {
+  border: none;
+  background: transparent;
+  color: #6b7d52;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.adm-notif__readall:hover,
+.adm-notif__sound:hover {
+  text-decoration: underline;
+}
+
+.adm-notif__empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: #9b8a6f;
+  font-size: 14px;
+}
+
+.adm-notif__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.adm-notif__item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f6efdd;
+  cursor: pointer;
+}
+
+.adm-notif__item:hover {
+  background: #fbf3e0;
+}
+
+.adm-notif__item--unread {
+  background: #eef4e2;
+}
+
+.adm-notif__item-top {
+  font-weight: 700;
+  color: #4a3a2a;
+  font-size: 14px;
+}
+
+.adm-notif__item-sub {
+  margin-top: 2px;
+  color: #6b4e32;
+  font-size: 12px;
+}
