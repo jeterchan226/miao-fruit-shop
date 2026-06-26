@@ -1319,6 +1319,19 @@ export default function AdminApp() {
     [notif, openModal],
   );
 
+  // 首次互動解鎖提示音：平板長時間停留在後台時，操作員可能不會點鈴鐺，
+  // 所以在驗證成功後，於整個 window 上掛一個一次性的 pointerdown 監聽，
+  // 讓任何觸控 / 點擊都能解鎖 AudioContext，確保新訂單鈴聲正常播放。
+  useEffect(() => {
+    if (!token) return undefined;
+    const armAudio = () => {
+      notif.unlockAudio();
+      window.removeEventListener('pointerdown', armAudio);
+    };
+    window.addEventListener('pointerdown', armAudio, { once: true });
+    return () => window.removeEventListener('pointerdown', armAudio);
+  }, [token, notif]);
+
   if (!authChecked) return <div className="adm-loading">載入中…</div>;
   if (!token || !admin) return <LoginView onLogin={handleLogin} />;
 
