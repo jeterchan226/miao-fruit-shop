@@ -3,6 +3,7 @@ import {
   formatRelativeTime,
   isAfter,
   newestCreatedAt,
+  newOrdersSince,
   unreadOrders,
 } from './notifications.js';
 
@@ -62,5 +63,35 @@ describe('unreadOrders', () => {
       { order_no: 'B', created_at: ago(9000) },
     ];
     expect(unreadOrders(orders, marker).map((o) => o.order_no)).toEqual(['A']);
+  });
+});
+
+describe('newOrdersSince', () => {
+  it('回傳晚於基準者', () => {
+    const since = ago(5000);
+    const recent = [
+      { order_no: 'A', created_at: ago(1000) },
+      { order_no: 'B', created_at: ago(9000) },
+    ];
+    expect(newOrdersSince(recent, since).map((o) => o.order_no)).toEqual(['A']);
+  });
+  it('無更新訂單 → []', () => {
+    const since = ago(0);
+    expect(newOrdersSince([{ order_no: 'A', created_at: ago(1000) }], since)).toEqual([]);
+  });
+  it('基準為 null（表格空）→ 全部視為新', () => {
+    const recent = [
+      { order_no: 'A', created_at: ago(1000) },
+      { order_no: 'B', created_at: ago(2000) },
+    ];
+    expect(newOrdersSince(recent, null).map((o) => o.order_no)).toEqual(['A', 'B']);
+  });
+  it('相同 created_at → 不算新', () => {
+    const t = ago(3000);
+    expect(newOrdersSince([{ order_no: 'A', created_at: t }], t)).toEqual([]);
+  });
+  it('recentOrders 為空 / undefined → []', () => {
+    expect(newOrdersSince([], ago(0))).toEqual([]);
+    expect(newOrdersSince(undefined, ago(0))).toEqual([]);
   });
 });

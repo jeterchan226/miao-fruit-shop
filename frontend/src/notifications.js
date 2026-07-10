@@ -33,3 +33,11 @@ export function unreadOrders(orders, lastReadAtIso) {
   if (!orders || !lastReadAtIso) return [];
   return orders.filter((o) => isAfter(o.created_at, lastReadAtIso));
 }
+
+// recentOrders 中 created_at 嚴格晚於 sinceIso 者。
+// sinceIso 為 falsy（表格空、無基準）時，全部視為新。
+export function newOrdersSince(recentOrders, sinceIso) {
+  if (!recentOrders) return [];
+  if (!sinceIso) return recentOrders.slice();
+  return recentOrders.filter((o) => isAfter(o.created_at, sinceIso));
+}
