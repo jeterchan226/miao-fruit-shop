@@ -76,19 +76,19 @@ export const Packaging = ({ variant }) => {
         <SecTitle eyebrow="HOW IT ARRIVES" title="包裝展示" sub="每箱都會以雙層紙箱、紙絲、防撞紙托層層保護，收到時就像剛從果園摘下來一樣。" />
         <div className="pack-grid">
           <article className="pack pack--portrait">
-            <img src="assets/outside.jpg" alt="" />
+            <img src="assets/outside.jpg" alt="" loading="lazy" decoding="async" />
             <div className="pack__cap"><span>外箱：單層禮盒 vs 兩層箱子</span><span className="mono">01 / 05</span></div>
           </article>
           <article className="pack pack--portrait">
-            <img src="assets/all_sets.jpg" alt="" />
+            <img src="assets/all_sets.jpg" alt="" loading="lazy" decoding="async" />
             <div className="pack__cap"><span>內裝規格：5 / 6 / 7 粒裝</span><span className="mono">02 / 05</span></div>
           </article>
           <article className="pack">
-            <img src="assets/box-2pcs.jpg" alt="" />
+            <img src="assets/box-2pcs.jpg" alt="" loading="lazy" decoding="async" />
             <div className="pack__cap"><span>禮盒：2 粒精緻禮盒</span><span className="mono">03 / 05</span></div>
           </article>
           <article className="pack">
-            <img src="assets/box-2pcs-alt.jpg" alt="" />
+            <img src="assets/box-2pcs-alt.jpg" alt="" loading="lazy" decoding="async" />
             <div className="pack__cap"><span>內襯：防撞紙托保護</span><span className="mono">04 / 05</span></div>
           </article>
           <div className="pledge">
@@ -168,19 +168,19 @@ export const Belief = () => {
           </div>
           <div className="belief__mosaic">
             <figure className="bphoto bphoto--feature">
-              <img src="assets/product_2.jpg" alt="" />
+              <img src="assets/product_2.jpg" alt="" loading="lazy" decoding="async" />
             </figure>
             <figure className="bphoto">
-              <img src="assets/product_3.jpg" alt="" />
+              <img src="assets/product_3.jpg" alt="" loading="lazy" decoding="async" />
             </figure>
             <figure className="bphoto">
-              <img src="assets/product_4.jpg" alt="" />
+              <img src="assets/product_4.jpg" alt="" loading="lazy" decoding="async" />
             </figure>
             <figure className="bphoto">
-              <img src="assets/product_5.jpg" alt="" />
+              <img src="assets/product_5.jpg" alt="" loading="lazy" decoding="async" />
             </figure>
             <figure className="bphoto">
-              <img src="assets/product_6.jpg" alt="" />
+              <img src="assets/product_6.jpg" alt="" loading="lazy" decoding="async" />
             </figure>
           </div>
         </div>

@@ -135,17 +135,17 @@ const HeroCollage = () => {
           <div className="polaroid">
             <span className="washi washi--1"></span>
             <span className="mono">07 · 28</span>
-            <img src="assets/product_1.jpg" alt="" />
+            <img src="assets/product_1.jpg" alt="" loading="lazy" decoding="async" />
             <span className="cap">果園清晨</span>
           </div>
           <div className="polaroid">
             <span className="mono">PORTRA 400</span>
-            <img src="assets/product_4.jpg" alt="" />
+            <img src="assets/product_4.jpg" alt="" loading="lazy" decoding="async" />
             <span className="cap">當日採收</span>
           </div>
           <div className="polaroid">
             <span className="mono">08 · 15</span>
-            <img src="assets/product_6.jpg" alt="" />
+            <img src="assets/product_6.jpg" alt="" loading="lazy" decoding="async" />
             <span className="cap">手挑出貨</span>
           </div>
         </div>
