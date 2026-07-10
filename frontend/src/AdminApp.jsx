@@ -36,7 +36,7 @@ import {
 } from './api.js';
 
 import { useOrderNotifications } from './useOrderNotifications.js';
-import { formatRelativeTime } from './notifications.js';
+import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notifications.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -1335,6 +1335,20 @@ export default function AdminApp() {
   if (!authChecked) return <div className="adm-loading">載入中…</div>;
   if (!token || !admin) return <LoginView onLogin={handleLogin} />;
 
+  const tableNewest = newestCreatedAt(orders.items);
+  const newOrderCount = newOrdersSince(notif.recentOrders, tableNewest).length;
+  const isDefaultView =
+    !filters.status &&
+    !filters.searchText.trim() &&
+    !filters.date_from &&
+    !filters.date_to &&
+    orders.page === 1;
+  const showNewOrdersBar = isDefaultView && newOrderCount > 0;
+  const refreshOrders = () => {
+    loadOrders(1);
+    setSummaryKey((k) => k + 1);
+  };
+
   return (
     <div className="adm-shell">
       {/* Topbar */}
@@ -1405,6 +1419,11 @@ export default function AdminApp() {
             onSearch={(f) => loadOrders(1, f)}
           />
           <Alert message={listError} />
+          {showNewOrdersBar && (
+            <button className="adm-new-orders-bar" onClick={refreshOrders}>
+              🔔 有 {newOrderCount} 筆新訂單 · 點擊刷新
+            </button>
+          )}
           <div className="adm-table-wrap">
             {listLoading ? (
               <div className="adm-table-card">

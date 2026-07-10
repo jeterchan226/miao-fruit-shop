@@ -1025,3 +1025,21 @@ button { cursor: pointer; }
   color: #6b4e32;
   font-size: 12px;
 }
+
+/* 新訂單刷新提示條（僅預設檢視顯示） */
+.adm-new-orders-bar {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--sage-900);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.adm-new-orders-bar:hover { background: var(--sage-700); }
