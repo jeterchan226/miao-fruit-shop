@@ -173,7 +173,9 @@ button { font-family: inherit; }
 }
 .hero--split .hero__col::after {
   content: ''; position: absolute; top: 0; right: -1px; bottom: 0; width: 64px;
-  background: linear-gradient(to right, transparent, var(--bg) 80%);
+  /* 用「透明乳白」而非 transparent(=透明黑)；後者在 iOS WebKit 的漸層
+     會沿途混黑，於左右接縫形成一條深色細線。 */
+  background: linear-gradient(to right, rgba(246, 232, 200, 0), var(--bg) 80%);
   pointer-events: none;
 }
 .hero--split .hero__photo {
@@ -183,7 +185,7 @@ button { font-family: inherit; }
 }
 .hero--split .hero__photo::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(to right, var(--bg) 0%, transparent 14%);
+  background: linear-gradient(to right, var(--bg) 0%, rgba(246, 232, 200, 0) 14%);
 }
 
 .hero h1 {
@@ -1551,7 +1553,7 @@ button { font-family: inherit; }
     order: -1;
   }
   .hero--split .hero__photo::after {
-    background: linear-gradient(to bottom, transparent 60%, var(--bg) 100%);
+    background: linear-gradient(to bottom, rgba(246, 232, 200, 0) 60%, var(--bg) 100%);
   }
   .hero__seal {
     right: 20px; top: auto; bottom: 18px; transform: none;
