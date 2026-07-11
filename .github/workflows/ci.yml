@@ -28,6 +28,9 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://miao:miao@localhost:5432/miao_test
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      # test_cors_allows_production_alias 依賴精確白名單放行 production 別名
+      # （隨機後綴、regex 涵蓋不到），secret 值須含該別名
+      CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
