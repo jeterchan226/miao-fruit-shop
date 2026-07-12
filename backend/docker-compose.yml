@@ -17,11 +17,19 @@ services:
 
   api:
     build: .
+    # 開發用：啟動時先套用 migration 再起 server。
+    # $$ 讓 ${PORT} 交由容器內 shell 解析（取下方 environment 的 8000），
+    # 而非被 compose 先行替換。
+    command: >
+      sh -c "uv run --no-dev alembic upgrade head &&
+      uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port $${PORT:-8080}"
     # 容器內連 db 服務,host 用 db 而非 localhost
     environment:
       DATABASE_URL: postgresql+asyncpg://miao:miao@db:5432/miao
       JWT_SECRET: change-me-in-prod
-      CORS_ORIGINS: http://localhost:8080
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      # 容器內 uvicorn 監聽埠，需與下方 ports 的容器側一致（對上 8000:8000）
+      PORT: "8000"
     ports:
       - "8000:8000"
     depends_on:
