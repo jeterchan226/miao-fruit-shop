@@ -36,7 +36,7 @@ import {
 } from './api.js';
 
 import { useOrderNotifications } from './useOrderNotifications.js';
-import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notifications.js';
+import { formatRelativeTime, isAfter, newestCreatedAt, newOrdersSince } from './notifications.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -1245,6 +1245,9 @@ export default function AdminApp() {
   const [selectedOrderNo, setSelectedOrderNo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [summaryKey, setSummaryKey] = useState(0);
+  // 「稍後處理」/ 關閉 新訂單通知卡後,記下當時最新訂單時間;
+  // 只有出現更新的訂單才會再次跳出通知卡。
+  const [newOrderDismissedAt, setNewOrderDismissedAt] = useState(null);
 
   const initialLoadDone = useRef(false);
   const reqCountRef = useRef(0);
@@ -1336,17 +1339,37 @@ export default function AdminApp() {
   if (!token || !admin) return <LoginView onLogin={handleLogin} />;
 
   const tableNewest = newestCreatedAt(orders.items);
-  const newOrderCount = newOrdersSince(notif.recentOrders, tableNewest).length;
+  const newOrders = newOrdersSince(notif.recentOrders, tableNewest); // 最新在前
+  const newOrderCount = newOrders.length;
+  const latestNewOrder = newOrders[0] || null;
   const isDefaultView =
     !filters.status &&
     !filters.searchText.trim() &&
     !filters.date_from &&
     !filters.date_to &&
     orders.page === 1;
-  const showNewOrdersBar = isDefaultView && newOrderCount > 0;
+  // 已「稍後處理」且沒有更新的訂單 → 不再顯示
+  const isDismissed =
+    latestNewOrder &&
+    newOrderDismissedAt &&
+    !isAfter(latestNewOrder.created_at, newOrderDismissedAt);
+  const showNewOrdersBar = isDefaultView && newOrderCount > 0 && !isDismissed;
   const refreshOrders = () => {
     loadOrders(1);
     setSummaryKey((k) => k + 1);
+  };
+  // 查看訂單:刷新表格(新單併入列表後橫幅自然消失)並開啟最新新訂單明細
+  const viewNewOrders = () => {
+    refreshOrders();
+    if (latestNewOrder) openModal(latestNewOrder.order_no);
+  };
+  // 稍後處理 / 關閉:記下目前最新訂單時間,壓下通知卡直到更新的訂單出現
+  const dismissNewOrders = () => {
+    if (latestNewOrder) setNewOrderDismissedAt(latestNewOrder.created_at);
+  };
+  const newOrderItemSummary = (o) => {
+    if (!o.first_item_name) return '商品明細';
+    return o.item_count > 1 ? `${o.first_item_name} 等 ${o.item_count} 項` : o.first_item_name;
   };
 
   return (
@@ -1407,6 +1430,47 @@ export default function AdminApp() {
       {/* Orders tab */}
       {activeTab === 'orders' && (
         <>
+          {showNewOrdersBar && latestNewOrder && (
+            <div className="adm-neworder" role="alert">
+              <div className="adm-neworder__icon" aria-hidden="true">
+                <BellIcon />
+              </div>
+              <div className="adm-neworder__body">
+                <div className="adm-neworder__eyebrow">
+                  <span className="adm-neworder__dot" />
+                  即時通知 · {formatRelativeTime(latestNewOrder.created_at)}
+                </div>
+                <div className="adm-neworder__title">
+                  您有 <span className="adm-neworder__count">{newOrderCount} 筆新訂單</span> 待處理！
+                </div>
+                <div className="adm-neworder__meta">
+                  <span className="adm-mono">{latestNewOrder.order_no}</span>
+                  <span className="adm-neworder__sep">·</span>
+                  {latestNewOrder.customer_name}
+                  <span className="adm-neworder__sep">·</span>
+                  {newOrderItemSummary(latestNewOrder)}
+                  <span className="adm-neworder__sep">·</span>
+                  <span className="adm-neworder__amount">{money(latestNewOrder.total)}</span>
+                </div>
+              </div>
+              <div className="adm-neworder__actions">
+                <button className="adm-neworder__view" onClick={viewNewOrders}>
+                  <EyeIcon />
+                  查看訂單
+                </button>
+                <button className="adm-neworder__later" onClick={dismissNewOrders}>
+                  稍後處理
+                </button>
+              </div>
+              <button
+                className="adm-neworder__close"
+                aria-label="關閉通知"
+                onClick={dismissNewOrders}
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="adm-page-head">
             <h1 className="adm-page-head__title">訂單管理</h1>
             <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
@@ -1419,11 +1483,6 @@ export default function AdminApp() {
             onSearch={(f) => loadOrders(1, f)}
           />
           <Alert message={listError} />
-          {showNewOrdersBar && (
-            <button className="adm-new-orders-bar" onClick={refreshOrders}>
-              🔔 有 {newOrderCount} 筆新訂單 · 點擊刷新
-            </button>
-          )}
           <div className="adm-table-wrap">
             {listLoading ? (
               <div className="adm-table-card">

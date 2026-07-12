@@ -29,6 +29,8 @@ def _to_admin_list_item(order: Order) -> AdminOrderListItem:
         customer_phone=order.customer_phone,
         total=order.total,
         created_at=order.created_at,
+        first_item_name=order.items[0].product_name if order.items else None,
+        item_count=len(order.items),
     )
 
 
