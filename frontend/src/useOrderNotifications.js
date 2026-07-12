@@ -5,7 +5,8 @@ import { isAfter, newestCreatedAt, unreadOrders } from './notifications.js';
 
 const LAST_READ_KEY = 'admin_notif_last_read_at';
 const SOUND_KEY = 'admin_notif_sound_on';
-const POLL_MS = 20000;
+// 輪詢間隔:5 秒。櫃檯平板長開,新單最多 5 秒內就會被偵測到並發聲/跳橫幅。
+const POLL_MS = 5000;
 const RECENT_SIZE = 10;
 
 export function useOrderNotifications({ token, onAuthError }) {

@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.order import Order
 
@@ -29,7 +30,8 @@ async def list_filtered(
     page_size: int = 20,
 ) -> tuple[int, list[Order]]:
     count_stmt = select(func.count()).select_from(Order)
-    list_stmt = select(Order)
+    # eager-load items,供列表項目組出商品摘要(first_item_name / item_count),避免 N+1
+    list_stmt = select(Order).options(selectinload(Order.items))
 
     if status is not None:
         count_stmt = count_stmt.where(Order.status == status)

@@ -77,6 +77,9 @@ class AdminOrderListItem(BaseModel):
     customer_phone: str
     total: int
     created_at: datetime
+    # 商品摘要:首項商品名 + 品項數(供列表 / 新訂單通知卡顯示「甘露梨 禮盒 等 N 項」)
+    first_item_name: str | None = None
+    item_count: int = 0
 
 
 class AdminOrderListResponse(BaseModel):

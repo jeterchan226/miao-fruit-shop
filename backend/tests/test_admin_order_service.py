@@ -62,6 +62,43 @@ async def test_list_orders_returns_all(db_session: AsyncSession):
     assert len(resp.items) == 2
 
 
+async def test_list_orders_includes_item_summary(db_session: AsyncSession):
+    order = _make_order("MM-IT01")
+    order.items = [
+        OrderItem(
+            product_id=1,
+            product_name="甘露梨 禮盒",
+            spec_label="5 台斤",
+            unit_price=2020,
+            qty=1,
+            line_total=2020,
+        ),
+        OrderItem(
+            product_id=1,
+            product_name="秋月梨 禮盒",
+            spec_label="3 台斤",
+            unit_price=2020,
+            qty=1,
+            line_total=2020,
+        ),
+    ]
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await admin_order_service.list_orders(db_session)
+    item = next(i for i in resp.items if i.order_no == "MM-IT01")
+    assert item.first_item_name == "甘露梨 禮盒"
+    assert item.item_count == 2
+
+
+async def test_list_orders_item_summary_empty_when_no_items(db_session: AsyncSession):
+    await order_repo.add(db_session, _make_order("MM-IT00"))
+    await db_session.flush()
+    resp = await admin_order_service.list_orders(db_session)
+    item = next(i for i in resp.items if i.order_no == "MM-IT00")
+    assert item.first_item_name is None
+    assert item.item_count == 0
+
+
 async def test_list_orders_filter_by_status(db_session: AsyncSession):
     await order_repo.add(db_session, _make_order("MM-ST01", status="pending_payment"))
     await order_repo.add(db_session, _make_order("MM-ST02", status="shipping"))
