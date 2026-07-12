@@ -24,7 +24,7 @@ export const Rail = () => {
   const I = StoreIcon;
   return (
     <aside className="rail">
-      <h4 className="rail__title">🍐 訂購快速資訊</h4>
+      <h4 className="rail__title">訂購快速資訊</h4>
       <div className="rail__item">
         <span className="rail__chip"><I name="calendar" /></span>
         <div><h4>產季</h4><p>每年 7 月下旬 – 10 月中旬，依品種陸續採收</p></div>
@@ -204,7 +204,12 @@ export const Contact = () => {
               我們會親自回覆您。
             </p>
             <div className="contact-band__rows">
-              <a className="contact-row">
+              <a
+                className="contact-row"
+                href="https://page.line.me/475dhpfn"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <span className="contact-row__chip line"><I name="line" size={22} /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">LINE 官方帳號（最快回覆）</p>
@@ -212,7 +217,7 @@ export const Contact = () => {
                 </div>
                 <span className="pill pill--sage">加入好友</span>
               </a>
-              <a className="contact-row">
+              <a className="contact-row" href="tel:+886910567118">
                 <span className="contact-row__chip"><I name="phone" /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">客服電話</p>
@@ -220,7 +225,12 @@ export const Contact = () => {
                 </div>
                 <span className="pill pill--ghost">9:00 – 18:00</span>
               </a>
-              <a className="contact-row">
+              <a
+                className="contact-row"
+                href="https://www.google.com/maps/search/?api=1&query=苗栗縣卓蘭鎮雙連45號"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <span className="contact-row__chip"><I name="pin" /></span>
                 <div style={{ flex: 1 }}>
                   <p className="contact-row__k">果園地址</p>
@@ -257,7 +267,7 @@ export const Footer = () => {
       <div className="container">
         <div className="footer__grid">
           <div className="footer__brand">
-            <p className="mark">🍐 妙媽媽果園</p>
+            <p className="mark">妙媽媽果園</p>
             <p className="tag">來自梨園的好滋味</p>
             <p className="blurb">
               卓蘭高接梨產地直送，<br />三十年用心栽培，<br />給家人最安心的美味。

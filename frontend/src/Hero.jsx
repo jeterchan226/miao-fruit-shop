@@ -61,9 +61,7 @@ const HeroSplit = () => {
         </div>
         <div className="hero__photo">
           <div className="hero__seal">
-            <span className="yr">EST. 1998</span>
-            妙媽媽果園
-            <span className="leaf">🍐</span>
+            <img src="assets/small_logo.jpg" alt="妙媽媽果園" loading="lazy" />
           </div>
         </div>
       </div>

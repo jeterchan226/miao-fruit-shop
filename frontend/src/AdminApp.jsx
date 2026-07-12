@@ -35,6 +35,9 @@ import {
   updateSpec,
 } from './api.js';
 
+import { useOrderNotifications } from './useOrderNotifications.js';
+import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notifications.js';
+
 const TOKEN_KEY = 'miao.admin.token';
 
 const STATUS_LABELS = {
@@ -1162,6 +1165,66 @@ function ProductsTab({ token }) {
   );
 }
 
+/* ── 通知圖示 ── */
+const BellIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+function NotifPanel({ notif, onOpenOrder, onClose }) {
+  const unreadSet = new Set(notif.unread.map((o) => o.order_no));
+  return (
+    <>
+      <div className="adm-notif__backdrop" onClick={onClose} />
+      <div className="adm-notif__panel" role="menu">
+        <div className="adm-notif__head">
+          <span>未讀通知</span>
+          <div className="adm-notif__head-actions">
+            <button className="adm-notif__sound" onClick={notif.toggleSound}>
+              {notif.soundOn ? '🔔 音效開' : '🔕 音效關'}
+            </button>
+            {notif.unreadCount > 0 && (
+              <button className="adm-notif__readall" onClick={notif.markAllRead}>
+                全部標示已讀
+              </button>
+            )}
+          </div>
+        </div>
+        {notif.recentOrders.length === 0 ? (
+          <div className="adm-notif__empty">目前沒有訂單</div>
+        ) : (
+          <ul className="adm-notif__list">
+            {notif.recentOrders.map((o) => (
+              <li
+                key={o.order_no}
+                className={`adm-notif__item${unreadSet.has(o.order_no) ? ' adm-notif__item--unread' : ''}`}
+                onClick={() => onOpenOrder(o)}
+              >
+                <div className="adm-notif__item-top">新訂單 {o.order_no}</div>
+                <div className="adm-notif__item-sub">
+                  {o.customer_name}・NT$ {o.total.toLocaleString()}・
+                  {formatRelativeTime(o.created_at)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ── Main app ── */
 export default function AdminApp() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
@@ -1243,8 +1306,48 @@ export default function AdminApp() {
 
   const closeModal = useCallback(() => setModalOpen(false), []);
 
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notif = useOrderNotifications({ token, onAuthError: logout });
+
+  const openOrderFromNotif = useCallback(
+    (order) => {
+      notif.markRead(order);
+      setNotifOpen(false);
+      setActiveTab('orders');
+      openModal(order.order_no);
+    },
+    [notif, openModal],
+  );
+
+  // 首次互動解鎖提示音：平板長時間停留在後台時，操作員可能不會點鈴鐺，
+  // 所以在驗證成功後，於整個 window 上掛一個一次性的 pointerdown 監聽，
+  // 讓任何觸控 / 點擊都能解鎖 AudioContext，確保新訂單鈴聲正常播放。
+  useEffect(() => {
+    if (!token) return undefined;
+    const armAudio = () => {
+      notif.unlockAudio();
+      window.removeEventListener('pointerdown', armAudio);
+    };
+    window.addEventListener('pointerdown', armAudio, { once: true });
+    return () => window.removeEventListener('pointerdown', armAudio);
+  }, [token, notif]);
+
   if (!authChecked) return <div className="adm-loading">載入中…</div>;
   if (!token || !admin) return <LoginView onLogin={handleLogin} />;
+
+  const tableNewest = newestCreatedAt(orders.items);
+  const newOrderCount = newOrdersSince(notif.recentOrders, tableNewest).length;
+  const isDefaultView =
+    !filters.status &&
+    !filters.searchText.trim() &&
+    !filters.date_from &&
+    !filters.date_to &&
+    orders.page === 1;
+  const showNewOrdersBar = isDefaultView && newOrderCount > 0;
+  const refreshOrders = () => {
+    loadOrders(1);
+    setSummaryKey((k) => k + 1);
+  };
 
   return (
     <div className="adm-shell">
@@ -1266,6 +1369,36 @@ export default function AdminApp() {
           </button>
         </nav>
         <div className="adm-topbar__user">
+          <a
+            className="adm-btn adm-btn--ghost adm-topbar__store"
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <EyeIcon /> 查看前台
+          </a>
+          <div className="adm-notif">
+            <button
+              className="adm-notif__bell"
+              aria-label="通知"
+              onClick={() => {
+                notif.unlockAudio();
+                setNotifOpen((o) => !o);
+              }}
+            >
+              <BellIcon />
+              {notif.unreadCount > 0 && (
+                <span className="adm-notif__badge">{notif.unreadCount}</span>
+              )}
+            </button>
+            {notifOpen && (
+              <NotifPanel
+                notif={notif}
+                onOpenOrder={openOrderFromNotif}
+                onClose={() => setNotifOpen(false)}
+              />
+            )}
+          </div>
           <span className="adm-topbar__username">{admin.username}</span>
           <button className="adm-btn adm-btn--ghost" onClick={logout}>登出</button>
         </div>
@@ -1286,6 +1419,11 @@ export default function AdminApp() {
             onSearch={(f) => loadOrders(1, f)}
           />
           <Alert message={listError} />
+          {showNewOrdersBar && (
+            <button className="adm-new-orders-bar" onClick={refreshOrders}>
+              🔔 有 {newOrderCount} 筆新訂單 · 點擊刷新
+            </button>
+          )}
           <div className="adm-table-wrap">
             {listLoading ? (
               <div className="adm-table-card">
@@ -1324,17 +1462,6 @@ export default function AdminApp() {
               </div>
             )}
           </div>
-          {modalOpen && selectedOrderNo && (
-            <OrderModal
-              orderNo={selectedOrderNo}
-              token={token}
-              onClose={closeModal}
-              onStatusChange={() => {
-                loadOrders(orders.page);
-                setSummaryKey((k) => k + 1);
-              }}
-            />
-          )}
         </>
       )}
 
@@ -1346,6 +1473,20 @@ export default function AdminApp() {
           </div>
           <ProductsTab token={token} />
         </>
+      )}
+
+      {/* 訂單明細 modal：移到 shell 層，讓任一分頁 / 通知點擊都能開啟 */}
+      {modalOpen && selectedOrderNo && (
+        <OrderModal
+          orderNo={selectedOrderNo}
+          token={token}
+          onClose={closeModal}
+          onStatusChange={() => {
+            loadOrders(orders.page);
+            setSummaryKey((k) => k + 1);
+            notif.refresh();
+          }}
+        />
       )}
     </div>
   );
