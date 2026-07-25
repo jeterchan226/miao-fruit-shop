@@ -56,7 +56,7 @@ export default function App() {
       return [...prev, {
         lineId, productId: p.id, specId: spec.id, name: p.name,
         image: spec.images?.[0] || '', specLabel: spec.label, qty: spec.qty,
-        price: spec.price, count
+        price: spec.price, count, isTwoPack: Boolean(spec.isTwoPack)
       }];
     });
     setToast(`${p.name} · ${spec.label} ×${count} 已加入購物車`);
