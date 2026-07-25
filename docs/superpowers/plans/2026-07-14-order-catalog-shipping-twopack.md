@@ -1,6 +1,6 @@
 # 訂購單三項規則（免運/運費分級/2粒裝雙數）Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 讓網頁商店反映實體訂購單三規則：同住址滿 $3000 免運、運費依層數分級（1/2/3 層 = $130/$150/$180）、2 粒裝規格須以雙數購買。
 
@@ -32,7 +32,7 @@
 **Interfaces:**
 - Produces: `ProductSpec.is_two_pack: bool`（預設 `False`），供後續所有 task 使用。
 
-- [ ] **Step 1: 加 model 欄位**
+- [x] **Step 1: 加 model 欄位**
 
 在 `backend/app/models/product_spec.py`，於 `is_active` 欄位後加：
 
@@ -40,12 +40,12 @@
     is_two_pack: Mapped[bool] = mapped_column(default=False)
 ```
 
-- [ ] **Step 2: 產生 migration 檔**
+- [x] **Step 2: 產生 migration 檔**
 
 Run: `cd backend && alembic heads`（記下目前 head 的 revision id）
 Run: `cd backend && alembic revision -m "add is_two_pack to product_specs"`
 
-- [ ] **Step 3: 填 migration 內容**
+- [x] **Step 3: 填 migration 內容**
 
 把新產生的 migration 檔 `upgrade`/`downgrade` 改成（`down_revision` 用 Step 2 記下的 head）：
 
@@ -66,16 +66,16 @@ def downgrade() -> None:
     op.drop_column("product_specs", "is_two_pack")
 ```
 
-- [ ] **Step 4: 跑 migration 驗證**
+- [x] **Step 4: 跑 migration 驗證**
 
 Run: `cd backend && alembic upgrade head`
 Expected: 無錯誤，`product_specs` 多出 `is_two_pack` 欄位。
 
-- [ ] **Step 5: seed 標記 2 粒裝**
+- [x] **Step 5: seed 標記 2 粒裝**
 
 在 `backend/app/cli.py` 的 specs 清單，把 `label="2 粒精緻禮盒"` 那筆 `ProductSpec(...)` 加參數 `is_two_pack=True`。
 
-- [ ] **Step 6: 更新 seed 測試**
+- [x] **Step 6: 更新 seed 測試**
 
 在 `backend/tests/test_seed_product_cli.py` 找到驗證 specs 的斷言區塊，補一條：確認 label 含「2 粒」的 spec 其 `is_two_pack is True`、其餘為 `False`。範例（依現有測試風格調整取得 spec 的方式）：
 
@@ -85,12 +85,12 @@ assert two.is_two_pack is True
 assert all(not s.is_two_pack for s in product.specs if "2 粒" not in s.label)
 ```
 
-- [ ] **Step 7: 跑測試**
+- [x] **Step 7: 跑測試**
 
 Run: `cd backend && pytest tests/test_seed_product_cli.py -v`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/models/product_spec.py backend/alembic/versions/ backend/app/cli.py backend/tests/test_seed_product_cli.py
@@ -110,7 +110,7 @@ git commit -m "feat(spec): add is_two_pack column, migration, seed mark"
 - Consumes: `ProductSpec.is_two_pack`（Task 1）。
 - Produces: 公開 API `GET /api/products` 每個 spec 帶 `is_two_pack: bool`；`SpecCreate`/`SpecUpdate` 接受 `is_two_pack`。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_products_api.py` 加測試（沿用檔案既有 fixture / client 寫法）：
 
@@ -123,12 +123,12 @@ async def test_public_products_expose_is_two_pack(client, seeded_product):
     assert any(s["is_two_pack"] for s in specs)
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && pytest tests/test_products_api.py::test_public_products_expose_is_two_pack -v`
 Expected: FAIL（回傳缺 `is_two_pack` key）
 
-- [ ] **Step 3: schema 加欄位**
+- [x] **Step 3: schema 加欄位**
 
 在 `backend/app/schemas/product.py`：
 - `PublicSpecRead` 加 `is_two_pack: bool`
@@ -136,7 +136,7 @@ Expected: FAIL（回傳缺 `is_two_pack` key）
 - `SpecCreate` 加 `is_two_pack: bool = False`
 - `SpecUpdate` 加 `is_two_pack: bool | None = None`
 
-- [ ] **Step 4: service 帶欄位**
+- [x] **Step 4: service 帶欄位**
 
 在 `backend/app/services/product_service.py`，`_to_public_spec` 與 `_to_admin_spec` 的回傳各加：
 
@@ -144,12 +144,12 @@ Expected: FAIL（回傳缺 `is_two_pack` key）
         is_two_pack=s.is_two_pack,
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && pytest tests/test_products_api.py -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/schemas/product.py backend/app/services/product_service.py backend/tests/test_products_api.py
@@ -172,7 +172,7 @@ git commit -m "feat(spec): expose is_two_pack in public/admin schemas"
   - `compute_shipping(subtotal: int, layers: int) -> int`
   - `compute_amounts(items: list[tuple[int, int, bool]]) -> Amounts`（**簽名改變**：原本吃 `subtotal: int`）
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_order_service.py` 加（import 依檔案既有風格）：
 
@@ -207,12 +207,12 @@ def test_compute_amounts_mixed():
     assert amt.total == 2050
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && pytest tests/test_order_service.py -k "layer or shipping or compute_amounts" -v`
 Expected: FAIL（`compute_layers`/`compute_shipping` 未定義、`compute_amounts` 簽名不符）
 
-- [ ] **Step 3: constants 改門檻 + 加分級表**
+- [x] **Step 3: constants 改門檻 + 加分級表**
 
 在 `backend/app/core/constants.py`：
 
@@ -224,7 +224,7 @@ COD_FEE = 30
 
 刪除 `SHIPPING_FEE = 150`（改由層數決定）。
 
-- [ ] **Step 4: order_service 改公式**
+- [x] **Step 4: order_service 改公式**
 
 在 `backend/app/services/order_service.py`：
 
@@ -266,7 +266,7 @@ def compute_amounts(items: list[tuple[int, int, bool]]) -> Amounts:
     )
 ```
 
-- [ ] **Step 5: 更新 create_order 呼叫端**
+- [x] **Step 5: 更新 create_order 呼叫端**
 
 在 `create_order` 內，把：
 
@@ -285,12 +285,12 @@ def compute_amounts(items: list[tuple[int, int, bool]]) -> Amounts:
     )
 ```
 
-- [ ] **Step 6: 跑測試確認通過**
+- [x] **Step 6: 跑測試確認通過**
 
 Run: `cd backend && pytest tests/test_order_service.py -v`
 Expected: PASS（若既有測試呼叫舊 `compute_amounts(subtotal)`，一併改成新簽名）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/core/constants.py backend/app/services/order_service.py backend/tests/test_order_service.py
@@ -310,7 +310,7 @@ git commit -m "feat(order): layer-based shipping (130/150/180), free over 3000"
 - Consumes: `ProductSpec.is_two_pack`。
 - Produces: `EvenQtyRequiredError(AppError)`，`code = "EVEN_QTY_REQUIRED"`，`status_code = 409`；`create_order` 對 2 粒裝奇數 qty 拋此例外。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_order_service.py` 加（沿用檔案既有建單測試的 fixture / payload 寫法；`seeded` 需含一個 `is_two_pack=True` 的 spec）：
 
@@ -331,12 +331,12 @@ async def test_two_pack_even_qty_ok(session, two_pack_spec):
 
 > 註：若檔案沒有 `make_order_create`/`two_pack_spec` helper，依現有測試建立 payload 與 spec 的方式改寫；重點是「2 粒裝奇數 → 例外」「雙數 → 成功」。expected_total 需帶正確運費（4 箱 2 粒 = 2 層）。
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && pytest tests/test_order_service.py -k two_pack -v`
 Expected: FAIL（`EvenQtyRequiredError` 未定義）
 
-- [ ] **Step 3: 定義例外**
+- [x] **Step 3: 定義例外**
 
 在 `backend/app/core/exceptions.py` 加：
 
@@ -348,7 +348,7 @@ class EvenQtyRequiredError(AppError):
 
 （通用 `AppError` handler 已回 `{detail, code}`，無需改 `api/errors.py`。）
 
-- [ ] **Step 4: create_order 加驗證**
+- [x] **Step 4: create_order 加驗證**
 
 在 `backend/app/services/order_service.py`，import 加 `EvenQtyRequiredError`。於鎖定 `locked` 之後、`compute_amounts` 之前插入：
 
@@ -359,12 +359,12 @@ class EvenQtyRequiredError(AppError):
             raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && pytest tests/test_order_service.py -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/core/exceptions.py backend/app/services/order_service.py backend/tests/test_order_service.py
@@ -387,7 +387,7 @@ git commit -m "feat(order): reject odd qty for 2-pack specs (EVEN_QTY_REQUIRED)"
   - `computeShipping(subtotal: number, layers: number) -> number`
   - api.js spec map 多帶 `isTwoPack`
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 Create `frontend/src/pricing.test.js`：
 
@@ -423,12 +423,12 @@ describe('computeShipping', () => {
 });
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd frontend && npx vitest run src/pricing.test.js`
 Expected: FAIL（找不到 `./pricing.js`）
 
-- [ ] **Step 3: 實作 pricing.js**
+- [x] **Step 3: 實作 pricing.js**
 
 Create `frontend/src/pricing.js`：
 
@@ -453,12 +453,12 @@ export function computeShipping(subtotal, layers) {
 }
 ```
 
-- [ ] **Step 4: 跑測試確認通過**
+- [x] **Step 4: 跑測試確認通過**
 
 Run: `cd frontend && npx vitest run src/pricing.test.js`
 Expected: PASS
 
-- [ ] **Step 5: api.js 映射 isTwoPack**
+- [x] **Step 5: api.js 映射 isTwoPack**
 
 在 `frontend/src/api.js` 的 spec map（`normalizeProduct` 內），加一行：
 
@@ -466,7 +466,7 @@ Expected: PASS
     isTwoPack: Boolean(spec.is_two_pack),
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/pricing.js frontend/src/pricing.test.js frontend/src/api.js
@@ -485,7 +485,7 @@ git commit -m "feat(front): shared pricing module + isTwoPack mapping"
 - Consumes: `spec.isTwoPack`（Task 5）。
 - Produces: cart item 物件帶 `isTwoPack`（供 Task 7 購物車列步進與 Task 8 運費計算）。
 
-- [ ] **Step 1: SpecCard 依 isTwoPack 步進**
+- [x] **Step 1: SpecCard 依 isTwoPack 步進**
 
 在 `frontend/src/SpecCard.jsx` `SpecCard` 內，`const disabled = ...` 附近加：
 
@@ -513,7 +513,7 @@ git commit -m "feat(front): shared pricing module + isTwoPack mapping"
             onClick={() => { onAdd(p, spec, qty); setQty(step); }}
 ```
 
-- [ ] **Step 2: SpecCard 顯示雙數提示**
+- [x] **Step 2: SpecCard 顯示雙數提示**
 
 在 `specs__panel` 內（`spec.note` 那個 `specs__row` 之後）加條件提示：
 
@@ -526,7 +526,7 @@ git commit -m "feat(front): shared pricing module + isTwoPack mapping"
           )}
 ```
 
-- [ ] **Step 3: App.addToCart 帶 isTwoPack**
+- [x] **Step 3: App.addToCart 帶 isTwoPack**
 
 在 `frontend/src/App.jsx` `addToCart` 的新 cart 物件（`return [...prev, {...}]`）加欄位：
 
@@ -534,12 +534,12 @@ git commit -m "feat(front): shared pricing module + isTwoPack mapping"
         price: spec.price, count, isTwoPack: Boolean(spec.isTwoPack)
 ```
 
-- [ ] **Step 4: 手動驗證（建置通過）**
+- [x] **Step 4: 手動驗證（建置通過）**
 
 Run: `cd frontend && npx vite build`
 Expected: 建置成功、無 lint/語法錯誤。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/SpecCard.jsx frontend/src/App.jsx
@@ -556,7 +556,7 @@ git commit -m "feat(front): 2-pack even-step qty on SpecCard + cart item tag"
 **Interfaces:**
 - Consumes: `FREE_SHIPPING`, `computeLayers`, `computeShipping`（Task 5）；cart item `isTwoPack`（Task 6）。
 
-- [ ] **Step 1: 換掉寫死常數，改用共用模組**
+- [x] **Step 1: 換掉寫死常數，改用共用模組**
 
 在 `frontend/src/Cart.jsx` 頂部，移除：
 
@@ -571,7 +571,7 @@ const SHIPPING_FEE  = 150;
 import { FREE_SHIPPING, computeLayers, computeShipping } from './pricing.js';
 ```
 
-- [ ] **Step 2: 改運費計算**
+- [x] **Step 2: 改運費計算**
 
 把：
 
@@ -590,7 +590,7 @@ import { FREE_SHIPPING, computeLayers, computeShipping } from './pricing.js';
   const total    = subtotal + shipping;
 ```
 
-- [ ] **Step 3: 購物車列雙數步進**
+- [x] **Step 3: 購物車列雙數步進**
 
 在 `CartItem` 元件，qty 加減改為依 item 步進（2 粒裝 ±2、最小 step）：
 
@@ -620,7 +620,7 @@ const CartItem = ({ item, onQty, onRemove }) => {
 
 （`App.setQty` 已處理 `count <= 0` 移除，2 粒裝 count=2 減 2 = 0 → 移除，符合預期。）
 
-- [ ] **Step 4: 加運費說明文字（購物車 footer）**
+- [x] **Step 4: 加運費說明文字（購物車 footer）**
 
 在 `frontend/src/Cart.jsx` `step === 'cart'` 的 `drawer__foot` 內、`drawer__totals` 之後加說明：
 
@@ -630,12 +630,12 @@ const CartItem = ({ item, onQty, onRemove }) => {
             </p>
 ```
 
-- [ ] **Step 5: 手動驗證（建置通過）**
+- [x] **Step 5: 手動驗證（建置通過）**
 
 Run: `cd frontend && npx vite build`
 Expected: 建置成功。免運進度條（`subtotal < FREE_SHIPPING`）自動用新門檻 3000。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/Cart.jsx
@@ -653,7 +653,7 @@ git commit -m "feat(front): layer shipping + 2-pack step + shipping note in cart
 **Interfaces:**
 - Consumes: 後端 `EVEN_QTY_REQUIRED` code（Task 4）。
 
-- [ ] **Step 1: formatApiError 對應 EVEN_QTY_REQUIRED**
+- [x] **Step 1: formatApiError 對應 EVEN_QTY_REQUIRED**
 
 在 `frontend/src/Cart.jsx` `formatApiError` 內，`PRICE_CHANGED` 判斷之後加：
 
@@ -663,11 +663,11 @@ git commit -m "feat(front): layer shipping + 2-pack step + shipping note in cart
     }
 ```
 
-- [ ] **Step 2: 更新 Notices 付款方式文字**
+- [x] **Step 2: 更新 Notices 付款方式文字**
 
 在 `frontend/src/Sections.jsx` `NOTICES` 陣列，把 `title: '付款方式'` 那筆 body 的「五千元以上免運」改為「同住址滿 NT$ 3,000 免運」。
 
-- [ ] **Step 3: 更新 Rail 運費文字**
+- [x] **Step 3: 更新 Rail 運費文字**
 
 在 `frontend/src/Sections.jsx` `Rail` 內，把：
 
@@ -681,12 +681,12 @@ git commit -m "feat(front): layer shipping + 2-pack step + shipping note in cart
         <div><h4>運費</h4><p>一層 $130 / 二層 $150 / 三層 $180，同住址滿 NT$ 3,000 免運</p></div>
 ```
 
-- [ ] **Step 4: 手動驗證（建置通過）**
+- [x] **Step 4: 手動驗證（建置通過）**
 
 Run: `cd frontend && npx vite build`
 Expected: 建置成功。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/Cart.jsx frontend/src/Sections.jsx
@@ -703,7 +703,7 @@ git commit -m "feat(front): EVEN_QTY_REQUIRED message + shipping/free-ship copy"
 **Interfaces:**
 - Consumes: `AdminSpecRead.is_two_pack`（Task 2）；`updateSpec` 接受 `is_two_pack`（Task 2 `SpecUpdate`）。
 
-- [ ] **Step 1: form state 加 is_two_pack**
+- [x] **Step 1: form state 加 is_two_pack**
 
 在 `frontend/src/AdminApp.jsx` `SpecEditModal` 的 `useState` 初始值加：
 
@@ -711,7 +711,7 @@ git commit -m "feat(front): EVEN_QTY_REQUIRED message + shipping/free-ship copy"
     is_two_pack: spec.is_two_pack,
 ```
 
-- [ ] **Step 2: 送出 payload 帶 is_two_pack**
+- [x] **Step 2: 送出 payload 帶 is_two_pack**
 
 在 `handleSave` 的 `updateSpec(token, spec.id, {...})` payload 加：
 
@@ -719,7 +719,7 @@ git commit -m "feat(front): EVEN_QTY_REQUIRED message + shipping/free-ship copy"
         is_two_pack: form.is_two_pack,
 ```
 
-- [ ] **Step 3: 加勾選框 UI**
+- [x] **Step 3: 加勾選框 UI**
 
 在規格資訊表單（`adm-spec-form` 內，`is_active` 相關欄位附近；若無則置於表單末端）加：
 
@@ -734,12 +734,12 @@ git commit -m "feat(front): EVEN_QTY_REQUIRED message + shipping/free-ship copy"
               </label>
 ```
 
-- [ ] **Step 4: 手動驗證（建置通過）**
+- [x] **Step 4: 手動驗證（建置通過）**
 
 Run: `cd frontend && npx vite build`
 Expected: 建置成功。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx
@@ -752,22 +752,22 @@ git commit -m "feat(admin): 2-pack checkbox in spec edit form"
 
 **Files:** 無（僅執行）
 
-- [ ] **Step 1: 後端全測**
+- [x] **Step 1: 後端全測**
 
 Run: `cd backend && pytest -q`
 Expected: 全 PASS。特別確認 `test_order_service.py`、`test_products_api.py`、`test_seed_product_cli.py`、`test_schemas_order.py`。
 
-- [ ] **Step 2: 前端全測**
+- [x] **Step 2: 前端全測**
 
 Run: `cd frontend && npx vitest run`
 Expected: 全 PASS（含 `pricing.test.js`、既有 `notifications.test.js`）。
 
-- [ ] **Step 3: 前端建置**
+- [x] **Step 3: 前端建置**
 
 Run: `cd frontend && npx vite build`
 Expected: 建置成功。
 
-- [ ] **Step 4: 標記計畫完成並提交**
+- [x] **Step 4: 標記計畫完成並提交**
 
 回本計畫檔把已完成 task 的 checkbox 改為 `- [x]`，提交：
 
