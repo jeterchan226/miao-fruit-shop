@@ -10,6 +10,13 @@
 #   環境變數與 Secret（DATABASE_URL/JWT_SECRET/LINE_CHANNEL_SECRET/LINE_LIFF_ID…）
 #   已在 Cloud Run 服務上設定，gcloud run deploy 預設會保留，本腳本不碰它們。
 #
+#   Migration（expand 模式，避免 schema 變更造成 500 空窗）：
+#     1) --no-traffic 先建新版、暫不切流量（舊版繼續服務）
+#     2) 把 migrate job（miao-api-migrate）的 image 同步到「這次剛 build 的新 image」，
+#        再 alembic upgrade head（idempotent；無 schema 變更時為 no-op）
+#     3) migration 成功後才把流量切到新版
+#   —— job image 不再會像過去那樣凍在舊 tag、與服務脫鉤。
+#
 # 用法：
 #   cd backend && ./deploy.sh            # 互動式（部署前會問 y/N）
 #   cd backend && ./deploy.sh --yes      # 略過確認，直接部署
@@ -20,6 +27,7 @@ set -euo pipefail
 SERVICE="${SERVICE:-miao-api}"
 REGION="${REGION:-asia-east1}"
 PROJECT="${PROJECT:-miao-fruit-shop-499505}"
+MIGRATE_JOB="${MIGRATE_JOB:-miao-api-migrate}"
 DEPLOY_BRANCH="master"
 
 AUTO_YES=0
@@ -60,27 +68,51 @@ AHEAD="$(git -C "$REPO_ROOT" rev-list --count "origin/$DEPLOY_BRANCH..$DEPLOY_BR
 ok "已在 ${DEPLOY_BRANCH}、未落後 origin（領先 ${AHEAD}，HEAD $(git -C "$REPO_ROOT" rev-parse --short HEAD)），工作目錄乾淨"
 
 # 確認 ---------------------------------------------------------------------
-bold "2/4 即將部署"
+bold "2/5 即將部署"
 echo "  服務：$SERVICE"
 echo "  區域：$REGION"
 echo "  專案：$PROJECT"
 echo "  來源：${SCRIPT_DIR}（--source .）"
+echo "  Migrate job：$MIGRATE_JOB（同步新 image 後 alembic upgrade head）"
 if [ "$AUTO_YES" -ne 1 ]; then
   read -r -p "確定要部署到正式環境嗎？(y/N) " reply
   [ "$reply" = "y" ] || [ "$reply" = "Y" ] || { echo "已取消"; exit 0; }
 fi
 
-# 部署 ---------------------------------------------------------------------
-bold "3/4 gcloud run deploy（既有 env/secret 會保留）"
+# 部署（先建新版，暫不切流量）---------------------------------------------
+bold "3/5 gcloud run deploy --no-traffic（既有 env/secret 會保留）"
 gcloud run deploy "$SERVICE" \
   --source "$SCRIPT_DIR" \
   --region "$REGION" \
   --project "$PROJECT" \
+  --no-traffic \
   --quiet
-ok "部署完成"
+NEW_IMAGE="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
+  --format='value(spec.template.spec.containers[0].image)')"
+[ -n "$NEW_IMAGE" ] || { err "取不到剛部署的 image，中止（流量仍在舊版）"; exit 1; }
+ok "新版已建立，流量仍在舊版（image: $NEW_IMAGE）"
 
-# 驗證 ---------------------------------------------------------------------
-bold "4/4 驗證端點"
+# Migration（migrate job 同步到新 image 後執行）----------------------------
+bold "4/5 資料庫 migration（alembic upgrade head，idempotent）"
+gcloud run jobs update "$MIGRATE_JOB" \
+  --image "$NEW_IMAGE" \
+  --region "$REGION" \
+  --project "$PROJECT" \
+  --quiet
+gcloud run jobs execute "$MIGRATE_JOB" \
+  --region "$REGION" \
+  --project "$PROJECT" \
+  --wait \
+  --quiet
+ok "migration 完成（job image 已同步新版）"
+
+# 切流量 + 驗證 ------------------------------------------------------------
+bold "5/5 切換流量到新版並驗證端點"
+gcloud run services update-traffic "$SERVICE" \
+  --to-latest \
+  --region "$REGION" \
+  --project "$PROJECT" \
+  --quiet
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)')"
 echo "  服務網址：$URL"
 
