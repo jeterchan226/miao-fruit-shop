@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import FREE_SHIPPING_THRESHOLD, SHIPPING_BY_LAYER
 from app.core.exceptions import (
+    EvenQtyRequiredError,
     InsufficientStockError,
     NotFoundError,
     PriceChangedError,
@@ -103,6 +104,11 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
         if spec is None or not spec.is_active:
             raise NotFoundError(f"找不到規格 {item.spec_id}")
         locked.append((spec, item.qty))
+
+    # 1.5) 2 粒裝須以雙數購買
+    for spec, qty in locked:
+        if spec.is_two_pack and qty % 2 != 0:
+            raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
 
     # 2) 伺服器權威重算金額
     amounts = compute_amounts(

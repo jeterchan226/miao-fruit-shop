@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
+    EvenQtyRequiredError,
     InsufficientStockError,
     NotFoundError,
     PriceChangedError,
@@ -21,6 +22,17 @@ async def _seed_spec(db_session, *, price=1880, stock=10):
     product.specs = [
         ProductSpec(label="5 台斤家庭箱", qty_text="q", price=price,
                     stock_qty=stock, sort_order=1)
+    ]
+    await product_repo.add(db_session, product)
+    await db_session.flush()
+    return product.specs[0]
+
+
+async def _seed_two_pack_spec(db_session, *, price=600, stock=10):
+    product = Product(slug="kanro", name="甘露梨", description="d", image="i", season="s")
+    product.specs = [
+        ProductSpec(label="2 粒裝", qty_text="q", price=price,
+                    stock_qty=stock, sort_order=1, is_two_pack=True)
     ]
     await product_repo.add(db_session, product)
     await db_session.flush()
@@ -160,3 +172,22 @@ async def test_inactive_spec_raises_not_found(db_session: AsyncSession):
         await order_service.create_order(
             db_session, _payload(spec.id, 1, expected_total=2030)
         )
+
+
+async def test_two_pack_odd_qty_rejected(db_session: AsyncSession):
+    spec = await _seed_two_pack_spec(db_session, price=600, stock=10)
+    with pytest.raises(EvenQtyRequiredError):
+        await order_service.create_order(
+            db_session, _payload(spec.id, 3, expected_total=600 * 3 + 180)
+        )
+
+
+async def test_two_pack_even_qty_ok(db_session: AsyncSession):
+    spec = await _seed_two_pack_spec(db_session, price=600, stock=10)
+    result = await order_service.create_order(
+        db_session, _payload(spec.id, 4, expected_total=2400 + 150)
+    )
+    assert result.order_no.startswith("MM-")
+    assert result.subtotal == 2400
+    assert result.shipping_fee == 150
+    assert result.total == 2550
