@@ -803,22 +803,24 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
                   placeholder="如：剩 3 箱"
                 />
               </label>
-              <label className="adm-field adm-field--row">
-                <span className="adm-field__label">上架</span>
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setField('is_active', e.target.checked)}
-                />
-              </label>
-              <label className="adm-field adm-field--checkbox">
-                <input
-                  type="checkbox"
-                  checked={form.is_two_pack}
-                  onChange={(e) => setField('is_two_pack', e.target.checked)}
-                />
-                <span className="adm-field__label">2 粒裝（須以雙數購買）</span>
-              </label>
+              <div className="adm-checkbox-group">
+                <label className="adm-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.is_active}
+                    onChange={(e) => setField('is_active', e.target.checked)}
+                  />
+                  <span>上架</span>
+                </label>
+                <label className="adm-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.is_two_pack}
+                    onChange={(e) => setField('is_two_pack', e.target.checked)}
+                  />
+                  <span>2 粒裝（須以雙數購買）</span>
+                </label>
+              </div>
             </div>
           </div>
           {error && <div className="adm-alert">{error}</div>}
@@ -841,6 +843,7 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
 
 const EMPTY_SPEC_FORM = {
   label: '', qty_text: '', price: '', stock_qty: '', note: '', low_stock_threshold: 3,
+  is_two_pack: false,
 };
 
 /* ── Create spec modal ── */
@@ -878,6 +881,7 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
         stock_qty: Number(form.stock_qty),
         low_stock_threshold: Number(form.low_stock_threshold),
         note: form.note || null,
+        is_two_pack: form.is_two_pack,
       });
       setCreatedSpec(spec);
       setSaving(false);
@@ -954,6 +958,16 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
                 <input className="adm-field__input" value={form.note}
                   onChange={(e) => setField('note', e.target.value)} placeholder="如：剩 3 箱" />
               </label>
+              <div className="adm-checkbox-group">
+                <label className="adm-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.is_two_pack}
+                    onChange={(e) => setField('is_two_pack', e.target.checked)}
+                  />
+                  <span>2 粒裝（須以雙數購買）</span>
+                </label>
+              </div>
             </div>
           </div>
           {error && <div className="adm-alert">{error}</div>}

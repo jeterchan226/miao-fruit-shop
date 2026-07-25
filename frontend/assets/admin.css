@@ -641,8 +641,29 @@ button { cursor: pointer; }
   gap: 12px 16px;
 }
 .adm-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.adm-field--row { flex-direction: row; align-items: center; gap: 8px; }
 .adm-field__label { font-size: 13.5px; color: var(--brown-500); font-weight: 500; }
+.adm-checkbox-group {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  padding-top: 4px;
+}
+.adm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--brown-900);
+}
+.adm-checkbox input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--sage-500);
+  cursor: pointer;
+  flex-shrink: 0;
+}
 .adm-field__input {
   width: 100%;
   min-width: 0;
