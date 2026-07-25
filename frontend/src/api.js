@@ -67,6 +67,7 @@ const normalizeProduct = (product) => ({
     stock: spec.stock_status,
     stockText: stockText[spec.stock_status] || '狀態確認中',
     note: spec.note,
+    isTwoPack: Boolean(spec.is_two_pack),
     images: spec.images || [],
   })),
 });
