@@ -637,13 +637,16 @@ button { cursor: pointer; }
 /* ── Spec edit form ── */
 .adm-spec-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 16px;
 }
-.adm-field { display: flex; flex-direction: column; gap: 4px; }
+.adm-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .adm-field--row { flex-direction: row; align-items: center; gap: 8px; }
 .adm-field__label { font-size: 13.5px; color: var(--brown-500); font-weight: 500; }
 .adm-field__input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid var(--sage-200);
   border-radius: var(--r-sm);
   padding: 6px 10px;
@@ -656,7 +659,7 @@ button { cursor: pointer; }
 .adm-field__input:focus { outline: none; border-color: var(--sage-500); }
 
 /* ── Product modal ── */
-.adm-modal--product { max-width: 560px; }
+.adm-modal--product { width: min(820px, 94vw); max-width: none; }
 .adm-modal__product-body {
   padding: 20px 24px 24px;
   display: flex;
@@ -841,6 +844,9 @@ button { cursor: pointer; }
     margin-top: 6px; padding-top: 6px;
   }
   .adm-topbar__nav-item { flex: 1; text-align: center; }
+
+  /* 規格編輯表單:手機單欄堆疊 */
+  .adm-spec-form { grid-template-columns: minmax(0, 1fr); }
 
   /* Page layout */
   .adm-table-wrap { padding: 10px 14px; }
