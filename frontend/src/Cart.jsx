@@ -572,6 +572,9 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     if (err?.code === 'PRICE_CHANGED') {
       return `商品價格已更新，新的訂單合計為 NT$ ${Number(data.total || 0).toLocaleString()}，請重新確認後再送出。`;
     }
+    if (err?.code === 'EVEN_QTY_REQUIRED') {
+      return err?.data?.detail || '2 粒裝商品請以雙數（2、4、6…）箱購買。';
+    }
     if (err?.code === 'INSUFFICIENT_STOCK') return data.detail || '庫存不足，請調整購買數量。';
     if (err?.code === 'NOT_FOUND') return '商品規格已更新，請重新整理頁面後再加入購物車。';
     if (err?.status === 422) return '訂單資料格式有誤，請檢查收件資訊後再送出。';
