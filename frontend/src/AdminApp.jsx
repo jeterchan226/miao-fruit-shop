@@ -705,6 +705,7 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
     stock_qty: spec.stock_qty,
     note: spec.note || '',
     is_active: spec.is_active,
+    is_two_pack: spec.is_two_pack,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -728,6 +729,7 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
         stock_qty: Number(form.stock_qty),
         note: form.note || null,
         is_active: form.is_active,
+        is_two_pack: form.is_two_pack,
       });
       onSaved();
     } catch (err) {
@@ -808,6 +810,14 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
                   checked={form.is_active}
                   onChange={(e) => setField('is_active', e.target.checked)}
                 />
+              </label>
+              <label className="adm-field adm-field--checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.is_two_pack}
+                  onChange={(e) => setField('is_two_pack', e.target.checked)}
+                />
+                <span className="adm-field__label">2 粒裝（須以雙數購買）</span>
               </label>
             </div>
           </div>
