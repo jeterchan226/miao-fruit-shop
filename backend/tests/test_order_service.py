@@ -80,7 +80,7 @@ def test_layers_mixed():
 
 
 def test_shipping_by_layer():
-    assert compute_shipping(1000, 1) == 130
+    assert compute_shipping(1000, 1) == 100
     assert compute_shipping(1000, 2) == 150
     assert compute_shipping(1000, 3) == 180
     assert compute_shipping(1000, 4) == 180  # >3 fallback
@@ -104,13 +104,13 @@ def test_compute_amounts_mixed():
 async def test_create_order_success_decrements_and_snapshots(db_session: AsyncSession):
     spec = await _seed_spec(db_session, price=1880, stock=10)
     result = await order_service.create_order(
-        db_session, _payload(spec.id, 1, expected_total=2010)
+        db_session, _payload(spec.id, 1, expected_total=1980)
     )
     assert result.order_no.startswith("MM-")
     assert result.status == "pending_payment"
     assert result.subtotal == 1880
-    assert result.shipping_fee == 130
-    assert result.total == 2010
+    assert result.shipping_fee == 100
+    assert result.total == 1980
     assert result.items[0].product_name == "甘露梨"
     assert result.items[0].spec_label == "5 台斤家庭箱"
     assert result.items[0].unit_price == 1880
@@ -140,7 +140,7 @@ async def test_price_changed_blocks_and_keeps_stock(db_session: AsyncSession):
         await order_service.create_order(
             db_session, _payload(spec.id, 1, expected_total=9999)
         )
-    assert exc.value.total == 2010
+    assert exc.value.total == 1980
     refreshed = await db_session.get(ProductSpec, spec.id)
     assert refreshed.stock_qty == 10
     assert await _order_count(db_session) == 0

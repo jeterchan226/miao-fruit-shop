@@ -15,7 +15,7 @@ def test_shipping_free_at_threshold():
 
 def test_shipping_charged_below_threshold():
     a = compute_amounts([(2999, 1, False)])
-    assert a == Amounts(subtotal=2999, shipping_fee=130, cod_fee=0, total=3129)
+    assert a == Amounts(subtotal=2999, shipping_fee=100, cod_fee=0, total=3099)
 
 
 def test_cod_fee_always_zero():

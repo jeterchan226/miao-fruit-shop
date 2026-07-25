@@ -1,7 +1,7 @@
 /* 運費與層數計算 — 與後端 order_service 公式一致 */
 
 export const FREE_SHIPPING = 3000;
-export const SHIPPING_BY_LAYER = { 1: 130, 2: 150, 3: 180 };
+export const SHIPPING_BY_LAYER = { 1: 100, 2: 150, 3: 180 };
 
 // 非2粒每箱1層；2粒每2箱1層。
 export function computeLayers(items) {

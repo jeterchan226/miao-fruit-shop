@@ -15,7 +15,7 @@ describe('computeLayers', () => {
 
 describe('computeShipping', () => {
   it('分級', () => {
-    expect(computeShipping(1000, 1)).toBe(130);
+    expect(computeShipping(1000, 1)).toBe(100);
     expect(computeShipping(1000, 2)).toBe(150);
     expect(computeShipping(1000, 3)).toBe(180);
     expect(computeShipping(1000, 4)).toBe(180);

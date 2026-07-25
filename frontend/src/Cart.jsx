@@ -753,7 +753,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
               <div className="row total"><span>合計</span><span className="v">NT$ {total.toLocaleString()}</span></div>
             </div>
             <p className="drawer__ship-note">
-              運費：一層 $130 / 二層 $150 / 三層 $180・同住址滿 NT$ 3,000 免運
+              運費：一層 $100 / 二層 $150 / 三層 $180・同住址滿 NT$ 3,000 免運
             </p>
             <button className="btn btn--primary btn--full" onClick={next}>前往結帳 →</button>
           </div>
