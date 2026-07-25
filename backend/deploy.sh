@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 #
-# 部署後端到 Cloud Run（miao-api）。
+# 部署後端到 Cloud Run(miao-api).
 #
-# 設計重點：
-#   gcloud run deploy --source . 打包的是「本機工作目錄的檔案」，與 git remote 無關。
-#   因此本腳本在部署前會強制檢查：分支在 master、本機 master 與 origin/master 同步、
-#   工作目錄乾淨——避免把過時或未提交的程式碼部署上線。
+# 設計重點:
+#   gcloud run deploy --source . 打包的是"本機工作目錄的檔案",與 git remote 無關.
+#   因此本腳本在部署前會強制檢查:分支在 master,本機 master 與 origin/master 同步,
+#   工作目錄乾淨--避免把過時或未提交的程式碼部署上線.
 #
-#   環境變數與 Secret（DATABASE_URL/JWT_SECRET/LINE_CHANNEL_SECRET/LINE_LIFF_ID…）
-#   已在 Cloud Run 服務上設定，gcloud run deploy 預設會保留，本腳本不碰它們。
+#   環境變數與 Secret(DATABASE_URL/JWT_SECRET/LINE_CHANNEL_SECRET/LINE_LIFF_ID...)
+#   已在 Cloud Run 服務上設定,gcloud run deploy 預設會保留,本腳本不碰它們.
 #
-#   Migration（expand 模式，避免 schema 變更造成 500 空窗）：
-#     1) --no-traffic 先建新版、暫不切流量（舊版繼續服務）
-#     2) 把 migrate job（miao-api-migrate）的 image 同步到「這次剛 build 的新 image」，
-#        再 alembic upgrade head（idempotent；無 schema 變更時為 no-op）
+#   Migration(expand 模式,避免 schema 變更造成 500 空窗):
+#     1) --no-traffic 先建新版,暫不切流量(舊版繼續服務)
+#     2) 把 migrate job(miao-api-migrate)的 image 同步到"這次剛 build 的新 image",
+#        再 alembic upgrade head(idempotent;無 schema 變更時為 no-op)
 #     3) migration 成功後才把流量切到新版
-#   —— job image 不再會像過去那樣凍在舊 tag、與服務脫鉤。
+#   -- job image 不再會像過去那樣凍在舊 tag,與服務脫鉤.
 #
-# 用法：
-#   cd backend && ./deploy.sh            # 互動式（部署前會問 y/N）
-#   cd backend && ./deploy.sh --yes      # 略過確認，直接部署
+# 用法:
+#   cd backend && ./deploy.sh            # 互動式(部署前會問 y/N)
+#   cd backend && ./deploy.sh --yes      # 略過確認,直接部署
 #
-# 可用環境變數覆寫預設值：SERVICE / REGION / PROJECT
+# 可用環境變數覆寫預設值:SERVICE / REGION / PROJECT
 set -euo pipefail
 
 SERVICE="${SERVICE:-miao-api}"
@@ -44,43 +44,43 @@ REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 command -v gcloud >/dev/null || { err "找不到 gcloud CLI"; exit 1; }
 [ -f "$SCRIPT_DIR/Dockerfile" ] || { err "$SCRIPT_DIR 沒有 Dockerfile"; exit 1; }
 
-bold "1/4 檢查 git 狀態（避免部署過時程式）"
+bold "1/4 檢查 git 狀態(避免部署過時程式)"
 
 CURRENT_BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)"
 if [ "$CURRENT_BRANCH" != "$DEPLOY_BRANCH" ]; then
-  err "目前在 '$CURRENT_BRANCH'，只能從 '$DEPLOY_BRANCH' 部署。請先：git checkout $DEPLOY_BRANCH"
+  err "目前在 '$CURRENT_BRANCH',只能從 '$DEPLOY_BRANCH' 部署.請先:git checkout $DEPLOY_BRANCH"
   exit 1
 fi
 
 if ! git -C "$REPO_ROOT" diff --quiet || ! git -C "$REPO_ROOT" diff --cached --quiet; then
-  err "工作目錄有未提交的變更，請先提交或清乾淨（部署吃的是工作目錄的檔案）"
+  err "工作目錄有未提交的變更,請先提交或清乾淨(部署吃的是工作目錄的檔案)"
   exit 1
 fi
 
 git -C "$REPO_ROOT" fetch origin "$DEPLOY_BRANCH" --quiet
 BEHIND="$(git -C "$REPO_ROOT" rev-list --count "$DEPLOY_BRANCH..origin/$DEPLOY_BRANCH")"
 if [ "$BEHIND" -gt 0 ]; then
-  err "本機 $DEPLOY_BRANCH 落後 origin/$DEPLOY_BRANCH $BEHIND 個 commit（會部署到過時程式）。"
-  err "請先同步：git pull origin $DEPLOY_BRANCH"
+  err "本機 $DEPLOY_BRANCH 落後 origin/$DEPLOY_BRANCH $BEHIND 個 commit(會部署到過時程式)."
+  err "請先同步:git pull origin $DEPLOY_BRANCH"
   exit 1
 fi
 AHEAD="$(git -C "$REPO_ROOT" rev-list --count "origin/$DEPLOY_BRANCH..$DEPLOY_BRANCH")"
-ok "已在 ${DEPLOY_BRANCH}、未落後 origin（領先 ${AHEAD}，HEAD $(git -C "$REPO_ROOT" rev-parse --short HEAD)），工作目錄乾淨"
+ok "已在 ${DEPLOY_BRANCH},未落後 origin(領先 ${AHEAD},HEAD $(git -C "$REPO_ROOT" rev-parse --short HEAD)),工作目錄乾淨"
 
 # 確認 ---------------------------------------------------------------------
 bold "2/5 即將部署"
-echo "  服務：$SERVICE"
-echo "  區域：$REGION"
-echo "  專案：$PROJECT"
-echo "  來源：${SCRIPT_DIR}(--source .)"
+echo "  服務:$SERVICE"
+echo "  區域:$REGION"
+echo "  專案:$PROJECT"
+echo "  來源:${SCRIPT_DIR}(--source .)"
 echo "  Migrate job:$MIGRATE_JOB (同步新 image 後 alembic upgrade head)"
 if [ "$AUTO_YES" -ne 1 ]; then
-  read -r -p "確定要部署到正式環境嗎？(y/N) " reply
+  read -r -p "確定要部署到正式環境嗎?(y/N) " reply
   [ "$reply" = "y" ] || [ "$reply" = "Y" ] || { echo "已取消"; exit 0; }
 fi
 
-# 部署（先建新版，暫不切流量）---------------------------------------------
-bold "3/5 gcloud run deploy --no-traffic(既有 env/secret 會保留）"
+# 部署(先建新版,暫不切流量)---------------------------------------------
+bold "3/5 gcloud run deploy --no-traffic(既有 env/secret 會保留)"
 gcloud run deploy "$SERVICE" \
   --source "$SCRIPT_DIR" \
   --region "$REGION" \
@@ -89,11 +89,11 @@ gcloud run deploy "$SERVICE" \
   --quiet
 NEW_IMAGE="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
   --format='value(spec.template.spec.containers[0].image)')"
-[ -n "$NEW_IMAGE" ] || { err "取不到剛部署的 image，中止（流量仍在舊版）"; exit 1; }
-ok "新版已建立，流量仍在舊版（image: $NEW_IMAGE）"
+[ -n "$NEW_IMAGE" ] || { err "取不到剛部署的 image,中止(流量仍在舊版)"; exit 1; }
+ok "新版已建立,流量仍在舊版(image: $NEW_IMAGE)"
 
-# Migration（migrate job 同步到新 image 後執行）----------------------------
-bold "4/5 資料庫 migration（alembic upgrade head，idempotent）"
+# Migration(migrate job 同步到新 image 後執行)----------------------------
+bold "4/5 資料庫 migration(alembic upgrade head,idempotent)"
 gcloud run jobs update "$MIGRATE_JOB" \
   --image "$NEW_IMAGE" \
   --region "$REGION" \
@@ -104,7 +104,7 @@ gcloud run jobs execute "$MIGRATE_JOB" \
   --project "$PROJECT" \
   --wait \
   --quiet
-ok "migration 完成（job image 已同步新版）"
+ok "migration 完成(job image 已同步新版)"
 
 # 切流量 + 驗證 ------------------------------------------------------------
 bold "5/5 切換流量到新版並驗證端點"
@@ -114,18 +114,18 @@ gcloud run services update-traffic "$SERVICE" \
   --project "$PROJECT" \
   --quiet
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)')"
-echo "  服務網址：$URL"
+echo "  服務網址:$URL"
 
 HEALTH_CODE="$(curl -s -o /dev/null -w '%{http_code}' "$URL/health" || true)"
-echo "  GET  /health            → $HEALTH_CODE （期望 200）"
+echo "  GET  /health            → $HEALTH_CODE (期望 200)"
 
 HOOK_CODE="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$URL/api/line/webhook" || true)"
-echo "  POST /api/line/webhook  → $HOOK_CODE （期望 400 = 路由存在且簽章驗證生效）"
+echo "  POST /api/line/webhook  → $HOOK_CODE (期望 400 = 路由存在且簽章驗證生效)"
 
 if [ "$HEALTH_CODE" = "200" ] && [ "$HOOK_CODE" = "400" ]; then
-  ok "驗證通過：新版已上線，LINE Console 按 Verify 應會成功"
-  echo "  Webhook URL：$URL/api/line/webhook"
+  ok "驗證通過:新版已上線,LINE Console 按 Verify 應會成功"
+  echo "  Webhook URL:$URL/api/line/webhook"
 else
-  err "驗證未如預期；若 /api/line/webhook 回 404，代表上線的仍是舊版。請檢查部署輸出。"
+  err "驗證未如預期;若 /api/line/webhook 回 404,代表上線的仍是舊版.請檢查部署輸出."
   exit 1
 fi
