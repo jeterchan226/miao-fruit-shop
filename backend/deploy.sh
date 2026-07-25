@@ -72,15 +72,15 @@ bold "2/5 即將部署"
 echo "  服務：$SERVICE"
 echo "  區域：$REGION"
 echo "  專案：$PROJECT"
-echo "  來源：${SCRIPT_DIR}（--source .）"
-echo "  Migrate job：$MIGRATE_JOB（同步新 image 後 alembic upgrade head）"
+echo "  來源：${SCRIPT_DIR}(--source .)"
+echo "  Migrate job:$MIGRATE_JOB (同步新 image 後 alembic upgrade head)"
 if [ "$AUTO_YES" -ne 1 ]; then
   read -r -p "確定要部署到正式環境嗎？(y/N) " reply
   [ "$reply" = "y" ] || [ "$reply" = "Y" ] || { echo "已取消"; exit 0; }
 fi
 
 # 部署（先建新版，暫不切流量）---------------------------------------------
-bold "3/5 gcloud run deploy --no-traffic（既有 env/secret 會保留）"
+bold "3/5 gcloud run deploy --no-traffic(既有 env/secret 會保留）"
 gcloud run deploy "$SERVICE" \
   --source "$SCRIPT_DIR" \
   --region "$REGION" \
