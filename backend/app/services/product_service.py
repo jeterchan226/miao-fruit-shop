@@ -36,6 +36,7 @@ def _to_public_spec(s: ProductSpec) -> PublicSpecRead:
         stock_status=derive_stock_status(s.stock_qty, s.low_stock_threshold),
         note=s.note,
         images=_get_spec_images(s),
+        is_two_pack=s.is_two_pack,
     )
 
 
@@ -52,6 +53,7 @@ def _to_admin_spec(s: ProductSpec) -> AdminSpecRead:
         sort_order=s.sort_order,
         is_active=s.is_active,
         images=_get_spec_images(s),
+        is_two_pack=s.is_two_pack,
     )
 
 

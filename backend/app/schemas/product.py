@@ -9,6 +9,7 @@ class PublicSpecRead(BaseModel):
     stock_status: str
     note: str | None = None
     images: list[str] = []
+    is_two_pack: bool
 
 
 class PublicProductRead(BaseModel):
@@ -35,6 +36,7 @@ class AdminSpecRead(BaseModel):
     sort_order: int
     is_active: bool
     images: list[str] = []
+    is_two_pack: bool
 
 
 class AdminProductRead(BaseModel):
@@ -72,6 +74,7 @@ class SpecCreate(BaseModel):
     low_stock_threshold: int = 3
     note: str | None = None
     sort_order: int = 0
+    is_two_pack: bool = False
 
 
 class SpecUpdate(BaseModel):
@@ -85,3 +88,4 @@ class SpecUpdate(BaseModel):
     note: str | None = None
     sort_order: int | None = None
     is_active: bool | None = None
+    is_two_pack: bool | None = None
