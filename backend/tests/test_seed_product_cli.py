@@ -13,6 +13,9 @@ async def test_seed_product_creates_product_and_specs(db_session: AsyncSession):
     assert len(fetched.specs) == 3
     labels = [s.label for s in fetched.specs]
     assert labels == ["2 粒精緻禮盒", "5 台斤家庭箱", "10 台斤大箱"]
+    two = next(s for s in fetched.specs if "2 粒" in s.label)
+    assert two.is_two_pack is True
+    assert all(not s.is_two_pack for s in fetched.specs if "2 粒" not in s.label)
 
 
 async def test_seed_product_duplicate_raises(db_session: AsyncSession):

@@ -3,8 +3,9 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import FREE_SHIPPING_THRESHOLD, SHIPPING_FEE
+from app.core.constants import FREE_SHIPPING_THRESHOLD, SHIPPING_BY_LAYER
 from app.core.exceptions import (
+    EvenQtyRequiredError,
     InsufficientStockError,
     NotFoundError,
     PriceChangedError,
@@ -26,9 +27,27 @@ class Amounts(NamedTuple):
     total: int
 
 
-def compute_amounts(subtotal: int) -> Amounts:
-    # 付款方式只剩銀行轉帳:無貨到付款手續費,cod_fee 永遠為 0(保留欄位相容)。
-    shipping_fee = 0 if subtotal >= FREE_SHIPPING_THRESHOLD else SHIPPING_FEE
+def compute_layers(items: list[tuple[int, int, bool]]) -> int:
+    # item = (unit_price, qty, is_two_pack);非2粒每箱1層,2粒每2箱1層。
+    layers = 0
+    for _price, qty, is_two_pack in items:
+        layers += qty // 2 if is_two_pack else qty
+    return layers
+
+
+def compute_shipping(subtotal: int, layers: int) -> int:
+    if subtotal >= FREE_SHIPPING_THRESHOLD:
+        return 0
+    if layers <= 0:
+        return 0
+    return SHIPPING_BY_LAYER[min(layers, 3)]
+
+
+def compute_amounts(items: list[tuple[int, int, bool]]) -> Amounts:
+    # item = (unit_price, qty, is_two_pack)。cod_fee 永遠 0(僅剩轉帳)。
+    subtotal = sum(price * qty for price, qty, _ in items)
+    layers = compute_layers(items)
+    shipping_fee = compute_shipping(subtotal, layers)
     return Amounts(
         subtotal=subtotal,
         shipping_fee=shipping_fee,
@@ -86,9 +105,15 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
             raise NotFoundError(f"找不到規格 {item.spec_id}")
         locked.append((spec, item.qty))
 
+    # 1.5) 2 粒裝須以雙數購買
+    for spec, qty in locked:
+        if spec.is_two_pack and qty % 2 != 0:
+            raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
+
     # 2) 伺服器權威重算金額
-    subtotal = sum(spec.price * qty for spec, qty in locked)
-    amounts = compute_amounts(subtotal)
+    amounts = compute_amounts(
+        [(spec.price, qty, spec.is_two_pack) for spec, qty in locked]
+    )
 
     # 3) 價格確認:與前端顯示的 expected_total 不符 → 擋下,回新明細
     if amounts.total != data.expected_total:

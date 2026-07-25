@@ -5,9 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createOrder } from './api.js';
 import { StoreIcon } from './Icons.jsx';
 import { initLineProfile, openLineAddFriend, refreshLineFriendship } from './line.js';
-
-const FREE_SHIPPING = 5000;
-const SHIPPING_FEE  = 150;
+import { FREE_SHIPPING, computeLayers, computeShipping } from './pricing.js';
 
 const getTomorrowStr = () => {
   const d = new Date();
@@ -127,7 +125,9 @@ const BottomSheet = ({ open, title, items, selected, onSelect, onClose }) => {
 
 /* ── Cart Item ─────────────────────────────────────────────── */
 
-const CartItem = ({ item, onQty, onRemove }) => (
+const CartItem = ({ item, onQty, onRemove }) => {
+  const step = item.isTwoPack ? 2 : 1;
+  return (
   <div className="cart-item">
     <div className="cart-item__img" style={{backgroundImage:`url(${item.image})`}}></div>
     <div>
@@ -135,16 +135,17 @@ const CartItem = ({ item, onQty, onRemove }) => (
       <p className="cart-item__s">{item.specLabel} · {item.qty}</p>
       <div className="cart-item__row">
         <div className="qty">
-          <button onClick={() => onQty(item.lineId, item.count - 1)} aria-label="減少">−</button>
+          <button onClick={() => onQty(item.lineId, item.count - step)} aria-label="減少">−</button>
           <span className="v">{item.count}</span>
-          <button onClick={() => onQty(item.lineId, item.count + 1)} aria-label="增加">+</button>
+          <button onClick={() => onQty(item.lineId, item.count + step)} aria-label="增加">+</button>
         </div>
         <button className="cart-item__rm" onClick={() => onRemove(item.lineId)}>移除</button>
       </div>
     </div>
     <span className="cart-item__price">NT$ {(item.price * item.count).toLocaleString()}</span>
   </div>
-);
+  );
+};
 
 const Empty = ({ onBrowse }) => {
   const I = StoreIcon;
@@ -541,7 +542,8 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
   }, [open]);
 
   const subtotal = useMemo(() => items.reduce((s, i) => s + i.price * i.count, 0), [items]);
-  const shipping = subtotal === 0 ? 0 : (subtotal >= FREE_SHIPPING ? 0 : SHIPPING_FEE);
+  const layers   = useMemo(() => computeLayers(items), [items]);
+  const shipping = subtotal === 0 ? 0 : computeShipping(subtotal, layers);
   const total    = subtotal + shipping;
 
   const validate = () => {
@@ -569,6 +571,9 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
     const data = err?.data || {};
     if (err?.code === 'PRICE_CHANGED') {
       return `商品價格已更新，新的訂單合計為 NT$ ${Number(data.total || 0).toLocaleString()}，請重新確認後再送出。`;
+    }
+    if (err?.code === 'EVEN_QTY_REQUIRED') {
+      return err?.data?.detail || '2 粒裝商品請以雙數（2、4、6…）箱購買。';
     }
     if (err?.code === 'INSUFFICIENT_STOCK') return data.detail || '庫存不足，請調整購買數量。';
     if (err?.code === 'NOT_FOUND') return '商品規格已更新，請重新整理頁面後再加入購物車。';
@@ -747,6 +752,9 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
               <div className="row"><span>運費</span><span>{shipping === 0 ? '免運' : 'NT$ ' + shipping}</span></div>
               <div className="row total"><span>合計</span><span className="v">NT$ {total.toLocaleString()}</span></div>
             </div>
+            <p className="drawer__ship-note">
+              運費：一層 $130 / 二層 $150 / 三層 $180・同住址滿 NT$ 3,000 免運
+            </p>
             <button className="btn btn--primary btn--full" onClick={next}>前往結帳 →</button>
           </div>
         )}

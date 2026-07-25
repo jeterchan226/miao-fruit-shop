@@ -49,7 +49,7 @@ async def seed_product(session: AsyncSession) -> Product:
     product.specs = [
         ProductSpec(
             label="2 粒精緻禮盒", qty_text="2 顆 · 約 1.6 台斤", price=880,
-            stock_qty=20, note="蜜糖之味", sort_order=1,
+            stock_qty=20, note="蜜糖之味", sort_order=1, is_two_pack=True,
         ),
         ProductSpec(
             label="5 台斤家庭箱", qty_text="6–8 顆 · 5 台斤", price=1880,

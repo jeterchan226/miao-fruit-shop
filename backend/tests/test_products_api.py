@@ -43,3 +43,23 @@ async def test_list_products_empty(client: AsyncClient):
     resp = await client.get("/api/products")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+async def test_public_products_expose_is_two_pack(client: AsyncClient, db_session: AsyncSession):
+    product = Product(
+        slug="kanro", name="甘露梨", description="d", image="i", season="s",
+        tag="珍稀", tag_color="red",
+    )
+    product.specs = [
+        ProductSpec(label="A", qty_text="q", price=880, stock_qty=20, sort_order=1,
+                    is_two_pack=False),
+        ProductSpec(label="B", qty_text="q", price=1880, stock_qty=3,
+                    low_stock_threshold=3, sort_order=2, is_two_pack=True),
+    ]
+    await product_repo.add(db_session, product)
+
+    resp = await client.get("/api/products")
+    assert resp.status_code == 200
+    specs = resp.json()[0]["specs"]
+    assert all("is_two_pack" in s for s in specs)
+    assert any(s["is_two_pack"] for s in specs)

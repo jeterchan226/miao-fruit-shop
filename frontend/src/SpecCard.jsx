@@ -11,7 +11,8 @@ const Price = ({ value }) => (
 );
 
 export const SpecCard = ({ p, spec, onAdd }) => {
-  const [qty, setQty] = useState(1);
+  const step = spec.isTwoPack ? 2 : 1;
+  const [qty, setQty] = useState(step);
   const [imgIdx, setImgIdx] = useState(0);
   const slidesRef = useRef(null);
   const disabled = spec.stock === 'out';
@@ -104,21 +105,27 @@ export const SpecCard = ({ p, spec, onAdd }) => {
               {stockLabel(spec.stock)}
             </span>
           </div>
+          {spec.isTwoPack && (
+            <div className="specs__row">
+              <span className="k">購買單位</span>
+              <span className="specs__note">請以雙數（2、4、6…）箱購買</span>
+            </div>
+          )}
         </div>
         <div className="pcard__foot speccard__foot">
           <Price value={spec.price} />
           <div className="speccard__actions">
             {!disabled && (
               <div className="qty">
-                <button onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="減少數量">−</button>
+                <button onClick={() => setQty(q => Math.max(step, q - step))} aria-label="減少數量">−</button>
                 <span className="v">{qty}</span>
-                <button onClick={() => setQty(q => q + 1)} aria-label="增加數量">+</button>
+                <button onClick={() => setQty(q => q + step)} aria-label="增加數量">+</button>
               </div>
             )}
             <button
               className="btn btn--primary"
               disabled={disabled}
-              onClick={() => { onAdd(p, spec, qty); setQty(1); }}
+              onClick={() => { onAdd(p, spec, qty); setQty(step); }}
             >
               {disabled ? '已售完' : '加入購物車'}
             </button>

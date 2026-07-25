@@ -19,6 +19,11 @@ class InsufficientStockError(AppError):
     status_code = 409
 
 
+class EvenQtyRequiredError(AppError):
+    code = "EVEN_QTY_REQUIRED"
+    status_code = 409
+
+
 class InvalidStatusTransition(AppError):
     code = "INVALID_STATUS_TRANSITION"
     status_code = 409
