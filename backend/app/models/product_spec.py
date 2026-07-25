@@ -25,6 +25,7 @@ class ProductSpec(Base):
     note: Mapped[str | None] = mapped_column(default=None)
     sort_order: Mapped[int] = mapped_column(default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
+    is_two_pack: Mapped[bool] = mapped_column(default=False)
 
     product: Mapped["Product"] = relationship(back_populates="specs")
     images: Mapped[list["ProductImage"]] = relationship(
