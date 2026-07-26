@@ -42,12 +42,12 @@ def _body(spec_id, qty, *, payment="transfer", expected_total):
 
 async def test_create_order_201(client: AsyncClient, db_session: AsyncSession):
     spec = await _seed_spec(db_session, price=1880, stock=10)
-    resp = await client.post("/api/orders", json=_body(spec.id, 1, expected_total=2010))
+    resp = await client.post("/api/orders", json=_body(spec.id, 1, expected_total=1980))
     assert resp.status_code == 201
     data = resp.json()
     assert data["order_no"].startswith("MM-")
     assert data["status"] == "pending_payment"
-    assert data["total"] == 2010
+    assert data["total"] == 1980
     assert data["items"][0]["unit_price"] == 1880
     assert "stock_qty" not in str(data)
 
@@ -58,7 +58,7 @@ async def test_create_order_price_changed_409(client: AsyncClient, db_session: A
     assert resp.status_code == 409
     data = resp.json()
     assert data["code"] == "PRICE_CHANGED"
-    assert data["total"] == 2010
+    assert data["total"] == 1980
 
 
 async def test_create_order_insufficient_stock_409(client: AsyncClient, db_session: AsyncSession):
