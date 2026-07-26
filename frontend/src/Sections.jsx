@@ -35,7 +35,7 @@ export const Rail = () => {
       </div>
       <div className="rail__item">
         <span className="rail__chip"><I name="box" /></span>
-        <div><h4>運費</h4><p>一層 $130 / 二層 $150 / 三層 $180，同住址滿 NT$ 3,000 免運</p></div>
+        <div><h4>運費</h4><p>一層 $100 / 二層 $150 / 三層 $180，同住址滿 NT$ 3,000 免運</p></div>
       </div>
       <div className="rail__item">
         <span className="rail__chip"><I name="shield-check" /></span>
