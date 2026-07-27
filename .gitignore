@@ -29,3 +29,4 @@ dist/
 frontend/dist/
 .vercel
 .env*
+.worktrees/
