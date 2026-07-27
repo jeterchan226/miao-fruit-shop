@@ -40,3 +40,27 @@ async def test_list_ordered_by_sort_order(db_session: AsyncSession):
     await image_repo.add(db_session, ProductImage(product_id=p.id, url="a.jpg", sort_order=1))
     imgs = await image_repo.list_by_product(db_session, p.id)
     assert [i.url for i in imgs] == ["a.jpg", "b.jpg"]
+
+
+async def test_list_by_group_filters_by_is_two_pack(db_session: AsyncSession):
+    p = await _seed_product(db_session)
+    await image_repo.add(
+        db_session, ProductImage(product_id=p.id, url="two.jpg", is_two_pack=True)
+    )
+    await image_repo.add(
+        db_session, ProductImage(product_id=p.id, url="single.jpg", is_two_pack=False)
+    )
+    two_pack_imgs = await image_repo.list_by_group(db_session, p.id, True)
+    single_imgs = await image_repo.list_by_group(db_session, p.id, False)
+    assert [i.url for i in two_pack_imgs] == ["two.jpg"]
+    assert [i.url for i in single_imgs] == ["single.jpg"]
+
+
+async def test_list_by_product_excludes_group_images(db_session: AsyncSession):
+    p = await _seed_product(db_session)
+    await image_repo.add(db_session, ProductImage(product_id=p.id, url="fallback.jpg"))
+    await image_repo.add(
+        db_session, ProductImage(product_id=p.id, url="two.jpg", is_two_pack=True)
+    )
+    imgs = await image_repo.list_by_product(db_session, p.id)
+    assert [i.url for i in imgs] == ["fallback.jpg"]
