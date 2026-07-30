@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.models.product import Product
+from app.models.product_image import ProductImage
 from app.models.product_spec import ProductSpec
 from app.repositories import product_repo
 from app.schemas.product import ProductUpdate, SpecCreate, SpecUpdate
@@ -82,3 +83,54 @@ async def test_spec_ops_missing_raise(db_session: AsyncSession):
         await product_service.update_spec(db_session, 999999, SpecUpdate(price=1))
     with pytest.raises(NotFoundError):
         await product_service.soft_delete_spec(db_session, 999999)
+
+
+async def test_specs_sharing_is_two_pack_share_images(db_session: AsyncSession):
+    product = Product(
+        slug="kanro", name="甘露梨", description="d", image="i", season="s",
+    )
+    product.specs = [
+        ProductSpec(label="2 粒禮盒", qty_text="q", price=880, stock_qty=20, is_two_pack=True),
+        ProductSpec(label="5 台斤", qty_text="q", price=1880, stock_qty=10, is_two_pack=False),
+        ProductSpec(label="10 台斤", qty_text="q", price=3580, stock_qty=10, is_two_pack=False),
+    ]
+    product.images = [
+        ProductImage(url="two.jpg", is_two_pack=True, sort_order=0),
+        ProductImage(url="single-a.jpg", is_two_pack=False, sort_order=0),
+        ProductImage(url="single-b.jpg", is_two_pack=False, sort_order=1),
+    ]
+    await product_repo.add(db_session, product)
+
+    products = await product_service.list_public_products(db_session)
+    specs = {s.label: s for s in products[0].specs}
+    assert specs["2 粒禮盒"].images == ["two.jpg"]
+    assert specs["5 台斤"].images == ["single-a.jpg", "single-b.jpg"]
+    assert specs["10 台斤"].images == specs["5 台斤"].images
+
+
+async def test_create_spec_returns_matching_group_images(db_session: AsyncSession):
+    product = Product(slug="kanro", name="甘露梨", description="d", image="i", season="s")
+    product.images = [ProductImage(url="two.jpg", is_two_pack=True, sort_order=0)]
+    await product_repo.add(db_session, product)
+
+    created = await product_service.create_spec(
+        db_session, product.id,
+        SpecCreate(label="2 粒精緻禮盒", qty_text="q", price=880, stock_qty=20, is_two_pack=True),
+    )
+    assert created.images == ["two.jpg"]
+
+
+async def test_update_spec_switches_group_images(db_session: AsyncSession):
+    product = Product(slug="kanro", name="甘露梨", description="d", image="i", season="s")
+    product.specs = [
+        ProductSpec(label="A", qty_text="q", price=880, stock_qty=20, is_two_pack=False),
+    ]
+    product.images = [
+        ProductImage(url="single.jpg", is_two_pack=False, sort_order=0),
+        ProductImage(url="two.jpg", is_two_pack=True, sort_order=0),
+    ]
+    await product_repo.add(db_session, product)
+    spec = product.specs[0]
+
+    updated = await product_service.update_spec(db_session, spec.id, SpecUpdate(is_two_pack=True))
+    assert updated.images == ["two.jpg"]
