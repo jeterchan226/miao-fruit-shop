@@ -87,3 +87,46 @@ async def test_reorder_updates_sort_order(db_session: AsyncSession):
     result = await image_service.reorder_images(db_session, p.id, req)
     urls_in_order = [r.url for r in result]
     assert urls_in_order == ["https://gcs/b.jpg", "https://gcs/a.jpg"]
+
+
+async def test_register_group_image_saves_with_flag(db_session: AsyncSession):
+    p = await _seed(db_session)
+    img = await image_service.register_group_image(
+        db_session, p.id, True, ImageRegister(url="https://gcs/two.jpg", sort_order=0)
+    )
+    assert img.url == "https://gcs/two.jpg"
+
+
+async def test_register_group_image_missing_product_raises(db_session: AsyncSession):
+    with pytest.raises(NotFoundError):
+        await image_service.register_group_image(
+            db_session, 999999, True, ImageRegister(url="https://gcs/x.jpg")
+        )
+
+
+async def test_list_group_images_filters_by_flag(db_session: AsyncSession):
+    p = await _seed(db_session)
+    await image_service.register_group_image(
+        db_session, p.id, True, ImageRegister(url="two.jpg")
+    )
+    await image_service.register_group_image(
+        db_session, p.id, False, ImageRegister(url="single.jpg")
+    )
+    two_pack = await image_service.list_group_images(db_session, p.id, True)
+    assert [i.url for i in two_pack] == ["two.jpg"]
+
+
+async def test_reorder_group_images_updates_sort_order(db_session: AsyncSession):
+    p = await _seed(db_session)
+    img_a = await image_service.register_group_image(
+        db_session, p.id, True, ImageRegister(url="a.jpg", sort_order=0)
+    )
+    img_b = await image_service.register_group_image(
+        db_session, p.id, True, ImageRegister(url="b.jpg", sort_order=1)
+    )
+    req = ImageReorderRequest(items=[
+        ImageReorderItem(id=img_a.id, sort_order=1),
+        ImageReorderItem(id=img_b.id, sort_order=0),
+    ])
+    result = await image_service.reorder_group_images(db_session, p.id, True, req)
+    assert [r.url for r in result] == ["b.jpg", "a.jpg"]
