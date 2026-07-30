@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,11 @@ router = APIRouter(
 )
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+ImageGroup = Literal["two_pack", "single"]
+
+
+def _is_two_pack(group: ImageGroup) -> bool:
+    return group == "two_pack"
 
 
 @router.post("/uploads/sign", response_model=SignedUrlResponse)
@@ -54,20 +59,35 @@ async def reorder_images(
     return await image_service.reorder_images(session, product_id, req)
 
 
-@router.get("/specs/{spec_id}/images", response_model=list[AdminImageRead])
-async def list_spec_images(spec_id: int, session: SessionDep) -> list[AdminImageRead]:
-    return await image_service.list_spec_images(session, spec_id)
-
-
-@router.post("/specs/{spec_id}/images", response_model=AdminImageRead, status_code=201)
-async def register_spec_image(
-    spec_id: int, data: ImageRegister, session: SessionDep
-) -> AdminImageRead:
-    return await image_service.register_spec_image(session, spec_id, data)
-
-
-@router.patch("/specs/{spec_id}/images/reorder", response_model=list[AdminImageRead])
-async def reorder_spec_images(
-    spec_id: int, req: ImageReorderRequest, session: SessionDep
+@router.get(
+    "/products/{product_id}/images/group/{group}", response_model=list[AdminImageRead]
+)
+async def list_group_images(
+    product_id: int, group: ImageGroup, session: SessionDep
 ) -> list[AdminImageRead]:
-    return await image_service.reorder_spec_images(session, spec_id, req)
+    return await image_service.list_group_images(session, product_id, _is_two_pack(group))
+
+
+@router.post(
+    "/products/{product_id}/images/group/{group}",
+    response_model=AdminImageRead,
+    status_code=201,
+)
+async def register_group_image(
+    product_id: int, group: ImageGroup, data: ImageRegister, session: SessionDep
+) -> AdminImageRead:
+    return await image_service.register_group_image(
+        session, product_id, _is_two_pack(group), data
+    )
+
+
+@router.patch(
+    "/products/{product_id}/images/group/{group}/reorder",
+    response_model=list[AdminImageRead],
+)
+async def reorder_group_images(
+    product_id: int, group: ImageGroup, req: ImageReorderRequest, session: SessionDep
+) -> list[AdminImageRead]:
+    return await image_service.reorder_group_images(
+        session, product_id, _is_two_pack(group), req
+    )

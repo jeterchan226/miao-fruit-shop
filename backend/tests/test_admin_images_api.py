@@ -109,3 +109,59 @@ async def test_reorder_images(client: AsyncClient, db_session: AsyncSession):
     assert resp.status_code == 200
     urls = [i["url"] for i in resp.json()]
     assert urls == ["https://gcs/b.jpg", "https://gcs/a.jpg"]
+
+
+async def test_register_group_image_201(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth(db_session)
+    p = await _seed_product(db_session)
+    resp = await client.post(
+        f"/api/admin/products/{p.id}/images/group/two_pack",
+        json={"url": "https://gcs/two.jpg", "sort_order": 0},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["url"] == "https://gcs/two.jpg"
+
+
+async def test_list_group_images_filters_by_group(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth(db_session)
+    p = await _seed_product(db_session)
+    await client.post(
+        f"/api/admin/products/{p.id}/images/group/two_pack",
+        json={"url": "two.jpg", "sort_order": 0}, headers=headers,
+    )
+    await client.post(
+        f"/api/admin/products/{p.id}/images/group/single",
+        json={"url": "single.jpg", "sort_order": 0}, headers=headers,
+    )
+    resp = await client.get(f"/api/admin/products/{p.id}/images/group/two_pack", headers=headers)
+    assert resp.status_code == 200
+    assert [i["url"] for i in resp.json()] == ["two.jpg"]
+
+
+async def test_reorder_group_images(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth(db_session)
+    p = await _seed_product(db_session)
+    r1 = await client.post(
+        f"/api/admin/products/{p.id}/images/group/single",
+        json={"url": "a.jpg", "sort_order": 0}, headers=headers,
+    )
+    r2 = await client.post(
+        f"/api/admin/products/{p.id}/images/group/single",
+        json={"url": "b.jpg", "sort_order": 1}, headers=headers,
+    )
+    id_a, id_b = r1.json()["id"], r2.json()["id"]
+    resp = await client.patch(
+        f"/api/admin/products/{p.id}/images/group/single/reorder",
+        json={"items": [{"id": id_a, "sort_order": 1}, {"id": id_b, "sort_order": 0}]},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert [i["url"] for i in resp.json()] == ["b.jpg", "a.jpg"]
+
+
+async def test_group_rejects_invalid_value(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth(db_session)
+    p = await _seed_product(db_session)
+    resp = await client.get(f"/api/admin/products/{p.id}/images/group/bogus", headers=headers)
+    assert resp.status_code == 422
