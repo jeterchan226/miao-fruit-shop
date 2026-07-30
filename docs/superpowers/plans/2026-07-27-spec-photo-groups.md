@@ -1122,7 +1122,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
 - Consumes: `GroupImageGallery`/`GroupImagePreview`（Task 7）
 - Produces: 無新函式匯出——這是最終的 UI 接線，完成後即可手動瀏覽器驗證整條路徑。
 
-- [ ] **Step 1: `SpecEditModal` 改用 `GroupImagePreview`**
+- [x] **Step 1: `SpecEditModal` 改用 `GroupImagePreview`**
 
 把 `SpecEditModal` 裡：
 
@@ -1154,7 +1154,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
           </div>
 ```
 
-- [ ] **Step 2: `CreateSpecModal` 建立完成後的預覽也改用 `GroupImagePreview`**
+- [x] **Step 2: `CreateSpecModal` 建立完成後的預覽也改用 `GroupImagePreview`**
 
 ```js
           <div className="adm-modal__product-body">
@@ -1177,7 +1177,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
 
 （`CreateSpecModal` 本來就有 `productId` prop，不用額外傳遞。）
 
-- [ ] **Step 3: `SpecEditModal` 呼叫端要帶上 `product_id`**
+- [x] **Step 3: `SpecEditModal` 呼叫端要帶上 `product_id`**
 
 `AdminSpecRead` 沒有 `product_id` 欄位，`ProductsTab` 裡的 `p.specs` 陣列元素也沒有，所以在開啟編輯 Modal 時手動附掛。把 `ProductsTab` 內：
 
@@ -1199,7 +1199,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
                           >編輯</button>
 ```
 
-- [ ] **Step 4: 在 `ProductsTab` 商品卡片內加入「商品照片管理」區塊**
+- [x] **Step 4: 在 `ProductsTab` 商品卡片內加入「商品照片管理」區塊**
 
 在 `adm-product-header` 之後、規格表格（`adm-spec-scroll`）之前插入：
 
@@ -1221,7 +1221,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
 
 （原本 `<>` 後面直接接的就是 `<div className="adm-spec-scroll">`，只需要在它前面插入新的 `adm-photo-groups` 區塊，其餘 JSX 結構不變。）
 
-- [ ] **Step 5: 補上 `.adm-photo-groups` CSS**
+- [x] **Step 5: 補上 `.adm-photo-groups` CSS**
 
 在 `frontend/assets/admin.css` 找到 `.img-gallery__grid` 定義前後，新增：
 
@@ -1238,7 +1238,7 @@ git commit -m "feat(admin-ui): add GroupImageGallery/GroupImagePreview component
 }
 ```
 
-- [ ] **Step 6: 手動瀏覽器驗證**
+- [x] **Step 6: 手動瀏覽器驗證**
 
 Run: `cd backend && uv run uvicorn app.main:app --reload --port 8000`（背景）
 Run: `cd frontend && npm run dev`（背景）
@@ -1249,12 +1249,12 @@ Run: `cd frontend && npm run dev`（背景）
 3. 新增規格時勾選/取消「2 粒裝」checkbox，Modal 內預覽即時切換成對應群組的照片（不用存檔）。
 4. 前台商店頁（`npm run dev` 的 storefront 或 `AdminApp` 之外的主站）各規格 `SpecCard` 輪播顯示正確的群組照片，且同群組的不同規格顯示相同照片。
 
-- [ ] **Step 7: 前端建置檢查**
+- [x] **Step 7: 前端建置檢查**
 
 Run: `cd frontend && npm run build`
 Expected: 建置成功，無錯誤。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx frontend/assets/admin.css
