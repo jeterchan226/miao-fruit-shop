@@ -146,9 +146,9 @@ async def update_spec(
         setattr(spec, field, value)
     await session.commit()
     await session.refresh(spec)
-    # product 一定存在,因為 spec.product_id 是 FK 保證有效
     product = await product_repo.get_by_id(session, spec.product_id)
-    assert product is not None
+    if product is None:
+        raise NotFoundError("找不到商品")
     await session.refresh(product, attribute_names=["images"])
     return _to_admin_spec(spec, product.images)
 
