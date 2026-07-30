@@ -690,6 +690,18 @@ button { cursor: pointer; }
   max-height: calc(80vh - 64px);
 }
 
+/* ── Photo groups（商品照片管理）── */
+.adm-photo-groups {
+  display: flex;
+  gap: 20px;
+  padding: 14px 16px 0;
+  flex-wrap: wrap;
+}
+.adm-photo-groups__group {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
 /* ── Image gallery（商品圖片管理）── */
 .img-gallery__grid {
   display: grid;

@@ -774,8 +774,18 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
         <div className="adm-modal__product-body">
           {/* 圖片 */}
           <div className="adm-modal__section">
-            <div className="adm-modal__section-title">規格圖片</div>
-            <SpecImageGallery specId={spec.id} token={token} />
+            <div className="adm-modal__section-title">
+              規格圖片（{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}相片組）
+            </div>
+            <p className="adm-field__hint">
+              此規格使用「{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}」相片組，
+              請至上方「商品照片管理」編輯，這裡僅供預覽。
+            </p>
+            <GroupImagePreview
+              productId={spec.product_id}
+              group={form.is_two_pack ? 'two_pack' : 'single'}
+              token={token}
+            />
           </div>
           {/* 規格資訊 */}
           <div className="adm-modal__section">
@@ -927,8 +937,18 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
           </div>
           <div className="adm-modal__product-body">
             <div className="adm-modal__section">
-              <div className="adm-modal__section-title">規格圖片</div>
-              <SpecImageGallery specId={createdSpec.id} token={token} />
+              <div className="adm-modal__section-title">
+                規格圖片（{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}相片組）
+              </div>
+              <p className="adm-field__hint">
+                此規格使用「{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}」相片組，
+                請至上方「商品照片管理」編輯，這裡僅供預覽。
+              </p>
+              <GroupImagePreview
+                productId={productId}
+                group={form.is_two_pack ? 'two_pack' : 'single'}
+                token={token}
+              />
             </div>
           </div>
           <div className="adm-modal__foot">
@@ -1088,6 +1108,16 @@ function ProductsTab({ token }) {
           {/* Spec rows */}
           {expanded[p.id] && (
             <>
+              <div className="adm-photo-groups">
+                <div className="adm-photo-groups__group">
+                  <div className="adm-modal__section-title">兩粒裝相片</div>
+                  <GroupImageGallery productId={p.id} group="two_pack" token={token} />
+                </div>
+                <div className="adm-photo-groups__group">
+                  <div className="adm-modal__section-title">一層裝相片</div>
+                  <GroupImageGallery productId={p.id} group="single" token={token} />
+                </div>
+              </div>
               <div className="adm-spec-scroll">
               <table className="adm-table adm-table--specs">
                 <thead>
@@ -1142,7 +1172,7 @@ function ProductsTab({ token }) {
                           <button
                             className="adm-btn adm-btn--secondary"
                             style={{ fontSize: 13.5 }}
-                            onClick={() => setEditSpec(s)}
+                            onClick={() => setEditSpec({ ...s, product_id: p.id })}
                           >編輯</button>
                           <button
                             className="adm-btn adm-btn--danger"
