@@ -642,6 +642,7 @@ button { cursor: pointer; }
 }
 .adm-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .adm-field__label { font-size: 13.5px; color: var(--brown-500); font-weight: 500; }
+.adm-field__hint { font-size: 13px; color: var(--brown-500); margin: 4px 0 8px; }
 .adm-checkbox-group {
   grid-column: 1 / -1;
   display: flex;
@@ -688,6 +689,18 @@ button { cursor: pointer; }
   gap: 20px;
   overflow-y: auto;
   max-height: calc(80vh - 64px);
+}
+
+/* ── Photo groups（商品照片管理）── */
+.adm-photo-groups {
+  display: flex;
+  gap: 20px;
+  padding: 14px 16px 0;
+  flex-wrap: wrap;
+}
+.adm-photo-groups__group {
+  flex: 1 1 280px;
+  min-width: 240px;
 }
 
 /* ── Image gallery（商品圖片管理）── */

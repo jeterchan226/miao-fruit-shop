@@ -147,19 +147,19 @@ export const reorderProductImages = (token, productId, items) =>
     body: JSON.stringify({ items }),
   });
 
-// ── Admin spec image APIs ──
+// ── Admin group image APIs（依包裝群組：two_pack / single）──
 
-export const listSpecImages = (token, specId) =>
-  adminRequest(token, `/api/admin/specs/${specId}/images`);
+export const listGroupImages = (token, productId, group) =>
+  adminRequest(token, `/api/admin/products/${productId}/images/group/${group}`);
 
-export const registerSpecImage = (token, specId, url, sortOrder = 0) =>
-  adminRequest(token, `/api/admin/specs/${specId}/images`, {
+export const registerGroupImage = (token, productId, group, url, sortOrder = 0) =>
+  adminRequest(token, `/api/admin/products/${productId}/images/group/${group}`, {
     method: 'POST',
     body: JSON.stringify({ url, sort_order: sortOrder }),
   });
 
-export const reorderSpecImages = (token, specId, items) =>
-  adminRequest(token, `/api/admin/specs/${specId}/images/reorder`, {
+export const reorderGroupImages = (token, productId, group, items) =>
+  adminRequest(token, `/api/admin/products/${productId}/images/group/${group}/reorder`, {
     method: 'PATCH',
     body: JSON.stringify({ items }),
   });
@@ -228,14 +228,14 @@ window.MiaoApi = {
   getCurrentAdmin,
   listAdminOrders,
   listAdminProducts,
+  listGroupImages,
   listProductImages,
   listProducts,
-  listSpecImages,
   loginAdmin,
+  registerGroupImage,
   registerProductImage,
-  registerSpecImage,
+  reorderGroupImages,
   reorderProductImages,
-  reorderSpecImages,
   signUpload,
   updateAdminOrderStatus,
   updateAdminProduct,

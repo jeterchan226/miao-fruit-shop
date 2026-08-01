@@ -8,7 +8,6 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.product import Product
-    from app.models.product_spec import ProductSpec
 
 
 class ProductImage(Base):
@@ -16,9 +15,7 @@ class ProductImage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
-    spec_id: Mapped[int | None] = mapped_column(
-        ForeignKey("product_specs.id"), index=True, default=None
-    )
+    is_two_pack: Mapped[bool | None] = mapped_column(default=None)
     url: Mapped[str] = mapped_column()
     sort_order: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(
@@ -26,4 +23,3 @@ class ProductImage(Base):
     )
 
     product: Mapped["Product"] = relationship(back_populates="images")
-    spec: Mapped["ProductSpec | None"] = relationship(back_populates="images")

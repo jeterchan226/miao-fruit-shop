@@ -26,10 +26,10 @@ import {
   getCurrentAdmin,
   listAdminOrders,
   listAdminProducts,
-  listSpecImages,
+  listGroupImages,
   loginAdmin,
-  registerSpecImage,
-  reorderSpecImages,
+  registerGroupImage,
+  reorderGroupImages,
   signUpload,
   updateAdminOrderStatus,
   updateSpec,
@@ -603,8 +603,10 @@ function SortableImageItem({ image, onDelete }) {
   );
 }
 
-/* ── Spec image gallery (規格層級) ── */
-function SpecImageGallery({ specId, token }) {
+const GROUP_LABEL = { two_pack: '兩粒裝', single: '一層裝' };
+
+/* ── 群組相片相簿（依包裝群組，可編輯）── */
+function GroupImageGallery({ productId, group, token }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -615,8 +617,8 @@ function SpecImageGallery({ specId, token }) {
   );
 
   useEffect(() => {
-    listSpecImages(token, specId).then(setImages).catch(() => {});
-  }, [specId, token]);
+    listGroupImages(token, productId, group).then(setImages).catch(() => {});
+  }, [productId, group, token]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -630,7 +632,7 @@ function SpecImageGallery({ specId, token }) {
         headers: { 'Content-Type': file.type },
         body: file,
       });
-      const img = await registerSpecImage(token, specId, public_url, images.length);
+      const img = await registerGroupImage(token, productId, group, public_url, images.length);
       setImages((prev) => [...prev, img]);
     } catch (err) {
       setError('上傳失敗：' + (err?.message || '請稍後再試'));
@@ -659,9 +661,10 @@ function SpecImageGallery({ specId, token }) {
     const newImages = arrayMove(images, oldIndex, newIndex);
     setImages(newImages);
     try {
-      await reorderSpecImages(
+      await reorderGroupImages(
         token,
-        specId,
+        productId,
+        group,
         newImages.map((img, idx) => ({ id: img.id, sort_order: idx })),
       );
     } catch {
@@ -692,6 +695,26 @@ function SpecImageGallery({ specId, token }) {
         </SortableContext>
       </DndContext>
       {error && <div className="adm-alert" style={{ marginTop: 8 }}>{error}</div>}
+    </div>
+  );
+}
+
+/* ── 群組相片唯讀預覽（規格 Modal 內用）── */
+function GroupImagePreview({ productId, group, token }) {
+  const [images, setImages] = useState([]);
+
+  useEffect(() => {
+    listGroupImages(token, productId, group).then(setImages).catch(() => {});
+  }, [productId, group, token]);
+
+  return (
+    <div className="img-gallery img-gallery--preview">
+      <div className="img-gallery__grid">
+        {images.map((img) => (
+          <img key={img.id} src={img.url} alt="" className="img-gallery__thumb" />
+        ))}
+        {images.length === 0 && <span className="adm-muted">此群組尚無照片</span>}
+      </div>
     </div>
   );
 }
@@ -751,8 +774,18 @@ function SpecEditModal({ spec, token, onClose, onSaved }) {
         <div className="adm-modal__product-body">
           {/* 圖片 */}
           <div className="adm-modal__section">
-            <div className="adm-modal__section-title">規格圖片</div>
-            <SpecImageGallery specId={spec.id} token={token} />
+            <div className="adm-modal__section-title">
+              規格圖片（{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}相片組）
+            </div>
+            <p className="adm-field__hint">
+              此規格使用「{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}」相片組，
+              請至上方「商品照片管理」編輯，這裡僅供預覽。
+            </p>
+            <GroupImagePreview
+              productId={spec.product_id}
+              group={form.is_two_pack ? 'two_pack' : 'single'}
+              token={token}
+            />
           </div>
           {/* 規格資訊 */}
           <div className="adm-modal__section">
@@ -904,8 +937,18 @@ function CreateSpecModal({ productId, token, onClose, onCreated }) {
           </div>
           <div className="adm-modal__product-body">
             <div className="adm-modal__section">
-              <div className="adm-modal__section-title">規格圖片</div>
-              <SpecImageGallery specId={createdSpec.id} token={token} />
+              <div className="adm-modal__section-title">
+                規格圖片（{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}相片組）
+              </div>
+              <p className="adm-field__hint">
+                此規格使用「{GROUP_LABEL[form.is_two_pack ? 'two_pack' : 'single']}」相片組，
+                請至上方「商品照片管理」編輯，這裡僅供預覽。
+              </p>
+              <GroupImagePreview
+                productId={productId}
+                group={form.is_two_pack ? 'two_pack' : 'single'}
+                token={token}
+              />
             </div>
           </div>
           <div className="adm-modal__foot">
@@ -1065,6 +1108,16 @@ function ProductsTab({ token }) {
           {/* Spec rows */}
           {expanded[p.id] && (
             <>
+              <div className="adm-photo-groups">
+                <div className="adm-photo-groups__group">
+                  <div className="adm-modal__section-title">兩粒裝相片</div>
+                  <GroupImageGallery productId={p.id} group="two_pack" token={token} />
+                </div>
+                <div className="adm-photo-groups__group">
+                  <div className="adm-modal__section-title">一層裝相片</div>
+                  <GroupImageGallery productId={p.id} group="single" token={token} />
+                </div>
+              </div>
               <div className="adm-spec-scroll">
               <table className="adm-table adm-table--specs">
                 <thead>
@@ -1119,7 +1172,7 @@ function ProductsTab({ token }) {
                           <button
                             className="adm-btn adm-btn--secondary"
                             style={{ fontSize: 13.5 }}
-                            onClick={() => setEditSpec(s)}
+                            onClick={() => setEditSpec({ ...s, product_id: p.id })}
                           >編輯</button>
                           <button
                             className="adm-btn adm-btn--danger"

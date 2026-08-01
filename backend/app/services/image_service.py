@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, NotFoundError
 from app.models.product_image import ProductImage
-from app.repositories import image_repo, product_repo, spec_repo
+from app.repositories import image_repo, product_repo
 from app.schemas.image import (
     AdminImageRead,
     ImageRegister,
@@ -25,8 +25,10 @@ async def list_images(session: AsyncSession, product_id: int) -> list[AdminImage
     return [AdminImageRead.model_validate(i) for i in imgs]
 
 
-async def list_spec_images(session: AsyncSession, spec_id: int) -> list[AdminImageRead]:
-    imgs = await image_repo.list_by_spec(session, spec_id)
+async def list_group_images(
+    session: AsyncSession, product_id: int, is_two_pack: bool
+) -> list[AdminImageRead]:
+    imgs = await image_repo.list_by_group(session, product_id, is_two_pack)
     return [AdminImageRead.model_validate(i) for i in imgs]
 
 
@@ -43,15 +45,15 @@ async def register_image(
     return AdminImageRead.model_validate(img)
 
 
-async def register_spec_image(
-    session: AsyncSession, spec_id: int, data: ImageRegister
+async def register_group_image(
+    session: AsyncSession, product_id: int, is_two_pack: bool, data: ImageRegister
 ) -> AdminImageRead:
-    spec = await spec_repo.get_by_id(session, spec_id)
-    if spec is None:
-        raise NotFoundError("找不到規格")
+    product = await product_repo.get_by_id(session, product_id)
+    if product is None:
+        raise NotFoundError("找不到商品")
     img = ProductImage(
-        product_id=spec.product_id,
-        spec_id=spec_id,
+        product_id=product_id,
+        is_two_pack=is_two_pack,
         url=data.url,
         sort_order=data.sort_order,
     )
@@ -77,18 +79,22 @@ async def reorder_images(
 ) -> list[AdminImageRead]:
     for item in req.items:
         img = await image_repo.get_by_id(session, item.id)
-        if img is not None and img.product_id == product_id and img.spec_id is None:
+        if img is not None and img.product_id == product_id and img.is_two_pack is None:
             img.sort_order = item.sort_order
     await session.commit()
     return await list_images(session, product_id)
 
 
-async def reorder_spec_images(
-    session: AsyncSession, spec_id: int, req: ImageReorderRequest
+async def reorder_group_images(
+    session: AsyncSession, product_id: int, is_two_pack: bool, req: ImageReorderRequest
 ) -> list[AdminImageRead]:
     for item in req.items:
         img = await image_repo.get_by_id(session, item.id)
-        if img is not None and img.spec_id == spec_id:
+        if (
+            img is not None
+            and img.product_id == product_id
+            and img.is_two_pack == is_two_pack
+        ):
             img.sort_order = item.sort_order
     await session.commit()
-    return await list_spec_images(session, spec_id)
+    return await list_group_images(session, product_id, is_two_pack)
