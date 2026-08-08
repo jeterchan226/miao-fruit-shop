@@ -1,6 +1,7 @@
 /* Spec group tabs — 兩粒裝／箱裝兩組，各自共用一組圖片輪播 + 緊湊規格列表 */
 
 import { useEffect, useRef, useState } from 'react';
+import { StoreIcon } from './Icons.jsx';
 
 const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '已售完';
 
@@ -53,22 +54,52 @@ const GroupCarousel = ({ images, season }) => {
     resetTimer();
   };
 
+  const handleArrow = (dir) => {
+    const next = (imgIdx + dir + images.length) % images.length;
+    goTo(next);
+    resetTimer();
+  };
+
   return (
-    <div className="pcard__carousel">
-      <div className="pcard__slides" ref={slidesRef}>
-        {images.length > 0 ? images.map((url, i) => (
-          <div key={i} className="pcard__slide" style={{ backgroundImage: `url(${url})` }} />
-        )) : (
-          <div className="pcard__slide pcard__slide--empty" />
+    <div className="pcard__media">
+      <div className="pcard__carousel">
+        <div className="pcard__slides" ref={slidesRef}>
+          {images.length > 0 ? images.map((url, i) => (
+            <div key={i} className="pcard__slide" style={{ backgroundImage: `url(${url})` }} />
+          )) : (
+            <div className="pcard__slide pcard__slide--empty" />
+          )}
+        </div>
+        <span className="pcard__season">產季 {season}</span>
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="pcard__arrow pcard__arrow--prev"
+              onClick={() => handleArrow(-1)}
+              aria-label="上一張圖片"
+            >
+              <StoreIcon name="chevron-left" size={18} />
+            </button>
+            <button
+              type="button"
+              className="pcard__arrow pcard__arrow--next"
+              onClick={() => handleArrow(1)}
+              aria-label="下一張圖片"
+            >
+              <StoreIcon name="chevron-right" size={18} />
+            </button>
+          </>
         )}
       </div>
-      <span className="pcard__season">產季 {season}</span>
       {images.length > 1 && (
-        <div className="pcard__dots">
-          {images.map((_, i) => (
+        <div className="pcard__thumbs">
+          {images.map((url, i) => (
             <button
               key={i}
-              className={'pcard__dot' + (i === imgIdx ? ' is-active' : '')}
+              type="button"
+              className={'pcard__thumb' + (i === imgIdx ? ' is-active' : '')}
+              style={{ backgroundImage: `url(${url})` }}
               onClick={() => handleDotClick(i)}
               aria-label={`圖片 ${i + 1}`}
             />

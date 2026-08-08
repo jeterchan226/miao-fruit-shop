@@ -29,6 +29,10 @@ export const StoreIcon = ({ name, size = 22, stroke = 1.7 }) => {
       return (<svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.5-4.5-10-10-10S2 6.5 2 12c0 5 3.7 9.1 8.4 9.9V15h-2.5v-3h2.5v-2c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2V9h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.7l-.4 3h-2.3v7c4.7-.8 8.4-4.9 8.4-9.9z"/></svg>);
     case 'instagram':
       return (<svg {...props}><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>);
+    case 'chevron-left':
+      return (<svg {...props}><polyline points="15 18 9 12 15 6"/></svg>);
+    case 'chevron-right':
+      return (<svg {...props}><polyline points="9 18 15 12 9 6"/></svg>);
     default: return null;
   }
 };
