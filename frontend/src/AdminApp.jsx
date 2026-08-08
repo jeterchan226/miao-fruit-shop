@@ -605,6 +605,11 @@ function SortableImageItem({ image, onDelete }) {
 
 const GROUP_LABEL = { two_pack: '兩粒裝', single: '一層裝' };
 
+const SPEC_GROUPS = [
+  { key: 'single', label: '一層裝規格', filter: (s) => !s.is_two_pack },
+  { key: 'two_pack', label: '兩粒裝規格', filter: (s) => s.is_two_pack },
+];
+
 /* ── 群組相片相簿（依包裝群組，可編輯）── */
 function GroupImageGallery({ productId, group, token }) {
   const [images, setImages] = useState([]);
@@ -1126,74 +1131,83 @@ function ProductsTab({ token }) {
                   <GroupImageGallery productId={p.id} group="single" token={token} />
                 </div>
               </div>
-              <div className="adm-spec-scroll">
-              <table className="adm-table adm-table--specs">
-                <thead>
-                  <tr>
-                    <th style={{ width: 56 }}>順序</th>
-                    <th>規格名稱</th>
-                    <th>容量</th>
-                    <th className="adm-num">售價</th>
-                    <th className="adm-num">庫存</th>
-                    <th>庫存狀態</th>
-                    <th>圖片</th>
-                    <th>狀態</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(p.specs || []).map((s, idx, arr) => (
-                    <tr key={s.id}>
-                      <td>
-                        <div className="adm-order-btns">
-                          <button
-                            className="adm-order-btn"
-                            disabled={idx === 0}
-                            onClick={() => moveSpec(arr, idx, -1)}
-                            title="往上移"
-                          >▲</button>
-                          <button
-                            className="adm-order-btn"
-                            disabled={idx === arr.length - 1}
-                            onClick={() => moveSpec(arr, idx, 1)}
-                            title="往下移"
-                          >▼</button>
-                        </div>
-                      </td>
-                      <td>{s.label}</td>
-                      <td className="adm-muted">{s.qty_text}</td>
-                      <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
-                      <td className="adm-num">{s.stock_qty}</td>
-                      <td>
-                        <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
-                          {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
-                        </span>
-                      </td>
-                      <td>{s.images?.length ?? 0}</td>
-                      <td>
-                        <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
-                          {s.is_active ? '上架' : '下架'}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            className="adm-btn adm-btn--secondary"
-                            style={{ fontSize: 13.5 }}
-                            onClick={() => setEditSpec({ ...s, product_id: p.id })}
-                          >編輯</button>
-                          <button
-                            className="adm-btn adm-btn--danger"
-                            style={{ fontSize: 13.5 }}
-                            onClick={() => setConfirmDelete(s)}
-                          >刪除</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
+              {SPEC_GROUPS.map((g) => {
+                const arr = (p.specs || []).filter(g.filter);
+                return (
+                  <div key={g.key} className="adm-spec-scroll">
+                    <div className="adm-modal__section-title">{g.label}</div>
+                    <table className="adm-table adm-table--specs">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 56 }}>順序</th>
+                          <th>規格名稱</th>
+                          <th>容量</th>
+                          <th className="adm-num">售價</th>
+                          <th className="adm-num">庫存</th>
+                          <th>庫存狀態</th>
+                          <th>圖片</th>
+                          <th>狀態</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {arr.length === 0 && (
+                          <tr><td colSpan={9} className="adm-muted">尚無此分類規格</td></tr>
+                        )}
+                        {arr.map((s, idx) => (
+                          <tr key={s.id}>
+                            <td>
+                              <div className="adm-order-btns">
+                                <button
+                                  className="adm-order-btn"
+                                  disabled={idx === 0}
+                                  onClick={() => moveSpec(arr, idx, -1)}
+                                  title="往上移"
+                                >▲</button>
+                                <button
+                                  className="adm-order-btn"
+                                  disabled={idx === arr.length - 1}
+                                  onClick={() => moveSpec(arr, idx, 1)}
+                                  title="往下移"
+                                >▼</button>
+                              </div>
+                            </td>
+                            <td>{s.label}</td>
+                            <td className="adm-muted">{s.qty_text}</td>
+                            <td className="adm-num">NT$ {Number(s.price).toLocaleString()}</td>
+                            <td className="adm-num">{s.stock_qty}</td>
+                            <td>
+                              <span className={`adm-badge adm-badge--${s.stock_status === 'in' ? 'confirmed' : s.stock_status === 'low' ? 'shipping' : 'cancelled'}`}>
+                                {STOCK_STATUS_LABELS[s.stock_status] || s.stock_status}
+                              </span>
+                            </td>
+                            <td>{s.images?.length ?? 0}</td>
+                            <td>
+                              <span className={`adm-badge adm-badge--${s.is_active ? 'confirmed' : 'cancelled'}`}>
+                                {s.is_active ? '上架' : '下架'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  className="adm-btn adm-btn--secondary"
+                                  style={{ fontSize: 13.5 }}
+                                  onClick={() => setEditSpec({ ...s, product_id: p.id })}
+                                >編輯</button>
+                                <button
+                                  className="adm-btn adm-btn--danger"
+                                  style={{ fontSize: 13.5 }}
+                                  onClick={() => setConfirmDelete(s)}
+                                >刪除</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
               <div style={{ padding: '10px 16px' }}>
                 <button
                   className="adm-btn adm-btn--secondary"
