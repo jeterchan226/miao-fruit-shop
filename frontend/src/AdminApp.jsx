@@ -621,25 +621,32 @@ function GroupImageGallery({ productId, group, token }) {
   }, [productId, group, token]);
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
     setUploading(true);
     setError('');
-    try {
-      const { signed_url, public_url } = await signUpload(token, file.name, file.type);
-      await fetch(signed_url, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      const img = await registerGroupImage(token, productId, group, public_url, images.length);
-      setImages((prev) => [...prev, img]);
-    } catch (err) {
-      setError('上傳失敗：' + (err?.message || '請稍後再試'));
-    } finally {
-      setUploading(false);
-      e.target.value = '';
+    let nextOrder = images.length;
+    const failed = [];
+    for (const file of files) {
+      try {
+        const { signed_url, public_url } = await signUpload(token, file.name, file.type);
+        await fetch(signed_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        const img = await registerGroupImage(token, productId, group, public_url, nextOrder);
+        nextOrder += 1;
+        setImages((prev) => [...prev, img]);
+      } catch {
+        failed.push(file.name);
+      }
     }
+    if (failed.length > 0) {
+      setError(`上傳失敗：${failed.join('、')}`);
+    }
+    setUploading(false);
+    e.target.value = '';
   };
 
   const handleDelete = async (imageId) => {
@@ -686,6 +693,7 @@ function GroupImageGallery({ productId, group, token }) {
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                multiple
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
                 disabled={uploading}

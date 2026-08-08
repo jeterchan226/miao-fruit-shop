@@ -23,6 +23,9 @@ services:
     command: >
       sh -c "uv run --no-dev alembic upgrade head &&
       uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port $${PORT:-8080}"
+    # 帶入 .env 其餘設定(GCS/LINE 等)；下面 environment 的同名 key 會覆蓋掉 .env 版本
+    env_file:
+      - .env
     # 容器內連 db 服務,host 用 db 而非 localhost
     environment:
       DATABASE_URL: postgresql+asyncpg://miao:miao@db:5432/miao
