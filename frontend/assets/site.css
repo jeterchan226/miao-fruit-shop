@@ -420,8 +420,10 @@ button { font-family: inherit; }
   flex: 0 0 100%;
   scroll-snap-align: start;
   aspect-ratio: 4/3;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--cream-card);
 }
 .pcard__slide--empty { background: var(--sage-100); }
 .pcard__dots {
