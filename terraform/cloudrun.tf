@@ -178,6 +178,17 @@ resource "google_cloud_run_v2_job" "migrate" {
             }
           }
         }
+        env {
+          # config.py 的 Settings.jwt_secret 是必填欄位,alembic env.py 會 import app.core.config,
+          # 沒設這個 job 在 import 階段就 pydantic ValidationError,連 DB 都連不到。
+          name = "JWT_SECRET"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.jwt_secret.secret_id
+              version = "latest"
+            }
+          }
+        }
       }
     }
   }
@@ -191,5 +202,6 @@ resource "google_cloud_run_v2_job" "migrate" {
   depends_on = [
     google_project_service.apis,
     google_secret_manager_secret_version.db_password,
+    google_secret_manager_secret_version.jwt_secret,
   ]
 }
