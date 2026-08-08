@@ -380,7 +380,7 @@ button { font-family: inherit; }
 .shop-state--warn {
   color: var(--packaging-red);
 }
-.shop__grid--specs       { grid-template-columns: repeat(3, 1fr); }
+.shop__products { display: flex; flex-direction: column; gap: 24px; }
 
 /* ---- VERTICAL card (default) ---- */
 .pcard {
@@ -462,6 +462,8 @@ button { font-family: inherit; }
   border-bottom-color: var(--sage-600);
 }
 .specs__tab .num { font-family: var(--font-mono); font-size: 10px; opacity: 0.7; display: block; }
+.specs__tab--empty { cursor: not-allowed; opacity: 0.5; }
+.specs__tab--empty:hover { color: var(--fg-muted); }
 
 .specs__panel {
   display: flex; flex-direction: column; gap: 10px;
@@ -475,6 +477,16 @@ button { font-family: inherit; }
 .specs__row .k { color: var(--fg-muted); }
 .specs__qty { font-size: 13px; color: var(--fg); margin: 0; }
 .specs__note { font-size: 12px; color: var(--sage-700); }
+
+.spec-group .pcard__body { gap: 14px; }
+.spec-rows { display: flex; flex-direction: column; gap: 12px; }
+.spec-row {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+  padding: 14px 0; border-top: 1px solid rgba(107,125,82,0.12);
+}
+.spec-rows .spec-row:first-child { border-top: none; padding-top: 0; }
+.spec-row__name { font-family: var(--font-serif-cjk); font-size: 16px; font-weight: 600; color: var(--fg-strong); margin: 0 0 6px; }
+.spec-row__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
 
 .pcard__foot {
   display: flex; align-items: center; justify-content: space-between;
@@ -511,6 +523,19 @@ button { font-family: inherit; }
 .pcard--horizontal .pcard__img { aspect-ratio: auto; height: 100%; }
 .pcard--horizontal .pcard__body { padding: 24px 28px; }
 .pcard--horizontal .pcard__desc { font-size: 14px; }
+
+/* GROUP card (spec-group) — image left, product info + specs right */
+.spec-group {
+  display: grid; grid-template-columns: 440px 1fr; gap: 0; align-items: stretch;
+}
+.spec-group .pcard__carousel {
+  height: 100%;
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+}
+.spec-group .pcard__slides,
+.spec-group .pcard__slide { height: 100%; }
+.spec-group .pcard__slide { aspect-ratio: auto; }
+.spec-group .pcard__body { padding: 24px 28px; }
 
 /* POLAROID card */
 .pcard--polaroid {
@@ -1506,6 +1531,19 @@ button { font-family: inherit; }
    RESPONSIVE — tablet portrait (≤ 900px)
 ============================================================ */
 @media (max-width: 900px) {
+  /* Spec group card: image-left/info-right split needs room the right
+     column doesn't have on tablet portrait — stack instead. */
+  .spec-group {
+    grid-template-columns: 1fr;
+  }
+  .spec-group .pcard__carousel {
+    height: auto;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  .spec-group .pcard__slides,
+  .spec-group .pcard__slide { height: auto; }
+  .spec-group .pcard__slide { aspect-ratio: 4/3; }
+
   /* Nav: collapse links into slide-down panel triggered by hamburger */
   .nav__links {
     position: fixed;
@@ -1687,8 +1725,7 @@ button { font-family: inherit; }
   .shop__grid,
   .shop__grid--vertical,
   .shop__grid--horizontal,
-  .shop__grid--polaroid,
-  .shop__grid--specs {
+  .shop__grid--polaroid {
     grid-template-columns: 1fr;
     gap: 18px;
   }
@@ -1699,6 +1736,7 @@ button { font-family: inherit; }
     aspect-ratio: 4/3; height: auto;
   }
   .pcard--horizontal .pcard__body { padding: 18px 20px 20px; }
+  .spec-group .pcard__body { padding: 18px 20px 20px; }
   .pcard__name { font-size: 20px; }
   .pcard__body { padding: 18px 18px 20px; }
   .price { font-size: 22px; }

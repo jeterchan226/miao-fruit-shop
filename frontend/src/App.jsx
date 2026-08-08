@@ -6,7 +6,7 @@ import { listProducts } from './api.js';
 import { CartDrawer } from './Cart.jsx';
 import { Header } from './Header.jsx';
 import { Hero, scrollToId } from './Hero.jsx';
-import { SpecCard } from './SpecCard.jsx';
+import { SpecGroupTabs } from './SpecGroupTabs.jsx';
 import {
   Belief,
   Contact,
@@ -141,12 +141,10 @@ export default function App() {
             <div className="shop-state">目前沒有上架商品。</div>
           )}
           <div className="shop">
-            <div className="shop__grid shop__grid--specs">
-              {products.flatMap(p =>
-                p.specs.map(spec => (
-                  <SpecCard key={p.id + '-' + spec.id} p={p} spec={spec} onAdd={addToCart} />
-                ))
-              )}
+            <div className="shop__products">
+              {products.map(p => (
+                <SpecGroupTabs key={p.id} product={p} onAdd={addToCart} />
+              ))}
             </div>
             <Rail />
           </div>
