@@ -1,6 +1,6 @@
 # 前台商品呈現改版：包裝群組 Tabs Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 把商店區塊從「每個 spec 一張獨立 SpecCard（各自輪播圖）」改成「箱裝／兩粒裝兩個 Tab，各自共用一組圖片輪播 + 緊湊規格列表」。
 
@@ -407,10 +407,14 @@ git commit -m "docs: mark spec-group-tabs plan complete"
 
 ## 完成後檢查清單（對照 spec）
 
-- [ ] `SpecGroupTabs.jsx` 依 `isTwoPack` 分組，取代 `SpecCard.jsx` 逐一渲染。
-- [ ] Tab 預設 active 為箱裝；箱裝為空時 fallback 到第一個非空群組。
-- [ ] 空群組 tab 顯示但不可點擊，標示「無商品」。
-- [ ] 規格列表維持多規格各自加入購物車互動（方案 A）。
-- [ ] 售完 disabled、兩粒裝雙數限購邏輯原樣保留。
-- [ ] 購物車、`pricing.js`、`addToCart` 資料形狀未變動。
-- [ ] `npm run build`、`npm run test` 通過，瀏覽器手動驗證全項通過。
+- [x] `SpecGroupTabs.jsx` 依 `isTwoPack` 分組，取代 `SpecCard.jsx` 逐一渲染。
+- [x] Tab 預設 active 為箱裝；箱裝為空時 fallback 到第一個非空群組。
+- [x] 空群組 tab 顯示但不可點擊，標示「無商品」。
+- [x] 規格列表維持多規格各自加入購物車互動（方案 A）。
+- [x] 售完 disabled、兩粒裝雙數限購邏輯原樣保留。
+- [x] 購物車、`pricing.js`、`addToCart` 資料形狀未變動。
+- [x] `npm run build`、`npm run test` 通過，瀏覽器手動驗證全項通過。
+
+## 驗證時發現並修正的問題（計畫外）
+
+沿用舊的 `.shop__grid--specs`（3 欄 grid）當容器，單一群組卡片只分到 1/3 寬度，CJK 文字被擠到逐字換行。改成 `.shop__products`（單欄 flex column），讓群組卡片吃滿 `.shop` 主欄寬度。見 commit `fix(front): give spec-group card full shop width instead of 3-col grid`。
