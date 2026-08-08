@@ -491,6 +491,39 @@ button { cursor: pointer; }
   text-align: right;
 }
 
+/* ── Order edit / transfer-info forms (訂單編輯 / 轉帳資訊) ── */
+.adm-modal__transfer-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+}
+.adm-modal__edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+.adm-modal__item-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.adm-modal__item-edit-row select { flex: 1; min-width: 0; }
+.adm-modal__item-edit-qty { width: 60px; flex: 0 0 auto; }
+.adm-modal__item-row-remove {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #F0E8DA;
+  border: none;
+  color: var(--brown-500);
+  font-size: 12px;
+  transition: background var(--dur-micro);
+}
+.adm-modal__item-row-remove:hover { background: #E5D8C5; color: var(--brown-800); }
+
 /* Modal error */
 .adm-modal__error {
   padding: 12px 20px 0;

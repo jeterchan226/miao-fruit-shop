@@ -149,3 +149,122 @@ async def test_change_status_order_not_found(
         headers=headers,
     )
     assert resp.status_code == 404
+
+
+async def test_update_order_requires_auth(client: AsyncClient):
+    resp = await client.patch(
+        "/api/admin/orders/MM-XX01", json={"note": "改備註"}
+    )
+    assert resp.status_code == 401
+
+
+async def test_update_order_simple_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP01"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP01",
+        json={"customer_name": "陳大文", "note": "客戶臨時改地址"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["customer_name"] == "陳大文"
+    assert body["note"] == "客戶臨時改地址"
+    assert body["ship_city"] == "台北市"  # 未送的欄位不變
+
+
+async def test_update_order_not_editable_when_shipping(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP02", status="shipping"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP02",
+        json={"note": "不該成功"},
+        headers=headers,
+    )
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "ORDER_NOT_EDITABLE"
+
+
+async def test_update_order_not_found(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth_header(db_session)
+    resp = await client.patch(
+        "/api/admin/orders/MM-GHOST",
+        json={"note": "x"},
+        headers=headers,
+    )
+    assert resp.status_code == 404
+
+
+async def test_update_order_rejects_unknown_field(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP03"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP03",
+        json={"status": "ready"},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+
+
+async def test_update_transfer_info_requires_auth(client: AsyncClient):
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX01/transfer", json={"transfer_last5": "12345"}
+    )
+    assert resp.status_code == 401
+
+
+async def test_update_transfer_info(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-TX02"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX02/transfer",
+        json={
+            "transfer_last5": "88888",
+            "transfer_payer_name": "王小明",
+            "transfer_note": "已核對",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["transfer_last5"] == "88888"
+    assert body["transfer_payer_name"] == "王小明"
+    assert body["transfer_note"] == "已核對"
+    assert body["status"] == "pending_payment"  # 不影響狀態
+
+
+async def test_update_transfer_info_allowed_even_when_shipping(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-TX03", status="shipping"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX03/transfer",
+        json={"transfer_last5": "00000"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["transfer_last5"] == "00000"
+
+
+async def test_update_transfer_info_not_found(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    resp = await client.patch(
+        "/api/admin/orders/MM-GHOST/transfer",
+        json={"transfer_last5": "00000"},
+        headers=headers,
+    )
+    assert resp.status_code == 404

@@ -29,6 +29,11 @@ class InvalidStatusTransition(AppError):
     status_code = 409
 
 
+class OrderNotEditableError(AppError):
+    code = "ORDER_NOT_EDITABLE"
+    status_code = 409
+
+
 class AuthError(AppError):
     code = "AUTH_ERROR"
     status_code = 401

@@ -217,6 +217,24 @@ export const updateAdminOrderStatus = (token, orderNo, status) => request(
   }
 );
 
+export const updateAdminOrder = (token, orderNo, payload) => request(
+  `/api/admin/orders/${encodeURIComponent(orderNo)}`,
+  {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  }
+);
+
+export const updateAdminOrderTransfer = (token, orderNo, payload) => request(
+  `/api/admin/orders/${encodeURIComponent(orderNo)}/transfer`,
+  {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  }
+);
+
 window.MiaoApi = {
   ApiError,
   createOrder,
@@ -237,7 +255,9 @@ window.MiaoApi = {
   reorderGroupImages,
   reorderProductImages,
   signUpload,
+  updateAdminOrder,
   updateAdminOrderStatus,
+  updateAdminOrderTransfer,
   updateAdminProduct,
   updateSpec,
 };
