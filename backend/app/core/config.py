@@ -22,12 +22,13 @@ class Settings(BaseSettings):
     # 否則前端會被 CORS 擋下、載不到資料。
     cors_origins: str = "http://localhost:8080"
     # 只放行本團隊（team slug 全域唯一、別人搶不到）的 Vercel 部署：
-    # production 別名 frontend-jeterchans-projects.vercel.app 與
-    # preview/分支網址 frontend-<hash>-jeterchans-projects.vercel.app。
-    # 綁專案名前綴(frontend-)不安全:任何人都能註冊 frontend-* 專案;故綁 team 後綴。
+    # production 別名 miao-fruit-shop-jeterchans-projects.vercel.app 與
+    # preview/分支網址 miao-fruit-shop-<hash>-jeterchans-projects.vercel.app。
+    # Vercel 專案已從 frontend 改名 miao-fruit-shop（projectId 不變），
+    # 綁專案名前綴不安全:任何人都能註冊同名前綴專案;故綁 team 後綴。
     # 可用環境變數 CORS_ORIGIN_REGEX 覆寫(例如改團隊或改自訂網域時)。
     cors_origin_regex: str = (
-        r"https://frontend(-[a-z0-9]+)*-jeterchans-projects\.vercel\.app"
+        r"https://miao-fruit-shop(-[a-z0-9]+)*-jeterchans-projects\.vercel\.app"
     )
 
     # GCS

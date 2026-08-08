@@ -59,7 +59,7 @@ variable "cors_origins" {
 
 variable "cors_origin_regex" {
   type    = string
-  default = "https://frontend(-[a-z0-9]+)*-jeterchans-projects\\.vercel\\.app"
+  default = "https://miao-fruit-shop(-[a-z0-9]+)*-jeterchans-projects\\.vercel\\.app"
 }
 
 # --- LINE(Messaging API channel;LIFF ID 同前端 VITE_MIAO_LIFF_ID)---
