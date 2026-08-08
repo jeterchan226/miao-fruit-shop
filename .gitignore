@@ -7,6 +7,13 @@
 .playwright-mcp/
 .superpowers/
 .claude/settings.local.json
+.clinerules/
+.cursor/
+.github/copilot-instructions.md
+.opencode/
+.windsurf/
+AGENTS.md
+CLAUDE.md
 
 # Secrets
 .env
