@@ -141,7 +141,7 @@ export default function App() {
             <div className="shop-state">目前沒有上架商品。</div>
           )}
           <div className="shop">
-            <div className="shop__grid shop__grid--specs">
+            <div className="shop__products">
               {products.map(p => (
                 <SpecGroupTabs key={p.id} product={p} onAdd={addToCart} />
               ))}

@@ -380,7 +380,7 @@ button { font-family: inherit; }
 .shop-state--warn {
   color: var(--packaging-red);
 }
-.shop__grid--specs       { grid-template-columns: repeat(3, 1fr); }
+.shop__products { display: flex; flex-direction: column; gap: 24px; }
 
 /* ---- VERTICAL card (default) ---- */
 .pcard {
@@ -1699,8 +1699,7 @@ button { font-family: inherit; }
   .shop__grid,
   .shop__grid--vertical,
   .shop__grid--horizontal,
-  .shop__grid--polaroid,
-  .shop__grid--specs {
+  .shop__grid--polaroid {
     grid-template-columns: 1fr;
     gap: 18px;
   }
