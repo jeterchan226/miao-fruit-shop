@@ -524,6 +524,19 @@ button { font-family: inherit; }
 .pcard--horizontal .pcard__body { padding: 24px 28px; }
 .pcard--horizontal .pcard__desc { font-size: 14px; }
 
+/* GROUP card (spec-group) — image left, product info + specs right */
+.spec-group {
+  display: grid; grid-template-columns: 440px 1fr; gap: 0; align-items: stretch;
+}
+.spec-group .pcard__carousel {
+  height: 100%;
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+}
+.spec-group .pcard__slides,
+.spec-group .pcard__slide { height: 100%; }
+.spec-group .pcard__slide { aspect-ratio: auto; }
+.spec-group .pcard__body { padding: 24px 28px; }
+
 /* POLAROID card */
 .pcard--polaroid {
   background: var(--cream-card);
@@ -1518,6 +1531,19 @@ button { font-family: inherit; }
    RESPONSIVE — tablet portrait (≤ 900px)
 ============================================================ */
 @media (max-width: 900px) {
+  /* Spec group card: image-left/info-right split needs room the right
+     column doesn't have on tablet portrait — stack instead. */
+  .spec-group {
+    grid-template-columns: 1fr;
+  }
+  .spec-group .pcard__carousel {
+    height: auto;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  .spec-group .pcard__slides,
+  .spec-group .pcard__slide { height: auto; }
+  .spec-group .pcard__slide { aspect-ratio: 4/3; }
+
   /* Nav: collapse links into slide-down panel triggered by hamburger */
   .nav__links {
     position: fixed;
@@ -1710,6 +1736,7 @@ button { font-family: inherit; }
     aspect-ratio: 4/3; height: auto;
   }
   .pcard--horizontal .pcard__body { padding: 18px 20px 20px; }
+  .spec-group .pcard__body { padding: 18px 20px 20px; }
   .pcard__name { font-size: 20px; }
   .pcard__body { padding: 18px 18px 20px; }
   .price { font-size: 22px; }
