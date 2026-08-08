@@ -3,12 +3,19 @@ from datetime import date as date_type
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import InvalidStatusTransition, NotFoundError
+from app.core.exceptions import (
+    EvenQtyRequiredError,
+    InsufficientStockError,
+    InvalidStatusTransition,
+    NotFoundError,
+    OrderNotEditableError,
+)
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.repositories import order_repo
+from app.schemas.order import AdminOrderItemUpdate, AdminOrderTransferUpdate, AdminOrderUpdate
 from app.services import admin_order_service
 
 
@@ -225,3 +232,184 @@ async def test_cancel_with_null_spec_id_skips_silently(db_session: AsyncSession)
 
     result = await admin_order_service.change_order_status(db_session, "MM-CANCEL2", "cancelled")
     assert result.status == "cancelled"
+
+
+async def _make_product_and_spec(
+    db_session: AsyncSession,
+    *,
+    slug: str,
+    price: int = 880,
+    stock_qty: int = 5,
+    is_two_pack: bool = False,
+) -> ProductSpec:
+    product = Product(
+        slug=slug, name="甘露梨", description="d", image="i", season="s"
+    )
+    db_session.add(product)
+    await db_session.flush()
+    spec = ProductSpec(
+        product_id=product.id,
+        label="A",
+        qty_text="q",
+        price=price,
+        stock_qty=stock_qty,
+        sort_order=1,
+        is_two_pack=is_two_pack,
+    )
+    db_session.add(spec)
+    await db_session.flush()
+    return spec
+
+
+async def test_update_order_simple_fields_leaves_items_untouched(db_session: AsyncSession):
+    await order_repo.add(db_session, _make_order("MM-ED01"))
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session,
+        "MM-ED01",
+        AdminOrderUpdate(customer_name="陳大文", note="客戶臨時改地址"),
+    )
+    assert result.customer_name == "陳大文"
+    assert result.note == "客戶臨時改地址"
+    assert result.ship_city == "台北市"
+    assert result.items == []
+
+
+async def test_update_order_not_found(db_session: AsyncSession):
+    with pytest.raises(NotFoundError):
+        await admin_order_service.update_order(
+            db_session, "MM-GHOST", AdminOrderUpdate(note="x")
+        )
+
+
+async def test_update_order_not_editable_when_shipping(db_session: AsyncSession):
+    await order_repo.add(db_session, _make_order("MM-ED02", status="shipping"))
+    await db_session.flush()
+    with pytest.raises(OrderNotEditableError):
+        await admin_order_service.update_order(
+            db_session, "MM-ED02", AdminOrderUpdate(note="不該成功")
+        )
+
+
+async def test_update_order_not_editable_when_cancelled(db_session: AsyncSession):
+    await order_repo.add(db_session, _make_order("MM-ED03", status="cancelled"))
+    await db_session.flush()
+    with pytest.raises(OrderNotEditableError):
+        await admin_order_service.update_order(
+            db_session, "MM-ED03", AdminOrderUpdate(note="不該成功")
+        )
+
+
+async def test_update_order_replace_items_recalculates_stock_and_amount(
+    db_session: AsyncSession,
+):
+    old_spec = await _make_product_and_spec(db_session, slug="old-spec", price=880, stock_qty=5)
+    new_spec = await _make_product_and_spec(db_session, slug="new-spec", price=500, stock_qty=10)
+
+    order = _make_order("MM-ED04")
+    db_session.add(order)
+    await db_session.flush()
+    db_session.add(
+        OrderItem(
+            order_id=order.id,
+            product_id=old_spec.product_id,
+            spec_id=old_spec.id,
+            product_name="甘露梨",
+            spec_label="A",
+            unit_price=880,
+            qty=2,
+            line_total=1760,
+        )
+    )
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session,
+        "MM-ED04",
+        AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=new_spec.id, qty=3)]),
+    )
+
+    assert len(result.items) == 1
+    assert result.items[0].spec_id == new_spec.id
+    assert result.items[0].qty == 3
+    assert result.items[0].unit_price == 500
+    assert result.items[0].line_total == 1500
+    assert result.subtotal == 1500  # 500 * 3
+    assert result.total == result.subtotal + result.shipping_fee
+
+    await db_session.refresh(old_spec)
+    await db_session.refresh(new_spec)
+    assert old_spec.stock_qty == 7  # 5 + 2(舊品項歸還)
+    assert new_spec.stock_qty == 7  # 10 - 3(新品項扣除)
+
+
+async def test_update_order_replace_items_even_qty_violation(db_session: AsyncSession):
+    spec = await _make_product_and_spec(
+        db_session, slug="twopack", price=880, stock_qty=10, is_two_pack=True
+    )
+    order = _make_order("MM-ED05")
+    db_session.add(order)
+    await db_session.flush()
+
+    with pytest.raises(EvenQtyRequiredError):
+        await admin_order_service.update_order(
+            db_session,
+            "MM-ED05",
+            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=spec.id, qty=3)]),
+        )
+
+
+async def test_update_order_replace_items_insufficient_stock(db_session: AsyncSession):
+    spec = await _make_product_and_spec(db_session, slug="lowstock", price=880, stock_qty=1)
+    order = _make_order("MM-ED06")
+    db_session.add(order)
+    await db_session.flush()
+
+    with pytest.raises(InsufficientStockError):
+        await admin_order_service.update_order(
+            db_session,
+            "MM-ED06",
+            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=spec.id, qty=5)]),
+        )
+
+
+async def test_update_order_replace_items_unknown_spec_raises_not_found(
+    db_session: AsyncSession,
+):
+    order = _make_order("MM-ED07")
+    db_session.add(order)
+    await db_session.flush()
+
+    with pytest.raises(NotFoundError):
+        await admin_order_service.update_order(
+            db_session,
+            "MM-ED07",
+            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=999999, qty=1)]),
+        )
+
+
+async def test_update_transfer_info_sets_fields_independent_of_status(
+    db_session: AsyncSession,
+):
+    await order_repo.add(db_session, _make_order("MM-TR03", status="shipping"))
+    await db_session.flush()
+
+    result = await admin_order_service.update_transfer_info(
+        db_session,
+        "MM-TR03",
+        AdminOrderTransferUpdate(
+            transfer_last5="12345", transfer_payer_name="王小明", transfer_note="已核對"
+        ),
+    )
+    assert result.transfer_last5 == "12345"
+    assert result.transfer_payer_name == "王小明"
+    assert result.transfer_note == "已核對"
+    assert result.status == "shipping"  # 狀態不受影響
+
+
+async def test_update_transfer_info_not_found(db_session: AsyncSession):
+    with pytest.raises(NotFoundError):
+        await admin_order_service.update_transfer_info(
+            db_session, "MM-GHOST", AdminOrderTransferUpdate(transfer_last5="00000")
+        )

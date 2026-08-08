@@ -80,6 +80,7 @@ def _to_order_read(order: Order) -> OrderRead:
         status=order.status,
         items=[
             OrderItemRead(
+                spec_id=i.spec_id,
                 product_name=i.product_name,
                 spec_label=i.spec_label,
                 unit_price=i.unit_price,

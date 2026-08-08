@@ -2,8 +2,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.order import (
+    AdminOrderItemUpdate,
     AdminOrderListResponse,
     AdminOrderRead,
+    AdminOrderTransferUpdate,
+    AdminOrderUpdate,
     OrderRead,
     OrderStatusUpdate,
 )
@@ -20,6 +23,9 @@ def test_admin_order_read_has_admin_only_fields():
         "ship_city",
         "updated_at",
         "items",
+        "transfer_last5",
+        "transfer_payer_name",
+        "transfer_note",
     } <= fields
 
 
@@ -46,3 +52,24 @@ def test_order_status_update_rejects_legacy_statuses():
     for status in ("shipped", "completed", "delivered"):
         with pytest.raises(ValidationError):
             OrderStatusUpdate(status=status)
+
+
+def test_admin_order_update_all_fields_optional():
+    update = AdminOrderUpdate()
+    assert update.customer_name is None
+    assert update.items is None
+
+
+def test_admin_order_update_forbids_extra():
+    with pytest.raises(ValidationError):
+        AdminOrderUpdate(status="shipping")
+
+
+def test_admin_order_item_update_requires_positive_qty():
+    with pytest.raises(ValidationError):
+        AdminOrderItemUpdate(spec_id=1, qty=0)
+
+
+def test_admin_order_transfer_update_forbids_extra():
+    with pytest.raises(ValidationError):
+        AdminOrderTransferUpdate(status="ready")

@@ -10,6 +10,8 @@ from app.schemas.order import (
     AdminOrderListResponse,
     AdminOrderRead,
     AdminOrderSummary,
+    AdminOrderTransferUpdate,
+    AdminOrderUpdate,
     OrderStatusUpdate,
 )
 from app.services import admin_order_service
@@ -62,3 +64,17 @@ async def change_status(
     order_no: str, data: OrderStatusUpdate, session: SessionDep
 ) -> AdminOrderRead:
     return await admin_order_service.change_order_status(session, order_no, data.status)
+
+
+@router.patch("/orders/{order_no}", response_model=AdminOrderRead)
+async def update_order(
+    order_no: str, data: AdminOrderUpdate, session: SessionDep
+) -> AdminOrderRead:
+    return await admin_order_service.update_order(session, order_no, data)
+
+
+@router.patch("/orders/{order_no}/transfer", response_model=AdminOrderRead)
+async def update_transfer_info(
+    order_no: str, data: AdminOrderTransferUpdate, session: SessionDep
+) -> AdminOrderRead:
+    return await admin_order_service.update_transfer_info(session, order_no, data)

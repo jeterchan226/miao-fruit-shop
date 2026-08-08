@@ -41,6 +41,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderItemRead(BaseModel):
+    spec_id: int | None = None
     product_name: str
     spec_label: str
     unit_price: int
@@ -116,6 +117,9 @@ class AdminOrderRead(BaseModel):
     delivery_window: str
     payment_method: str
     note: str | None
+    transfer_last5: str | None
+    transfer_payer_name: str | None
+    transfer_note: str | None
     subtotal: int
     shipping_fee: int
     cod_fee: int
@@ -129,3 +133,32 @@ class OrderStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: Literal["pending_payment", "ready", "shipping", "cancelled"]
+
+
+class AdminOrderItemUpdate(BaseModel):
+    spec_id: int
+    qty: int = Field(ge=1)
+
+
+class AdminOrderUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    ship_zipcode: str | None = None
+    ship_city: str | None = None
+    ship_district: str | None = None
+    ship_street: str | None = None
+    preferred_date: date | None = None
+    delivery_window: Literal["any", "am", "pm"] | None = None
+    note: str | None = None
+    items: list[AdminOrderItemUpdate] | None = None
+
+
+class AdminOrderTransferUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    transfer_last5: str | None = None
+    transfer_payer_name: str | None = None
+    transfer_note: str | None = None

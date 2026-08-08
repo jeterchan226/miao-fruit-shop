@@ -31,7 +31,9 @@ import {
   registerGroupImage,
   reorderGroupImages,
   signUpload,
+  updateAdminOrder,
   updateAdminOrderStatus,
+  updateAdminOrderTransfer,
   updateSpec,
 } from './api.js';
 
@@ -396,6 +398,9 @@ function OrdersTable({ orders, selectedOrderNo, onSelect }) {
   );
 }
 
+/* 未出貨/未取消的訂單才可編輯內容(品項/收件資訊等);轉帳資訊不受此限制。 */
+const NOT_EDITABLE_STATUSES = new Set(['shipping', 'cancelled']);
+
 /* ── Order detail modal ── */
 function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [detail, setDetail] = useState(null);
@@ -405,6 +410,19 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState('');
 
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [specOptions, setSpecOptions] = useState([]);
+
+  const [transferForm, setTransferForm] = useState({
+    transfer_last5: '', transfer_payer_name: '', transfer_note: '',
+  });
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [transferError, setTransferError] = useState('');
+  const [transferSaved, setTransferSaved] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -412,8 +430,21 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     setDetail(null);
     setStatusTarget('');
     setUpdateError('');
+    setEditing(false);
+    setEditError('');
+    setTransferError('');
+    setTransferSaved(false);
     getAdminOrder(token, orderNo)
-      .then((data) => { if (!cancelled) { setDetail(data); setLoading(false); } })
+      .then((data) => {
+        if (cancelled) return;
+        setDetail(data);
+        setTransferForm({
+          transfer_last5: data.transfer_last5 || '',
+          transfer_payer_name: data.transfer_payer_name || '',
+          transfer_note: data.transfer_note || '',
+        });
+        setLoading(false);
+      })
       .catch(() => { if (!cancelled) { setError('無法載入訂單明細。'); setLoading(false); } });
     return () => { cancelled = true; };
   }, [orderNo, token]);
@@ -431,6 +462,8 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     [detail?.status],
   );
 
+  const editable = detail ? !NOT_EDITABLE_STATUSES.has(detail.status) : false;
+
   const handleUpdate = async () => {
     if (!statusTarget) return;
     setUpdating(true);
@@ -443,6 +476,112 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       setUpdateError(err?.data?.detail || '狀態更新失敗。');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const startEdit = async () => {
+    setEditError('');
+    setEditForm({
+      customer_name: detail.customer_name || '',
+      customer_phone: detail.customer_phone || '',
+      customer_email: detail.customer_email || '',
+      ship_zipcode: detail.ship_zipcode || '',
+      ship_city: detail.ship_city || '',
+      ship_district: detail.ship_district || '',
+      ship_street: detail.ship_street || '',
+      preferred_date: detail.preferred_date || '',
+      delivery_window: detail.delivery_window || 'any',
+      note: detail.note || '',
+      items: detail.items.map((i) => ({ spec_id: i.spec_id, qty: i.qty })),
+    });
+    setEditing(true);
+    try {
+      const products = await listAdminProducts(token);
+      const options = (products || []).flatMap((p) =>
+        (p.specs || []).map((s) => ({
+          id: s.id,
+          label: `${p.name} · ${s.label}（NT$ ${s.price}）${s.is_active ? '' : '（已下架）'}`,
+        }))
+      );
+      setSpecOptions(options);
+    } catch {
+      setEditError('無法載入商品規格清單,仍可編輯其他欄位。');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setEditError('');
+  };
+
+  const setEditField = (field, value) => setEditForm((f) => ({ ...f, [field]: value }));
+
+  const setItemField = (idx, field, value) =>
+    setEditForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => (i === idx ? { ...it, [field]: value } : it)),
+    }));
+
+  const addItemRow = () =>
+    setEditForm((f) => ({
+      ...f,
+      items: [...f.items, { spec_id: specOptions[0]?.id ?? '', qty: 1 }],
+    }));
+
+  const removeItemRow = (idx) =>
+    setEditForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
+
+  const saveEdit = async () => {
+    if (!editForm.items.length) {
+      setEditError('至少需要一項商品。');
+      return;
+    }
+    if (editForm.items.some((it) => !it.spec_id || Number(it.qty) < 1)) {
+      setEditError('請確認每個品項都有選規格,數量至少為 1。');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const updated = await updateAdminOrder(token, orderNo, {
+        customer_name: editForm.customer_name,
+        customer_phone: editForm.customer_phone,
+        customer_email: editForm.customer_email || null,
+        ship_zipcode: editForm.ship_zipcode,
+        ship_city: editForm.ship_city,
+        ship_district: editForm.ship_district,
+        ship_street: editForm.ship_street,
+        preferred_date: editForm.preferred_date,
+        delivery_window: editForm.delivery_window,
+        note: editForm.note || null,
+        items: editForm.items.map((it) => ({ spec_id: Number(it.spec_id), qty: Number(it.qty) })),
+      });
+      setDetail(updated);
+      setEditing(false);
+      onStatusChange();
+    } catch (err) {
+      setEditError(err?.data?.detail || '儲存失敗。');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const saveTransfer = async () => {
+    setTransferSaving(true);
+    setTransferError('');
+    setTransferSaved(false);
+    try {
+      const updated = await updateAdminOrderTransfer(token, orderNo, {
+        transfer_last5: transferForm.transfer_last5 || null,
+        transfer_payer_name: transferForm.transfer_payer_name || null,
+        transfer_note: transferForm.transfer_note || null,
+      });
+      setDetail(updated);
+      setTransferSaved(true);
+    } catch (err) {
+      setTransferError(err?.data?.detail || '儲存失敗。');
+    } finally {
+      setTransferSaving(false);
     }
   };
 
@@ -459,6 +598,9 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
           </div>
           <div className="adm-modal__head-right">
             {detail && <StatusBadge status={detail.status} large />}
+            {detail && editable && !editing && (
+              <button className="adm-btn adm-btn--ghost" onClick={startEdit}>編輯訂單</button>
+            )}
             <button className="adm-modal__close" onClick={onClose}>✕</button>
           </div>
         </div>
@@ -470,7 +612,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
           </div>
         )}
         {error && <p className="adm-modal__error">{error}</p>}
-        {!loading && !error && detail && (
+        {!loading && !error && detail && !editing && (
           <div className="adm-modal__body">
             {/* Left — 收件資訊 */}
             <div>
@@ -537,11 +679,216 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                 </div>
               </div>
             </div>
+            {/* 轉帳資訊(獨立於編輯模式,任何狀態皆可填寫) */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div className="adm-modal__section">
+                <div className="adm-modal__section-title">轉帳資訊</div>
+                <div className="adm-modal__transfer-form">
+                  <label className="adm-field">
+                    <span className="adm-field__label">帳號後五碼</span>
+                    <input
+                      className="adm-field__input"
+                      value={transferForm.transfer_last5}
+                      onChange={(e) => {
+                        setTransferForm((f) => ({ ...f, transfer_last5: e.target.value }));
+                        setTransferSaved(false);
+                      }}
+                      placeholder="12345"
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">匯款人姓名</span>
+                    <input
+                      className="adm-field__input"
+                      value={transferForm.transfer_payer_name}
+                      onChange={(e) => {
+                        setTransferForm((f) => ({ ...f, transfer_payer_name: e.target.value }));
+                        setTransferSaved(false);
+                      }}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">備註</span>
+                    <input
+                      className="adm-field__input"
+                      value={transferForm.transfer_note}
+                      onChange={(e) => {
+                        setTransferForm((f) => ({ ...f, transfer_note: e.target.value }));
+                        setTransferSaved(false);
+                      }}
+                    />
+                  </label>
+                </div>
+                {transferError && <div className="adm-alert">{transferError}</div>}
+                <div className="adm-modal__edit-actions">
+                  <button
+                    className="adm-btn adm-btn--secondary"
+                    disabled={transferSaving}
+                    onClick={saveTransfer}
+                  >
+                    {transferSaving ? '儲存中…' : transferSaved ? '已儲存 ✓' : '儲存轉帳資訊'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Body — 編輯模式 */}
+        {!loading && !error && detail && editing && editForm && (
+          <div className="adm-modal__body">
+            <div>
+              <div className="adm-modal__section">
+                <div className="adm-modal__section-title">收件資訊</div>
+                <div className="adm-spec-form">
+                  <label className="adm-field">
+                    <span className="adm-field__label">客戶姓名</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.customer_name}
+                      onChange={(e) => setEditField('customer_name', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">電話</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.customer_phone}
+                      onChange={(e) => setEditField('customer_phone', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">Email</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.customer_email}
+                      onChange={(e) => setEditField('customer_email', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">郵遞區號</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.ship_zipcode}
+                      onChange={(e) => setEditField('ship_zipcode', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">縣市</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.ship_city}
+                      onChange={(e) => setEditField('ship_city', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">鄉鎮區</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.ship_district}
+                      onChange={(e) => setEditField('ship_district', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
+                    <span className="adm-field__label">街道地址</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.ship_street}
+                      onChange={(e) => setEditField('ship_street', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">希望送達日期</span>
+                    <input
+                      type="date"
+                      className="adm-field__input"
+                      value={editForm.preferred_date}
+                      onChange={(e) => setEditField('preferred_date', e.target.value)}
+                    />
+                  </label>
+                  <label className="adm-field">
+                    <span className="adm-field__label">配送時段</span>
+                    <select
+                      className="adm-field__input"
+                      value={editForm.delivery_window}
+                      onChange={(e) => setEditField('delivery_window', e.target.value)}
+                    >
+                      {Object.entries(DELIVERY_WINDOW_LABELS).map(([v, label]) => (
+                        <option key={v} value={v}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
+                    <span className="adm-field__label">備註</span>
+                    <input
+                      className="adm-field__input"
+                      value={editForm.note}
+                      onChange={(e) => setEditField('note', e.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="adm-modal__section">
+                <div className="adm-modal__section-title">商品明細</div>
+                <p className="adm-field__hint">
+                  金額將依規格目前售價於儲存後重新計算。
+                </p>
+                {editForm.items.map((item, idx) => (
+                  <div className="adm-modal__item-edit-row" key={idx}>
+                    <select
+                      className="adm-field__input"
+                      value={item.spec_id ?? ''}
+                      onChange={(e) => setItemField(idx, 'spec_id', e.target.value)}
+                    >
+                      <option value="">請選擇規格…</option>
+                      {specOptions.map((o) => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      className="adm-field__input adm-modal__item-edit-qty"
+                      value={item.qty}
+                      onChange={(e) => setItemField(idx, 'qty', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="adm-modal__item-row-remove"
+                      onClick={() => removeItemRow(idx)}
+                      aria-label="移除此品項"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="adm-btn adm-btn--ghost" onClick={addItemRow}>
+                  + 新增品項
+                </button>
+              </div>
+            </div>
+            {editError && (
+              <div className="adm-alert" style={{ gridColumn: '1 / -1' }}>{editError}</div>
+            )}
+            <div className="adm-modal__edit-actions" style={{ gridColumn: '1 / -1' }}>
+              <button className="adm-btn adm-btn--ghost" onClick={cancelEdit} disabled={editSaving}>
+                取消
+              </button>
+              <button
+                className="adm-modal__update-btn"
+                onClick={saveEdit}
+                disabled={editSaving}
+              >
+                {editSaving ? '儲存中…' : '儲存訂單'}
+              </button>
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        {!loading && !error && detail && (
+        {!loading && !error && detail && !editing && (
           <div className="adm-modal__foot">
             {updateError
               ? <span style={{ fontSize: 12, color: 'var(--packaging-red)', flex: 1 }}>{updateError}</span>
