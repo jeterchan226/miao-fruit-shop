@@ -1,0 +1,5 @@
+project_id      = "your-new-gcp-project-id"
+region          = "asia-east1"
+gcs_bucket_name = "your-new-gcp-project-id-images" # 全域唯一,建議帶 project_id 當前綴
+cors_origins    = "http://localhost:8080,https://frontend-theta-one-22.vercel.app"
+line_liff_id    = "" # 換帳號後從 LINE Developers Console 填,或先留空、apply 後再改

@@ -30,3 +30,11 @@ frontend/dist/
 .vercel
 .env*
 .worktrees/
+
+# Terraform
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/terraform.tfvars
+terraform/**/*.tfplan
+terraform/.tfplan
