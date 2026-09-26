@@ -181,15 +181,15 @@ async def _replace_items(
             if spec is not None:
                 spec.stock_qty += item.qty
 
-    # 2) 鎖定新品項規格,驗證存在/啟用/2 粒裝雙數
+    # 2) 同規格合併數量後鎖定,驗證存在/啟用/2 粒裝雙數
     locked: list[tuple[ProductSpec, int]] = []
-    for new_item in new_items:
-        spec = await spec_repo.get_for_update(session, new_item.spec_id)
+    for spec_id, qty in order_service.merge_item_qty((i.spec_id, i.qty) for i in new_items):
+        spec = await spec_repo.get_for_update(session, spec_id)
         if spec is None or not spec.is_active:
-            raise NotFoundError(f"找不到規格 {new_item.spec_id}")
-        if spec.is_two_pack and new_item.qty % 2 != 0:
+            raise NotFoundError(f"找不到規格 {spec_id}")
+        if spec.is_two_pack and qty % 2 != 0:
             raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
-        locked.append((spec, new_item.qty))
+        locked.append((spec, qty))
 
     # 3) 驗庫存(此時舊品項已加回)
     for spec, qty in locked:

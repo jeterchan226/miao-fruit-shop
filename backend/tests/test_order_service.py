@@ -191,3 +191,50 @@ async def test_two_pack_even_qty_ok(db_session: AsyncSession):
     assert result.subtotal == 2400
     assert result.shipping_fee == 150
     assert result.total == 2550
+
+
+def _multi_payload(items, *, expected_total):
+    payload = _payload(items[0][0], items[0][1], expected_total=expected_total)
+    return payload.model_copy(
+        update={
+            "items": [
+                payload.items[0].model_copy(update={"spec_id": sid, "qty": qty})
+                for sid, qty in items
+            ]
+        }
+    )
+
+
+async def test_duplicate_spec_total_exceeding_stock_rejected(db_session: AsyncSession):
+    spec = await _seed_spec(db_session, price=1880, stock=3)
+    with pytest.raises(InsufficientStockError):
+        await order_service.create_order(
+            db_session,
+            _multi_payload([(spec.id, 2), (spec.id, 2)], expected_total=1880 * 4),
+        )
+    refreshed = await db_session.get(ProductSpec, spec.id)
+    assert refreshed.stock_qty == 3
+    assert await _order_count(db_session) == 0
+
+
+async def test_duplicate_spec_merged_into_single_item(db_session: AsyncSession):
+    spec = await _seed_spec(db_session, price=1880, stock=5)
+    result = await order_service.create_order(
+        db_session,
+        _multi_payload([(spec.id, 2), (spec.id, 1)], expected_total=1880 * 3),
+    )
+    assert len(result.items) == 1
+    assert result.items[0].qty == 3
+    assert result.items[0].line_total == 1880 * 3
+    refreshed = await db_session.get(ProductSpec, spec.id)
+    assert refreshed.stock_qty == 2
+
+
+async def test_two_pack_even_check_uses_merged_qty(db_session: AsyncSession):
+    spec = await _seed_two_pack_spec(db_session, price=600, stock=10)
+    result = await order_service.create_order(
+        db_session,
+        _multi_payload([(spec.id, 1), (spec.id, 1)], expected_total=1200 + 100),
+    )
+    assert len(result.items) == 1
+    assert result.items[0].qty == 2

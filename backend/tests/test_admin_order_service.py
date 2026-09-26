@@ -413,3 +413,60 @@ async def test_update_transfer_info_not_found(db_session: AsyncSession):
         await admin_order_service.update_transfer_info(
             db_session, "MM-GHOST", AdminOrderTransferUpdate(transfer_last5="00000")
         )
+
+
+async def test_update_order_replace_items_duplicate_spec_exceeding_stock(
+    db_session: AsyncSession,
+):
+    spec = await _make_product_and_spec(db_session, slug="dup-spec", price=880, stock_qty=2)
+    order = _make_order("MM-ED08")
+    db_session.add(order)
+    await db_session.flush()
+    db_session.add(
+        OrderItem(
+            order_id=order.id,
+            product_id=spec.product_id,
+            spec_id=spec.id,
+            product_name="甘露梨",
+            spec_label="A",
+            unit_price=880,
+            qty=1,
+            line_total=880,
+        )
+    )
+    await db_session.flush()
+
+    # 舊品項加回後可用量為 3,重複規格合計 4 → 必須拒絕
+    with pytest.raises(InsufficientStockError):
+        await admin_order_service.update_order(
+            db_session,
+            "MM-ED08",
+            AdminOrderUpdate(
+                items=[
+                    AdminOrderItemUpdate(spec_id=spec.id, qty=2),
+                    AdminOrderItemUpdate(spec_id=spec.id, qty=2),
+                ]
+            ),
+        )
+
+
+async def test_update_order_replace_items_duplicate_spec_merged(db_session: AsyncSession):
+    spec = await _make_product_and_spec(db_session, slug="dup-merge", price=500, stock_qty=10)
+    order = _make_order("MM-ED09")
+    db_session.add(order)
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session,
+        "MM-ED09",
+        AdminOrderUpdate(
+            items=[
+                AdminOrderItemUpdate(spec_id=spec.id, qty=2),
+                AdminOrderItemUpdate(spec_id=spec.id, qty=1),
+            ]
+        ),
+    )
+    assert len(result.items) == 1
+    assert result.items[0].qty == 3
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 7
