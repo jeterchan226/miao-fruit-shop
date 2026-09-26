@@ -1,4 +1,5 @@
 import secrets
+from collections.abc import Iterable
 from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,6 +57,14 @@ def compute_amounts(items: list[tuple[int, int, bool]]) -> Amounts:
     )
 
 
+def merge_item_qty(items: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:
+    """同一 spec_id 的數量加總(保留首次出現順序),避免逐行驗庫存造成超賣。"""
+    merged: dict[int, int] = {}
+    for spec_id, qty in items:
+        merged[spec_id] = merged.get(spec_id, 0) + qty
+    return list(merged.items())
+
+
 def initial_status() -> str:
     # 轉帳訂單一律從待付款開始。
     return "pending_payment"
@@ -100,11 +109,11 @@ def _to_order_read(order: Order) -> OrderRead:
 async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
     # 1) 行鎖讀取每個規格並驗證存在/啟用
     locked: list[tuple[ProductSpec, int]] = []
-    for item in data.items:
-        spec = await spec_repo.get_for_update(session, item.spec_id)
+    for spec_id, qty in merge_item_qty((i.spec_id, i.qty) for i in data.items):
+        spec = await spec_repo.get_for_update(session, spec_id)
         if spec is None or not spec.is_active:
-            raise NotFoundError(f"找不到規格 {item.spec_id}")
-        locked.append((spec, item.qty))
+            raise NotFoundError(f"找不到規格 {spec_id}")
+        locked.append((spec, qty))
 
     # 1.5) 2 粒裝須以雙數購買
     for spec, qty in locked:

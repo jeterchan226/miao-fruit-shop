@@ -1,0 +1,24 @@
+schema: spec-driven
+
+context: |
+  專案：妙媽媽果園（miao-fruit-shop）— LINE LIFF 訂購網站，單一商品（甘露梨）多規格，轉帳付款，LINE Flex 訂單通知。
+  後端：Python 3.13 + FastAPI + SQLAlchemy 2.0 async + Alembic + Postgres（本地 docker-compose、正式 Cloud SQL），套件管理 uv。
+  後端分層嚴格：api/routes -> services -> repositories -> models，schemas 為 Pydantic I/O；routes/api 層不得直接 import repositories。
+  前端：React 18 + Vite（frontend/），目標裝置 iPadOS 15 Safari。部署：前端 Vercel、後端 Cloud Run（GCP project miao-fruit-shop-504712），只從 master 手動部署。
+  CI：.github/workflows/ci.yml 跑 backend pytest（postgres:16 service）+ mypy + frontend build；.env 類變數一律走 GitHub Secrets。
+  文件語言：繁體中文（zh-TW），程式碼、指令、技術名詞保留英文。
+
+rules:
+  proposal:
+    - 使用繁體中文撰寫，每份 proposal 需對應後端審查問題編號（例如「審查 #1」）
+    - 明確標示 **BREAKING** 的 API 變更
+  specs:
+    - 規範性用語使用 SHALL / MUST（英文關鍵字保留），其餘敘述用繁體中文
+    - 每個 Scenario 必須可直接轉成一個 pytest（或 vitest）測試案例
+  design:
+    - 列出考慮過的替代方案與取捨
+    - 需說明與其他審查 change 的相依或衝突
+  tasks:
+    - 採 TDD：每個任務群組依序為「紅燈（先寫失敗測試並確認失敗）」→「綠燈（最小實作讓測試通過）」→「重構與驗證」
+    - 驗證任務必須包含 `uv run pytest -q`、`uv run ruff check .`、`uv run mypy app`（在 backend/）
+    - 最後一個任務群組為收尾：更新相關文件並以 conventional commit 提交
