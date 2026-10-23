@@ -102,7 +102,7 @@ GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Ma
 
 ### Issue tracker
 
-Issues live in GitHub Issues (`jeterchan226/miao-fruit-shop`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues (`jeterchan226/miao-fruit-shop`), via the GitHub MCP server (`mcp__github-jeterchan226__*`), not the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
