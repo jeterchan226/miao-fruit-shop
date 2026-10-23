@@ -384,7 +384,7 @@ const InfoForm = ({ form, setForm, errors, lineState, onRequestFriendship }) => 
 const TRANSFER_INFO = {
   bank: '(700) 中華郵政・卓蘭郵局',
   name: '劉芳妙',
-  account: '0291366-0159424',
+  account: '0291377-0159424',
 };
 
 const TransferInfo = ({ form }) => {
