@@ -215,6 +215,20 @@ async def test_update_order_rejects_unknown_field(
     assert resp.status_code == 422
 
 
+async def test_update_order_items_without_expected_total_is_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP04"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP04",
+        json={"items": [{"spec_id": 1, "qty": 1}]},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+
+
 async def test_update_transfer_info_requires_auth(client: AsyncClient):
     resp = await client.patch(
         "/api/admin/orders/MM-TX01/transfer", json={"transfer_last5": "12345"}
