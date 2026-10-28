@@ -57,3 +57,13 @@ class PriceChangedError(AppError):
         self.shipping_fee = shipping_fee
         self.cod_fee = cod_fee
         self.total = total
+
+
+class ItemQtyLockedError(AppError):
+    code = "ITEM_QTY_LOCKED"
+    status_code = 409
+
+
+class DuplicateSpecError(AppError):
+    code = "DUPLICATE_SPEC"
+    status_code = 422
