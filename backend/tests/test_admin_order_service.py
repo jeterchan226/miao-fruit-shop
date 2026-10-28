@@ -9,6 +9,7 @@ from app.core.exceptions import (
     InvalidStatusTransition,
     NotFoundError,
     OrderNotEditableError,
+    PriceChangedError,
 )
 from app.models.order import Order
 from app.models.order_item import OrderItem
@@ -16,7 +17,7 @@ from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.repositories import order_repo
 from app.schemas.order import AdminOrderItemUpdate, AdminOrderTransferUpdate, AdminOrderUpdate
-from app.services import admin_order_service
+from app.services import admin_order_service, order_items
 
 
 def _make_order(
@@ -301,91 +302,193 @@ async def test_update_order_not_editable_when_cancelled(db_session: AsyncSession
         )
 
 
-async def test_update_order_replace_items_recalculates_stock_and_amount(
-    db_session: AsyncSession,
-):
-    old_spec = await _make_product_and_spec(db_session, slug="old-spec", price=880, stock_qty=5)
-    new_spec = await _make_product_and_spec(db_session, slug="new-spec", price=500, stock_qty=10)
-
-    order = _make_order("MM-ED04")
+async def _make_order_with_item(
+    db_session: AsyncSession, order_no: str, spec: ProductSpec, *, unit_price: int, qty: int
+) -> Order:
+    order = _make_order(order_no)
+    order.subtotal = unit_price * qty
+    order.shipping_fee = 0
+    order.total = unit_price * qty
     db_session.add(order)
     await db_session.flush()
     db_session.add(
         OrderItem(
             order_id=order.id,
-            product_id=old_spec.product_id,
-            spec_id=old_spec.id,
+            product_id=spec.product_id,
+            spec_id=spec.id,
             product_name="甘露梨",
-            spec_label="A",
-            unit_price=880,
-            qty=2,
-            line_total=1760,
+            spec_label=spec.label,
+            unit_price=unit_price,
+            qty=qty,
+            line_total=unit_price * qty,
         )
+    )
+    await db_session.flush()
+    return order
+
+
+def _total(lines: list[tuple[int, int, bool]]) -> int:
+    return order_items.compute_amounts(lines).total
+
+
+async def test_update_order_address_only_after_price_change_keeps_order_price(
+    db_session: AsyncSession,
+):
+    # 回歸:規格調價後只改地址,下單價、金額、庫存都不變(ADR 0004)
+    spec = await _make_product_and_spec(db_session, slug="reprice", price=880, stock_qty=5)
+    await _make_order_with_item(db_session, "MM-ED04", spec, unit_price=880, qty=2)
+    spec.price = 1000
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session, "MM-ED04", AdminOrderUpdate(ship_street="中山北路2號")
+    )
+
+    assert result.ship_street == "中山北路2號"
+    assert result.items[0].unit_price == 880
+    assert result.items[0].line_total == 1760
+    assert (result.subtotal, result.shipping_fee, result.total) == (1760, 0, 1760)
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 5
+
+
+async def test_update_order_address_only_with_inactive_spec(db_session: AsyncSession):
+    # 回歸:訂單含已下架規格時仍可只改地址
+    spec = await _make_product_and_spec(db_session, slug="retired", price=880, stock_qty=5)
+    await _make_order_with_item(db_session, "MM-ED05", spec, unit_price=880, qty=2)
+    spec.is_active = False
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session, "MM-ED05", AdminOrderUpdate(ship_street="中山北路2號")
+    )
+
+    assert result.ship_street == "中山北路2號"
+    assert [(i.spec_id, i.qty, i.unit_price) for i in result.items] == [(spec.id, 2, 880)]
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 5
+
+
+async def test_update_order_items_applies_diff_keeping_order_price(db_session: AsyncSession):
+    # items 為期望的完整清單:既有規格加量沿用原下單價、新規格用目前價格
+    kept = await _make_product_and_spec(db_session, slug="kept", price=880, stock_qty=5)
+    added = await _make_product_and_spec(db_session, slug="added", price=500, stock_qty=10)
+    await _make_order_with_item(db_session, "MM-ED06", kept, unit_price=880, qty=2)
+    kept.price = 1000
+    await db_session.flush()
+
+    result = await admin_order_service.update_order(
+        db_session,
+        "MM-ED06",
+        AdminOrderUpdate(
+            items=[
+                AdminOrderItemUpdate(spec_id=kept.id, qty=3),
+                AdminOrderItemUpdate(spec_id=added.id, qty=1),
+            ],
+            expected_total=_total([(880, 3, False), (500, 1, False)]),
+        ),
+    )
+
+    assert [(i.spec_id, i.qty, i.unit_price) for i in result.items] == [
+        (kept.id, 3, 880),
+        (added.id, 1, 500),
+    ]
+    assert result.subtotal == 880 * 3 + 500
+    assert result.total == _total([(880, 3, False), (500, 1, False)])
+    await db_session.refresh(kept)
+    await db_session.refresh(added)
+    assert kept.stock_qty == 4  # 5 - 1(只扣差額)
+    assert added.stock_qty == 9
+
+
+async def test_update_order_items_removes_order_item_and_restores_stock(db_session: AsyncSession):
+    removed = await _make_product_and_spec(db_session, slug="removed", price=880, stock_qty=5)
+    other = await _make_product_and_spec(db_session, slug="other", price=500, stock_qty=10)
+    order = await _make_order_with_item(db_session, "MM-ED07", removed, unit_price=880, qty=2)
+    db_session.add(
+        OrderItem(order_id=order.id, product_id=other.product_id, spec_id=other.id,
+                  product_name="甘露梨", spec_label="A", unit_price=500, qty=1, line_total=500)
     )
     await db_session.flush()
 
     result = await admin_order_service.update_order(
         db_session,
-        "MM-ED04",
-        AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=new_spec.id, qty=3)]),
+        "MM-ED07",
+        AdminOrderUpdate(
+            items=[AdminOrderItemUpdate(spec_id=other.id, qty=1)],
+            expected_total=_total([(500, 1, False)]),
+        ),
     )
 
-    assert len(result.items) == 1
-    assert result.items[0].spec_id == new_spec.id
-    assert result.items[0].qty == 3
-    assert result.items[0].unit_price == 500
-    assert result.items[0].line_total == 1500
-    assert result.subtotal == 1500  # 500 * 3
-    assert result.total == result.subtotal + result.shipping_fee
-
-    await db_session.refresh(old_spec)
-    await db_session.refresh(new_spec)
-    assert old_spec.stock_qty == 7  # 5 + 2(舊品項歸還)
-    assert new_spec.stock_qty == 7  # 10 - 3(新品項扣除)
+    assert [i.spec_id for i in result.items] == [other.id]
+    await db_session.refresh(removed)
+    assert removed.stock_qty == 7
 
 
-async def test_update_order_replace_items_even_qty_violation(db_session: AsyncSession):
+async def test_update_order_items_price_changed_writes_nothing(db_session: AsyncSession):
+    spec = await _make_product_and_spec(db_session, slug="pc", price=880, stock_qty=5)
+    await _make_order_with_item(db_session, "MM-ED08", spec, unit_price=880, qty=2)
+
+    with pytest.raises(PriceChangedError):
+        await admin_order_service.update_order(
+            db_session,
+            "MM-ED08",
+            AdminOrderUpdate(
+                items=[AdminOrderItemUpdate(spec_id=spec.id, qty=3)], expected_total=1
+            ),
+        )
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 5
+
+
+async def test_update_order_items_even_qty_violation(db_session: AsyncSession):
     spec = await _make_product_and_spec(
         db_session, slug="twopack", price=880, stock_qty=10, is_two_pack=True
     )
-    order = _make_order("MM-ED05")
+    order = _make_order("MM-ED09")
     db_session.add(order)
     await db_session.flush()
 
     with pytest.raises(EvenQtyRequiredError):
         await admin_order_service.update_order(
             db_session,
-            "MM-ED05",
-            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=spec.id, qty=3)]),
+            "MM-ED09",
+            AdminOrderUpdate(
+                items=[AdminOrderItemUpdate(spec_id=spec.id, qty=3)],
+                expected_total=_total([(880, 3, True)]),
+            ),
         )
 
 
-async def test_update_order_replace_items_insufficient_stock(db_session: AsyncSession):
+async def test_update_order_items_insufficient_stock(db_session: AsyncSession):
     spec = await _make_product_and_spec(db_session, slug="lowstock", price=880, stock_qty=1)
-    order = _make_order("MM-ED06")
+    order = _make_order("MM-ED10")
     db_session.add(order)
     await db_session.flush()
 
     with pytest.raises(InsufficientStockError):
         await admin_order_service.update_order(
             db_session,
-            "MM-ED06",
-            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=spec.id, qty=5)]),
+            "MM-ED10",
+            AdminOrderUpdate(
+                items=[AdminOrderItemUpdate(spec_id=spec.id, qty=5)],
+                expected_total=_total([(880, 5, False)]),
+            ),
         )
 
 
-async def test_update_order_replace_items_unknown_spec_raises_not_found(
-    db_session: AsyncSession,
-):
-    order = _make_order("MM-ED07")
+async def test_update_order_items_unknown_spec_raises_not_found(db_session: AsyncSession):
+    order = _make_order("MM-ED11")
     db_session.add(order)
     await db_session.flush()
 
     with pytest.raises(NotFoundError):
         await admin_order_service.update_order(
             db_session,
-            "MM-ED07",
-            AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=999999, qty=1)]),
+            "MM-ED11",
+            AdminOrderUpdate(
+                items=[AdminOrderItemUpdate(spec_id=999999, qty=1)], expected_total=0
+            ),
         )
 
 

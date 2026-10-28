@@ -39,6 +39,7 @@ import {
 
 import { useOrderNotifications } from './useOrderNotifications.js';
 import { formatRelativeTime, isAfter, newestCreatedAt, newOrdersSince } from './notifications.js';
+import { orderItemsDiff, previewAmounts } from './orderEdit.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -500,6 +501,8 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       const options = (products || []).flatMap((p) =>
         (p.specs || []).map((s) => ({
           id: s.id,
+          price: s.price,
+          is_two_pack: s.is_two_pack,
           label: `${p.name} · ${s.label}（NT$ ${s.price}）${s.is_active ? '' : '（已下架）'}`,
         }))
       );
@@ -531,14 +534,27 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const removeItemRow = (idx) =>
     setEditForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
+  const editPreview = useMemo(
+    () => (editForm && detail ? previewAmounts(detail.items, editForm.items, specOptions) : null),
+    [editForm, detail, specOptions],
+  );
+
   const saveEdit = async () => {
-    if (!editForm.items.length) {
-      setEditError('至少需要一項商品。');
-      return;
-    }
-    if (editForm.items.some((it) => !it.spec_id || Number(it.qty) < 1)) {
-      setEditError('請確認每個品項都有選規格,數量至少為 1。');
-      return;
+    // 訂單品項未變動就不送 items,訂單品項、金額、庫存不動(R13)
+    const itemsChanged = orderItemsDiff(detail.items, editForm.items);
+    if (itemsChanged) {
+      if (!editForm.items.length) {
+        setEditError('至少需要一個訂單品項。');
+        return;
+      }
+      if (editForm.items.some((it) => !it.spec_id || Number(it.qty) < 1)) {
+        setEditError('請確認每個訂單品項都有選規格,數量至少為 1。');
+        return;
+      }
+      if (!editPreview) {
+        setEditError('無法試算總額，請重新載入規格清單後再試。');
+        return;
+      }
     }
     setEditSaving(true);
     setEditError('');
@@ -554,7 +570,10 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
         preferred_date: editForm.preferred_date,
         delivery_window: editForm.delivery_window,
         note: editForm.note || null,
-        items: editForm.items.map((it) => ({ spec_id: Number(it.spec_id), qty: Number(it.qty) })),
+        ...(itemsChanged && {
+          items: editForm.items.map((it) => ({ spec_id: Number(it.spec_id), qty: Number(it.qty) })),
+          expected_total: editPreview.total,
+        }),
       });
       setDetail(updated);
       setEditing(false);
@@ -833,7 +852,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
               <div className="adm-modal__section">
                 <div className="adm-modal__section-title">商品明細</div>
                 <p className="adm-field__hint">
-                  金額將依規格目前售價於儲存後重新計算。
+                  既有訂單品項沿用下單價，新增訂單品項以規格目前售價計算。
                 </p>
                 {editForm.items.map((item, idx) => (
                   <div className="adm-modal__item-edit-row" key={idx}>
@@ -867,6 +886,11 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                 <button type="button" className="adm-btn adm-btn--ghost" onClick={addItemRow}>
                   + 新增品項
                 </button>
+                {editPreview && (
+                  <p className="adm-field__hint">
+                    總額 NT$ {editPreview.total.toLocaleString()}（含運費 NT$ {editPreview.shippingFee}）
+                  </p>
+                )}
               </div>
             </div>
             {editError && (

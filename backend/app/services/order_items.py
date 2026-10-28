@@ -14,6 +14,7 @@ from app.core.exceptions import (
     NotFoundError,
     PriceChangedError,
 )
+from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product_spec import ProductSpec
 from app.repositories import spec_repo
@@ -34,6 +35,14 @@ class ItemRequest(NamedTuple):
 class ItemsResult(NamedTuple):
     items: list[OrderItem]  # 新的完整訂單品項清單(既有的沿用原物件)
     amounts: Amounts
+
+    def apply_to(self, order: Order) -> None:
+        """把訂單品項與金額寫回訂單。"""
+        order.items = self.items
+        order.subtotal = self.amounts.subtotal
+        order.shipping_fee = self.amounts.shipping_fee
+        order.cod_fee = self.amounts.cod_fee
+        order.total = self.amounts.total
 
 
 def compute_layers(items: list[tuple[int, int, bool]]) -> int:

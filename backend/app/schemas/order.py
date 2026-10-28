@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CustomerCreate(BaseModel):
@@ -153,7 +153,15 @@ class AdminOrderUpdate(BaseModel):
     preferred_date: date | None = None
     delivery_window: Literal["any", "am", "pm"] | None = None
     note: str | None = None
-    items: list[AdminOrderItemUpdate] | None = None
+    # 期望的完整訂單品項清單;只改顧客/收件資訊時不送(R13)
+    items: list[AdminOrderItemUpdate] | None = Field(default=None, min_length=1)
+    expected_total: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _items_require_expected_total(self) -> Self:
+        if self.items is not None and self.expected_total is None:
+            raise ValueError("送出訂單品項時須附 expected_total")
+        return self
 
 
 class AdminOrderTransferUpdate(BaseModel):
