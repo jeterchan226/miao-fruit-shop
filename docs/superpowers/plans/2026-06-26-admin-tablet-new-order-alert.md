@@ -50,7 +50,7 @@
   - `newestCreatedAt(orders: {created_at:string}[]) => string|null`
   - `unreadOrders(orders: {created_at:string}[], lastReadAtIso: string|null) => orders[]`（晚於標記者；無標記回 `[]`）
 
-- [ ] **Step 1: 加 Vitest dev 依賴與 test script**
+- [x] **Step 1: 加 Vitest dev 依賴與 test script**
 
 於 `frontend/` 執行：
 
@@ -69,7 +69,7 @@ cd frontend && npm install -D vitest
   },
 ```
 
-- [ ] **Step 2: 寫失敗測試 `frontend/src/notifications.test.js`**
+- [x] **Step 2: 寫失敗測試 `frontend/src/notifications.test.js`**
 
 ```js
 import { describe, it, expect } from 'vitest';
@@ -140,12 +140,12 @@ describe('unreadOrders', () => {
 });
 ```
 
-- [ ] **Step 3: 跑測試確認失敗**
+- [x] **Step 3: 跑測試確認失敗**
 
 Run: `cd frontend && npm test`
 Expected: FAIL（`Failed to resolve import './notifications.js'` 或函式未定義）
 
-- [ ] **Step 4: 實作 `frontend/src/notifications.js`**
+- [x] **Step 4: 實作 `frontend/src/notifications.js`**
 
 ```js
 // 純邏輯：通知中心的相對時間、未讀計算、新單偵測。
@@ -185,12 +185,12 @@ export function unreadOrders(orders, lastReadAtIso) {
 }
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd frontend && npm test`
 Expected: PASS（4 個 describe 全綠）
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/src/notifications.js frontend/src/notifications.test.js
@@ -216,7 +216,7 @@ git commit -m "test(admin): 加 Vitest 與通知中心純邏輯(相對時間/未
 
 > 本任務為副作用密集（音效、計時器、Wake Lock、localStorage），依專案決策**不寫單元測試**，以 `npm run build` 確認可編譯，最終於 Task 3 一併瀏覽器驗證。
 
-- [ ] **Step 1: 建立 `frontend/src/chime.js`**
+- [x] **Step 1: 建立 `frontend/src/chime.js`**
 
 ```js
 // WebAudio 提示音；需在使用者手勢中先呼叫 unlock()。無外部音檔。
@@ -260,7 +260,7 @@ export function createChime() {
 }
 ```
 
-- [ ] **Step 2: 建立 `frontend/src/useOrderNotifications.js`**
+- [x] **Step 2: 建立 `frontend/src/useOrderNotifications.js`**
 
 ```js
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -399,12 +399,12 @@ export function useOrderNotifications({ token, onAuthError }) {
 }
 ```
 
-- [ ] **Step 3: 確認可編譯**
+- [x] **Step 3: 確認可編譯**
 
 Run: `cd frontend && npm run build`
 Expected: 建置成功（無 import / 語法錯誤）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/chime.js frontend/src/useOrderNotifications.js
@@ -425,7 +425,7 @@ git commit -m "feat(admin): 通知中心 hook(輪詢/未讀標記/提示音/Wake
 
 > UI / 副作用，依決策不寫單元測試；以 `npm run build` + 瀏覽器手動驗證。
 
-- [ ] **Step 1: 於 `AdminApp.jsx` 頂部 import 區加入**
+- [x] **Step 1: 於 `AdminApp.jsx` 頂部 import 區加入**
 
 在現有 `import` 群組末端加：
 
@@ -434,7 +434,7 @@ import { useOrderNotifications } from './useOrderNotifications.js';
 import { formatRelativeTime } from './notifications.js';
 ```
 
-- [ ] **Step 2: 在 `AdminApp.jsx` `export default function AdminApp()` 之前，新增圖示與通知面板元件**
+- [x] **Step 2: 在 `AdminApp.jsx` `export default function AdminApp()` 之前，新增圖示與通知面板元件**
 
 ```jsx
 const BellIcon = () => (
@@ -497,7 +497,7 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
 }
 ```
 
-- [ ] **Step 3: 在 `AdminApp()` 內接 hook 與狀態**
+- [x] **Step 3: 在 `AdminApp()` 內接 hook 與狀態**
 
 於 `const closeModal = useCallback(...)` 之後加入：
 
@@ -516,7 +516,7 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
   );
 ```
 
-- [ ] **Step 4: 改寫 topbar 的 `adm-topbar__user` 區塊**
+- [x] **Step 4: 改寫 topbar 的 `adm-topbar__user` 區塊**
 
 將現有：
 
@@ -566,7 +566,7 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
         </div>
 ```
 
-- [ ] **Step 5: 將 OrderModal 從訂單分頁區塊移到 shell 層**
+- [x] **Step 5: 將 OrderModal 從訂單分頁區塊移到 shell 層**
 
 刪除訂單分頁內現有的這段（位於 `</div>` 結束 `adm-table-wrap` 之後、`</>` 之前）：
 
@@ -605,7 +605,7 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
 }
 ```
 
-- [ ] **Step 6: 在 `frontend/assets/admin.css` 末端加入樣式**
+- [x] **Step 6: 在 `frontend/assets/admin.css` 末端加入樣式**
 
 ```css
 /* ── 通知中心 + 查看前台 ── */
@@ -744,12 +744,12 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
 }
 ```
 
-- [ ] **Step 7: 確認可編譯**
+- [x] **Step 7: 確認可編譯**
 
 Run: `cd frontend && npm run build`
 Expected: 建置成功。
 
-- [ ] **Step 8: 瀏覽器手動驗證**
+- [x] **Step 8: 瀏覽器手動驗證**
 
 啟動：`cd frontend && npm run dev`，瀏覽器開 `http://localhost:8080/admin` 並登入。
 
@@ -761,7 +761,7 @@ Expected: 建置成功。
 5. 「全部標示已讀」→ 徽章歸零；重新整理頁面後仍為已讀（localStorage 持久化）。
 6. 切到「商品管理」分頁時，點通知仍能開啟訂單 modal（modal 已移到 shell 層）。
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx frontend/assets/admin.css

@@ -30,7 +30,7 @@
 - Consumes: 無（純文字字面值調整）
 - Produces: 無新介面；僅改顯示文字。`derive_stock_status` 的 `out` 狀態語意不變。
 
-- [ ] **Step 1: 改 `frontend/src/api.js` 第 51 行的 stockText 對照表**
+- [x] **Step 1: 改 `frontend/src/api.js` 第 51 行的 stockText 對照表**
 
 把：
 
@@ -44,7 +44,7 @@
   out: '已售完',
 ```
 
-- [ ] **Step 2: 改 `frontend/src/SpecCard.jsx` 第 5 行的 stockLabel**
+- [x] **Step 2: 改 `frontend/src/SpecCard.jsx` 第 5 行的 stockLabel**
 
 把：
 
@@ -58,7 +58,7 @@ const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不
 const stockLabel = (s) => s === 'in' ? '現貨供應' : s === 'low' ? '剩量不多' : '已售完';
 ```
 
-- [ ] **Step 3: 改 `frontend/src/AdminApp.jsx` 第 485 與 488 行**
+- [x] **Step 3: 改 `frontend/src/AdminApp.jsx` 第 485 與 488 行**
 
 把第 485 行：
 
@@ -84,17 +84,17 @@ const STOCK_STATUS_LABELS = { in: '現貨供應', low: '剩量不多', out: '已
   { value: 'out', label: '已售完' },
 ```
 
-- [ ] **Step 4: 確認全前端不再有「預購中」殘留**
+- [x] **Step 4: 確認全前端不再有「預購中」殘留**
 
 Run: `grep -rn "預購中" frontend/src`
 Expected: 無任何輸出（exit code 1）。
 
-- [ ] **Step 5: build 驗證**
+- [x] **Step 5: build 驗證**
 
 Run: `cd frontend && npm run build`
 Expected: build 成功、無錯誤。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/api.js frontend/src/SpecCard.jsx frontend/src/AdminApp.jsx
@@ -116,7 +116,7 @@ git commit -m "fix(storefront): 售完狀態文字改為「已售完」，不再
   - 模組常數 `BRAND_HEADER_BG`、`LABEL_COLOR`、`TEXT_COLOR`、`TOTAL_COLOR`、`DIVIDER_COLOR`。
   - 私有 helper `_kv_row(label, value, *, value_color=TEXT_COLOR, value_bold=False) -> dict`、`_item_rows(order) -> list[dict]`、`_divider() -> dict`。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 新建 `backend/tests/test_line_service.py`：
 
@@ -192,12 +192,12 @@ def test_order_flex_is_bubble_with_key_info():
     assert "2026-07-01" in joined
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && pytest tests/test_line_service.py::test_order_flex_is_bubble_with_key_info -v`
 Expected: FAIL，`AttributeError: module 'app.services.line_service' has no attribute '_order_flex'`。
 
-- [ ] **Step 3: 在 `line_service.py` 實作 `_order_flex` 與 helper**
+- [x] **Step 3: 在 `line_service.py` 實作 `_order_flex` 與 helper**
 
 在 `_order_text` 函式定義之後、`_post_push_message` 之前，插入：
 
@@ -308,12 +308,12 @@ def _order_flex(order: Order) -> dict:
     }
 ```
 
-- [ ] **Step 4: 跑測試確認通過**
+- [x] **Step 4: 跑測試確認通過**
 
 Run: `cd backend && pytest tests/test_line_service.py::test_order_flex_is_bubble_with_key_info -v`
 Expected: PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/services/line_service.py backend/tests/test_line_service.py

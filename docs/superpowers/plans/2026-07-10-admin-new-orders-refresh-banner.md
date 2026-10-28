@@ -28,7 +28,7 @@
 - Consumes: 既有 `isAfter(aIso, bIso)`（同檔）
 - Produces: `newOrdersSince(recentOrders, sinceIso) => Array`（回傳 `recentOrders` 中 `created_at` 嚴格晚於 `sinceIso` 者；`sinceIso` 為 falsy 時回傳整份淺拷貝；`recentOrders` falsy 時回傳 `[]`）
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `frontend/src/notifications.test.js` 最上方 import 加入 `newOrdersSince`：
 
@@ -76,12 +76,12 @@ describe('newOrdersSince', () => {
 });
 ```
 
-- [ ] **Step 2: 執行測試確認失敗**
+- [x] **Step 2: 執行測試確認失敗**
 
 Run: `cd frontend && npx vitest run src/notifications.test.js`
 Expected: FAIL，`newOrdersSince is not a function`（或 import 解析為 undefined）。
 
-- [ ] **Step 3: 實作最小程式**
+- [x] **Step 3: 實作最小程式**
 
 在 `frontend/src/notifications.js` 的 `unreadOrders` 函式之後新增：
 
@@ -95,12 +95,12 @@ export function newOrdersSince(recentOrders, sinceIso) {
 }
 ```
 
-- [ ] **Step 4: 執行測試確認通過**
+- [x] **Step 4: 執行測試確認通過**
 
 Run: `cd frontend && npx vitest run src/notifications.test.js`
 Expected: PASS（含新的 5 個 `newOrdersSince` 案例，原有測試不受影響）。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/notifications.js frontend/src/notifications.test.js
@@ -119,7 +119,7 @@ git commit -m "feat(admin): newOrdersSince 純函式偵測表格未含的新訂�
 - Consumes: Task 1 的 `newOrdersSince`；既有 `newestCreatedAt`、`notif.recentOrders`、`loadOrders`、`setSummaryKey`、`filters`、`orders`
 - Produces: 無（UI 終點）
 
-- [ ] **Step 1: 更新 import**
+- [x] **Step 1: 更新 import**
 
 `frontend/src/AdminApp.jsx` 第 39 行：
 
@@ -133,7 +133,7 @@ import { formatRelativeTime } from './notifications.js';
 import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notifications.js';
 ```
 
-- [ ] **Step 2: 計算橫幅狀態**
+- [x] **Step 2: 計算橫幅狀態**
 
 在 `AdminApp` 的兩個 early return 之後、`return (` 之前（約第 1336–1338 行之間）插入：
 
@@ -153,7 +153,7 @@ import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notificat
   };
 ```
 
-- [ ] **Step 3: 插入橫幅 JSX**
+- [x] **Step 3: 插入橫幅 JSX**
 
 在 orders 分頁區塊，`<Alert message={listError} />` 之後、`<div className="adm-table-wrap">` 之前（約第 1407 行）插入：
 
@@ -165,7 +165,7 @@ import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notificat
           )}
 ```
 
-- [ ] **Step 4: 新增樣式**
+- [x] **Step 4: 新增樣式**
 
 在 `frontend/assets/admin.css` 末尾新增：
 
@@ -189,12 +189,12 @@ import { formatRelativeTime, newestCreatedAt, newOrdersSince } from './notificat
 .adm-new-orders-bar:hover { background: var(--sage-700); }
 ```
 
-- [ ] **Step 5: 建置確認無語法錯誤**
+- [x] **Step 5: 建置確認無語法錯誤**
 
 Run: `cd frontend && npm run build`
 Expected: 建置成功、無錯誤。
 
-- [ ] **Step 6: 手動 / 瀏覽器驗證**
+- [x] **Step 6: 手動 / 瀏覽器驗證**
 
 1. `cd frontend && npm run dev`，瀏覽器開 `http://localhost:8080/admin`。
 2. 以 mock（攔 `/api/admin/*`）或真實後端登入，停在預設檢視（全部狀態、第 1 頁、無搜尋/日期）。
@@ -203,7 +203,7 @@ Expected: 建置成功、無錯誤。
 5. 點橫幅 → 表格重載含新訂單、統計卡更新、橫幅消失。
 6. 切一個狀態 chip 或翻頁 → 橫幅不顯示（`isDefaultView` 為 false）。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx frontend/assets/admin.css

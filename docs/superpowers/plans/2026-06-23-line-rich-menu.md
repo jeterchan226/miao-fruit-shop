@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: `settings.line_channel_secret: str`（預設 `""`）、`settings.line_liff_id: str`（預設 `""`）；`line-bot-sdk` 可被 import。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 建立 `backend/tests/test_line_config.py`：
 
@@ -51,17 +51,17 @@ def test_settings_have_line_webhook_fields():
     assert settings.line_liff_id == ""
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_line_config.py -v`
 Expected: FAIL（`ModuleNotFoundError: linebot` 或 `AttributeError: ... line_channel_secret`）
 
-- [ ] **Step 3: 安裝套件**
+- [x] **Step 3: 安裝套件**
 
 Run: `cd backend && uv add line-bot-sdk`
 Expected: `pyproject.toml` 出現 `line-bot-sdk`，`uv.lock` 更新。
 
-- [ ] **Step 4: 新增設定欄位**
+- [x] **Step 4: 新增設定欄位**
 
 在 `backend/app/core/config.py` 將：
 
@@ -77,7 +77,7 @@ Expected: `pyproject.toml` 出現 `line-bot-sdk`，`uv.lock` 更新。
     line_liff_id: str = ""
 ```
 
-- [ ] **Step 5: 更新 .env.example**
+- [x] **Step 5: 更新 .env.example**
 
 在 `backend/.env.example` 的 `LINE_CHANNEL_ACCESS_TOKEN=...` 那行下方新增：
 
@@ -88,12 +88,12 @@ LINE_CHANNEL_SECRET=<line channel secret>
 LINE_LIFF_ID=1234567890-AbcdEfgh
 ```
 
-- [ ] **Step 6: 跑測試確認通過**
+- [x] **Step 6: 跑測試確認通過**
 
 Run: `cd backend && uv run pytest tests/test_line_config.py -v`
 Expected: PASS（2 passed）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/pyproject.toml backend/uv.lock backend/app/core/config.py backend/.env.example backend/tests/test_line_config.py
@@ -114,7 +114,7 @@ git commit -m "chore(line): 導入 line-bot-sdk 與 webhook/liff 設定欄位"
 - Consumes: `settings.line_channel_access_token`、`_order_flex(order) -> dict`、`_order_text(order) -> str`。
 - Produces: `_configuration() -> Configuration`、`_flex_message(order) -> FlexMessage`、`_push_flex(user_id: str, message: FlexMessage) -> None`、`send_order_created(order) -> bool`（行為不變：未設 token／無 user_id／無 consent 回 False）。
 
-- [ ] **Step 1: 改寫測試**
+- [x] **Step 1: 改寫測試**
 
 在 `backend/tests/test_line_service.py`，刪除 `test_build_message_is_flex_with_text_alt`，改為：
 
@@ -153,12 +153,12 @@ async def test_send_order_created_skips_without_token(monkeypatch):
     assert await line_service.send_order_created(order) is False
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_line_service.py -v`
 Expected: FAIL（`AttributeError: module ... has no attribute '_flex_message'`）
 
-- [ ] **Step 3: 替換 line_service.py 的 import 區與推播實作**
+- [x] **Step 3: 替換 line_service.py 的 import 區與推播實作**
 
 把檔案頂部的：
 
@@ -199,7 +199,7 @@ from app.models.order import Order
 logger = logging.getLogger(__name__)
 ```
 
-- [ ] **Step 4: 替換尾端的 `_build_message` / `_post_push_message` / `send_order_created`**
+- [x] **Step 4: 替換尾端的 `_build_message` / `_post_push_message` / `send_order_created`**
 
 把現有 `_build_message`、`_post_push_message`、`send_order_created` 三個函式整段（從 `def _build_message` 到檔案結尾）替換為：
 
@@ -242,17 +242,17 @@ async def send_order_created(order: Order) -> bool:
     return True
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && uv run pytest tests/test_line_service.py -v`
 Expected: PASS（含既有 `_order_flex`／`_order_text` 測試與新推播測試）
 
-- [ ] **Step 6: Lint 與型別**
+- [x] **Step 6: Lint 與型別**
 
 Run: `cd backend && uv run ruff check . && uv run mypy app`
 Expected: 皆通過（如 mypy 對 `FlexContainer.from_dict` 回傳型別有疑慮，於該行加 `# type: ignore[...]` 並註明原因）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/services/line_service.py backend/tests/test_line_service.py
@@ -277,7 +277,7 @@ git commit -m "refactor(line): 推播改用 line-bot-sdk push_message + FlexMess
   - `_reply(reply_token: str, text: str) -> None`
   - `handle_webhook_events(body: str, signature: str) -> None`（未設 secret → 記 log 後 return；簽章不符 → 丟 `InvalidSignatureError`；只處理 `PostbackEvent`，依 `postback.data` 回覆，未知 data 略過）
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 建立 `backend/tests/test_line_webhook_service.py`：
 
@@ -362,12 +362,12 @@ def test_no_secret_skips(monkeypatch):
     assert calls == []
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_line_webhook_service.py -v`
 Expected: FAIL（`AttributeError: ... handle_webhook_events`）
 
-- [ ] **Step 3: 在 line_service.py 新增 webhook import**
+- [x] **Step 3: 在 line_service.py 新增 webhook import**
 
 在檔案頂部 import 區，於 messaging import 之後新增：
 
@@ -379,7 +379,7 @@ from linebot.v3.webhooks import PostbackEvent
 
 （`ReplyMessageRequest`、`TextMessage` 也可併入既有 `from linebot.v3.messaging import (...)` 區塊，維持字母排序以符合 ruff isort。）
 
-- [ ] **Step 4: 新增文案常數與路由函式**
+- [x] **Step 4: 新增文案常數與路由函式**
 
 在 `send_order_created` 之後（檔案結尾）新增：
 
@@ -437,17 +437,17 @@ def handle_webhook_events(body: str, signature: str) -> None:
 
 > `event.reply_token is None` 的判斷一併滿足 mypy strict（reply_token 型別為 `str | None`）。`_reply` 失敗只記 log、不向上拋，避免 webhook 回 500 導致 LINE 重送。
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && uv run pytest tests/test_line_webhook_service.py -v`
 Expected: PASS（5 passed）
 
-- [ ] **Step 6: Lint 與型別**
+- [x] **Step 6: Lint 與型別**
 
 Run: `cd backend && uv run ruff check . && uv run mypy app`
 Expected: 皆通過（`reply_token is None` 已在 Step 4 處理）。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/services/line_service.py backend/tests/test_line_webhook_service.py
@@ -469,7 +469,7 @@ git commit -m "feat(line): webhook 事件路由與 C/F 回覆文案"
 - Consumes: `line_service.handle_webhook_events`、`InvalidSignatureError`。
 - Produces: 路由 `POST /api/line/webhook`（200 `{"status": "ok"}`；簽章不符 400）。
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 建立 `backend/tests/test_line_webhook_api.py`：
 
@@ -545,12 +545,12 @@ async def test_webhook_empty_events_returns_200(client: AsyncClient, monkeypatch
     assert resp.status_code == 200
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_line_webhook_api.py -v`
 Expected: FAIL（404，路由尚未存在）
 
-- [ ] **Step 3: 建立路由檔**
+- [x] **Step 3: 建立路由檔**
 
 建立 `backend/app/api/routes/line_webhook.py`：
 
@@ -576,7 +576,7 @@ async def line_webhook(request: Request) -> dict[str, str]:
     return {"status": "ok"}
 ```
 
-- [ ] **Step 4: 在 main.py 註冊路由**
+- [x] **Step 4: 在 main.py 註冊路由**
 
 在 `backend/app/main.py` 的 import：
 
@@ -604,17 +604,17 @@ from app.api.routes import (
     app.include_router(line_webhook.router)
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && uv run pytest tests/test_line_webhook_api.py -v`
 Expected: PASS（3 passed）
 
-- [ ] **Step 6: Lint 與型別**
+- [x] **Step 6: Lint 與型別**
 
 Run: `cd backend && uv run ruff check . && uv run mypy app`
 Expected: 皆通過。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/api/routes/line_webhook.py backend/app/main.py backend/tests/test_line_webhook_api.py
@@ -639,7 +639,7 @@ git commit -m "feat(line): 新增 /api/line/webhook 端點"
   - `build_rich_menu_request(liff_id: str) -> RichMenuRequest`
   - `setup_rich_menu(image_path: str, liff_id: str) -> str`（回傳 rich_menu_id）
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 建立 `backend/tests/test_line_richmenu.py`：
 
@@ -672,12 +672,12 @@ def test_build_rich_menu_request_layout():
     assert area_f.action.display_text == "購買須知"
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_line_richmenu.py -v`
 Expected: FAIL（`AttributeError: ... build_rich_menu_request`）
 
-- [ ] **Step 3: 在 line_service.py 新增 rich menu import**
+- [x] **Step 3: 在 line_service.py 新增 rich menu import**
 
 在 import 區的 messaging import 區塊加入（維持字母排序）：
 
@@ -693,7 +693,7 @@ from linebot.v3.messaging import (
 )
 ```
 
-- [ ] **Step 4: 新增 rich menu 函式**
+- [x] **Step 4: 新增 rich menu 函式**
 
 在檔案結尾新增：
 
@@ -751,12 +751,12 @@ def setup_rich_menu(image_path: str, liff_id: str) -> str:
 
 > 註：v3 的 pydantic 模型使用 camelCase 別名（`chatBarText`、`displayText`），以別名建構最穩。`build_rich_menu_request` 不觸網路，故可單元測試；`setup_rich_menu` 觸網路，靠手動執行驗證（見 Step 8）。
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 Run: `cd backend && uv run pytest tests/test_line_richmenu.py -v`
 Expected: PASS（1 passed）
 
-- [ ] **Step 6: 加入 cli 子指令**
+- [x] **Step 6: 加入 cli 子指令**
 
 在 `backend/app/cli.py`：
 
@@ -794,7 +794,7 @@ def _run_setup_richmenu(image: str, liff_id: str) -> None:
         _run_setup_richmenu(args.image, args.liff_id or settings.line_liff_id)
 ```
 
-- [ ] **Step 7: 建立圖片資料夾佔位 + Lint/型別/全測**
+- [x] **Step 7: 建立圖片資料夾佔位 + Lint/型別/全測**
 
 ```bash
 mkdir -p backend/assets/richmenu && touch backend/assets/richmenu/.gitkeep
@@ -802,7 +802,7 @@ cd backend && uv run ruff check . && uv run mypy app && uv run pytest -q
 ```
 Expected: lint／mypy 通過，全測 PASS。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/services/line_service.py backend/app/cli.py backend/tests/test_line_richmenu.py backend/assets/richmenu/.gitkeep

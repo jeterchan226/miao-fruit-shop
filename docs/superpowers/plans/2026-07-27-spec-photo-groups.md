@@ -33,7 +33,7 @@
   - `image_repo.list_by_group(session: AsyncSession, product_id: int, is_two_pack: bool) -> list[ProductImage]`
   - `image_repo.list_by_product(session: AsyncSession, product_id: int) -> list[ProductImage]`（語意不變：只回傳 `is_two_pack IS NULL` 的商品層級 fallback 圖片）
 
-- [ ] **Step 1: 寫失敗測試 — `list_by_group` 依旗標過濾**
+- [x] **Step 1: 寫失敗測試 — `list_by_group` 依旗標過濾**
 
 在 `backend/tests/test_image_repo.py` 尾端新增：
 
@@ -62,12 +62,12 @@ async def test_list_by_product_excludes_group_images(db_session: AsyncSession):
     assert [i.url for i in imgs] == ["fallback.jpg"]
 ```
 
-- [ ] **Step 2: 執行測試，確認因缺少欄位/函式而失敗**
+- [x] **Step 2: 執行測試，確認因缺少欄位/函式而失敗**
 
 Run: `cd backend && uv run pytest tests/test_image_repo.py -v`
 Expected: FAIL（`TypeError: 'is_two_pack' is an invalid keyword argument` 或 `AttributeError: module 'image_repo' has no attribute 'list_by_group'`）
 
-- [ ] **Step 3: 修改 `ProductImage` model**
+- [x] **Step 3: 修改 `ProductImage` model**
 
 把 `backend/app/models/product_image.py` 整份改成：
 
@@ -101,7 +101,7 @@ class ProductImage(Base):
 
 （拿掉 `spec_id` 欄位與 `spec` relationship；`is_two_pack`：`True`=兩粒裝、`False`=一層裝、`None`=商品層級 fallback。）
 
-- [ ] **Step 4: 修改 `ProductSpec` model，移除 `images` relationship**
+- [x] **Step 4: 修改 `ProductSpec` model，移除 `images` relationship**
 
 把 `backend/app/models/product_spec.py` 整份改成：
 
@@ -139,7 +139,7 @@ class ProductSpec(Base):
 
 （規格不再直接持有圖片，圖片群組比對改在 service 層做。）
 
-- [ ] **Step 5: 修改 `image_repo.py`**
+- [x] **Step 5: 修改 `image_repo.py`**
 
 把 `backend/app/repositories/image_repo.py` 整份改成：
 
@@ -188,17 +188,17 @@ async def delete(session: AsyncSession, image: ProductImage) -> None:
     await session.flush()
 ```
 
-- [ ] **Step 6: 執行測試，確認全部通過**
+- [x] **Step 6: 執行測試，確認全部通過**
 
 Run: `cd backend && uv run pytest tests/test_image_repo.py -v`
 Expected: PASS（全部，含既有的 4 個舊測試）
 
-- [ ] **Step 7: 型別檢查**
+- [x] **Step 7: 型別檢查**
 
 Run: `cd backend && uv run mypy app`
 Expected: 無新增錯誤
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/models/product_image.py backend/app/models/product_spec.py \
@@ -221,7 +221,7 @@ git commit -m "feat(images): group ProductImage by is_two_pack instead of spec_i
   - `image_service.register_group_image(session, product_id: int, is_two_pack: bool, data: ImageRegister) -> AdminImageRead`
   - `image_service.reorder_group_images(session, product_id: int, is_two_pack: bool, req: ImageReorderRequest) -> list[AdminImageRead]`
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_image_service.py` 尾端新增：
 
@@ -271,12 +271,12 @@ async def test_reorder_group_images_updates_sort_order(db_session: AsyncSession)
 
 （`ImageRegister`／`ImageReorderItem`／`ImageReorderRequest`／`NotFoundError` 這些既有測試已 import 過，不用再加。）
 
-- [ ] **Step 2: 執行測試，確認失敗**
+- [x] **Step 2: 執行測試，確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_image_service.py -v`
 Expected: FAIL（`AttributeError: module 'image_service' has no attribute 'register_group_image'`）
 
-- [ ] **Step 3: 實作 service 函式**
+- [x] **Step 3: 實作 service 函式**
 
 移除 `list_spec_images`、`register_spec_image`、`reorder_spec_images` 三個函式，替換成：
 
@@ -326,17 +326,17 @@ async def reorder_group_images(
 
 移除檔案內不再需要的 `spec_repo` import（原本只有 `register_spec_image`/`reorder_spec_images`/`list_spec_images` 用到）。
 
-- [ ] **Step 4: 執行測試，確認通過**
+- [x] **Step 4: 執行測試，確認通過**
 
 Run: `cd backend && uv run pytest tests/test_image_service.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Lint + 型別檢查**
+- [x] **Step 5: Lint + 型別檢查**
 
 Run: `cd backend && uv run ruff check . && uv run mypy app`
 Expected: 無錯誤（尤其確認沒有未使用的 import）
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/services/image_service.py backend/tests/test_image_service.py
@@ -358,7 +358,7 @@ git commit -m "feat(images): replace spec-scoped image service fns with group-sc
   - `POST /api/admin/products/{product_id}/images/group/{group}`
   - `PATCH /api/admin/products/{product_id}/images/group/{group}/reorder`
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 在 `backend/tests/test_admin_images_api.py` 尾端新增：
 
@@ -419,12 +419,12 @@ async def test_group_path_rejects_invalid_group_value(client: AsyncClient, db_se
     assert resp.status_code == 422
 ```
 
-- [ ] **Step 2: 執行測試，確認失敗（404，因路由不存在）**
+- [x] **Step 2: 執行測試，確認失敗（404，因路由不存在）**
 
 Run: `cd backend && uv run pytest tests/test_admin_images_api.py -v`
 Expected: FAIL（新增的 4 個測試回傳 404 而非預期狀態碼）
 
-- [ ] **Step 3: 修改 routes**
+- [x] **Step 3: 修改 routes**
 
 把 `backend/app/api/routes/admin_images.py` 的 `/specs/{spec_id}/images...` 三支端點（檔案最後 18 行）整段刪除，改成：
 
@@ -524,17 +524,17 @@ async def reorder_group_images(
     )
 ```
 
-- [ ] **Step 4: 執行測試，確認通過**
+- [x] **Step 4: 執行測試，確認通過**
 
 Run: `cd backend && uv run pytest tests/test_admin_images_api.py -v`
 Expected: PASS（全部，含既有測試）
 
-- [ ] **Step 5: 全套後端測試 + lint + 型別檢查**
+- [x] **Step 5: 全套後端測試 + lint + 型別檢查**
 
 Run: `cd backend && uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 全綠
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/api/routes/admin_images.py backend/tests/test_admin_images_api.py
@@ -553,7 +553,7 @@ git commit -m "feat(images): expose group-scoped image endpoints, drop spec-scop
 - Consumes: `ProductImage.is_two_pack`（Task 1）；`product_repo.get_by_id`（既有）
 - Produces: `_group_images(images: list[ProductImage], is_two_pack: bool) -> list[str]`（供本檔內部使用，不對外匯出）；`PublicSpecRead.images` / `AdminSpecRead.images` 現在反映「同群組共用」的結果。
 
-- [ ] **Step 1: 寫失敗測試 — 同群組規格共用圖片**
+- [x] **Step 1: 寫失敗測試 — 同群組規格共用圖片**
 
 在 `backend/tests/test_product_service.py` 的 import 區塊加入：
 
@@ -615,12 +615,12 @@ async def test_update_spec_switches_group_images(db_session: AsyncSession):
     assert updated.images == ["two.jpg"]
 ```
 
-- [ ] **Step 2: 執行測試，確認失敗**
+- [x] **Step 2: 執行測試，確認失敗**
 
 Run: `cd backend && uv run pytest tests/test_product_service.py -v`
 Expected: FAIL（`_to_public_spec`/`_to_admin_spec` 目前吃 `s.images`，`ProductSpec` 已無此 relationship，會是 `AttributeError`）
 
-- [ ] **Step 3: 修改 `product_service.py`**
+- [x] **Step 3: 修改 `product_service.py`**
 
 在檔案頂部 import 區塊加入：
 
@@ -729,17 +729,17 @@ async def update_spec(
 
 （`product` 一定存在，因為 `spec.product_id` 是 FK 保證有效，不用另外判斷 `None`。）
 
-- [ ] **Step 4: 執行測試，確認全部通過**
+- [x] **Step 4: 執行測試，確認全部通過**
 
 Run: `cd backend && uv run pytest tests/test_product_service.py tests/test_product_images_public.py -v`
 Expected: PASS（含既有測試——`test_product_images_public.py` 測的是商品層級 fallback，不受影響）
 
-- [ ] **Step 5: 全套後端測試 + lint + 型別檢查**
+- [x] **Step 5: 全套後端測試 + lint + 型別檢查**
 
 Run: `cd backend && uv run pytest -q && uv run ruff check . && uv run mypy app`
 Expected: 全綠
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/app/services/product_service.py backend/tests/test_product_service.py
@@ -757,13 +757,13 @@ git commit -m "feat(products): resolve spec images from shared pack-size group"
 - Consumes: 無（獨立 schema migration，跟 pytest 測試套件無關——測試用 `Base.metadata.create_all` 直接照 model 建表）。
 - Produces: 正式/本機 Postgres 的 `product_images` 表結構符合 Task 1 的 model。
 
-- [ ] **Step 1: 產生 migration 骨架**
+- [x] **Step 1: 產生 migration 骨架**
 
 Run: `cd backend && uv run alembic revision -m "group product images by pack size"`
 
 這會在 `backend/alembic/versions/` 產生一個新檔案，記下產生的 revision id（檔名開頭那串 hash）。
 
-- [ ] **Step 2: 填入 upgrade/downgrade 內容**
+- [x] **Step 2: 填入 upgrade/downgrade 內容**
 
 打開剛產生的檔案，確認 `down_revision = 'ccae80d8b67e'`（目前 head，`add_is_two_pack_to_product_specs` 那支），把 `upgrade()`/`downgrade()` 改成：
 
@@ -798,7 +798,7 @@ def downgrade() -> None:
 
 > `downgrade()` 只還原 schema，**不**還原「哪張圖片原本屬於哪個規格」——這在 upgrade 的合併過程中已經是不可逆資訊，只用於緊急回滾 schema。
 
-- [ ] **Step 3: 本機驗證（需要 `docker compose up db` 開著）**
+- [x] **Step 3: 本機驗證（需要 `docker compose up db` 開著）**
 
 Run: `cd backend && uv run alembic upgrade head`
 Expected: 成功套用，無錯誤。
@@ -824,12 +824,12 @@ asyncio.run(main())
 ```
 Expected: 每一列的 `is_two_pack` 與其原本規格的 `is_two_pack` 一致（若本機沒有既有圖片資料，這步驟只需確認指令本身能跑、欄位存在即可）。
 
-- [ ] **Step 4: 驗證 downgrade 可還原 schema**
+- [x] **Step 4: 驗證 downgrade 可還原 schema**
 
 Run: `cd backend && uv run alembic downgrade -1 && uv run alembic upgrade head`
 Expected: 兩個方向都不報錯。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/alembic/versions/
@@ -851,7 +851,7 @@ git commit -m "chore(db): migrate product_images from spec_id to is_two_pack gro
   - `reorderGroupImages(token, productId, group, items)`
   - （`group` 為 `'two_pack' | 'single'` 字串，直接對應後端路徑參數）
 
-- [ ] **Step 1: 修改 `frontend/src/api.js`**
+- [x] **Step 1: 修改 `frontend/src/api.js`**
 
 把「Admin spec image APIs」整段（`listSpecImages`/`registerSpecImage`/`reorderSpecImages`）換成：
 
@@ -905,12 +905,12 @@ window.MiaoApi = {
 };
 ```
 
-- [ ] **Step 2: 檢查沒有殘留舊 import**
+- [x] **Step 2: 檢查沒有殘留舊 import**
 
 Run: `cd frontend && grep -rn "listSpecImages\|registerSpecImage\|reorderSpecImages" src/`
 Expected: 只剩 `AdminApp.jsx` 裡的用法（Task 7/8 會處理），`api.js` 本身不再出現。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/api.js
@@ -930,7 +930,7 @@ git commit -m "feat(admin-api): replace spec-scoped image client fns with group-
   - `<GroupImageGallery productId={number} group={'two_pack'|'single'} token={string} />`（可編輯：上傳/刪除/拖曳排序）
   - `<GroupImagePreview productId={number} group={'two_pack'|'single'} token={string} />`（唯讀縮圖）
 
-- [ ] **Step 1: 修改 import 區塊**
+- [x] **Step 1: 修改 import 區塊**
 
 把 `frontend/src/AdminApp.jsx` 頂部的：
 
@@ -976,7 +976,7 @@ import {
 } from './api.js';
 ```
 
-- [ ] **Step 2: 把 `SpecImageGallery` 改名並改吃 `(productId, group)`**
+- [x] **Step 2: 把 `SpecImageGallery` 改名並改吃 `(productId, group)`**
 
 把 `SortableImageItem` 後面、`SpecEditModal` 前面那段 `SpecImageGallery`（約 606–697 行）整段換成：
 
@@ -1098,12 +1098,12 @@ function GroupImagePreview({ productId, group, token }) {
 }
 ```
 
-- [ ] **Step 3: 啟動前端 dev server，確認沒有編譯錯誤**
+- [x] **Step 3: 啟動前端 dev server，確認沒有編譯錯誤**
 
 Run: `cd frontend && npm run dev`（背景執行即可，看 terminal 輸出）
 Expected: Vite 編譯成功，無 `GroupImageGallery`/`GroupImagePreview` 相關錯誤（此階段還沒有任何地方呼叫它們，正常）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/AdminApp.jsx
@@ -1269,4 +1269,4 @@ git commit -m "feat(admin-ui): manage two-pack/single photo groups at product le
 - [x] Task 5：正式 DB migration + backfill + downgrade。
 - [x] Task 6–8：後台 API client、群組相簿元件、商品層級管理區塊、規格 Modal 唯讀預覽。
 - [x] 前台 `SpecCard.jsx` 不需改動（spec 已確認）。
-- [ ] 部署前確認：這是設計文件標記的「合併效應」——正式環境資料庫的 5 台斤/10 台斤兩個規格若先前各自有獨立照片，migration 後會合併成一個「一層裝」相簿，需人工檢查排序（對照 spec「合併效應」段落）。
+- [x] 部署前確認：這是設計文件標記的「合併效應」——正式環境資料庫的 5 台斤/10 台斤兩個規格若先前各自有獨立照片，migration 後會合併成一個「一層裝」相簿，需人工檢查排序（對照 spec「合併效應」段落）。

@@ -151,7 +151,7 @@ git commit -m "$(printf 'ci: 新增 GitHub Actions CI(ruff + pytest + 前端 bui
   Secrets:`GCP_WIF_PROVIDER`、`GCP_DEPLOY_SA`、`VERCEL_TOKEN`。
   Variables:`GCP_PROJECT`、`GCP_REGION`、`CLOUD_RUN_SERVICE`、`MIGRATE_JOB`、`AR_REPO`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID`。
 
-- [ ] **Step 1: 先用 gcloud 查出現有值(寫進指引前先取得真實資料)**
+- [x] **Step 1: 先用 gcloud 查出現有值(寫進指引前先取得真實資料)**
 
 Run:
 ```bash
@@ -400,6 +400,8 @@ git commit -m "$(printf 'ci: 新增 tag 觸發的 release 流水線(Cloud Run + 
 ---
 
 ### Task 4: 端到端驗證與啟用（gated:需使用者先完成 `docs/ci-cd-console-setup.md`)
+
+> **已作廢：** CD（`release.yml`）已移除，只保留 CI，部署改為從 master 手動執行，見 ADR 0002。本 Task 不再執行，以下未勾選步驟保留作為紀錄。
 
 **Files:** 無(操作與驗證)。
 
