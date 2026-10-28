@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import create_access_token, hash_password
 from app.models.admin_user import AdminUser
 from app.models.order import Order
+from app.models.order_item import OrderItem
+from app.models.product import Product
+from app.models.product_spec import ProductSpec
 from app.repositories import admin_repo, order_repo
 
 
@@ -227,6 +230,68 @@ async def test_update_order_items_without_expected_total_is_422(
         headers=headers,
     )
     assert resp.status_code == 422
+
+
+async def _make_order_with_spec(
+    session: AsyncSession, order_no: str, *, slug: str
+) -> ProductSpec:
+    product = Product(slug=slug, name="甘露梨", description="d", image="i", season="s")
+    session.add(product)
+    await session.flush()
+    spec = ProductSpec(product_id=product.id, label="A", qty_text="q", price=880,
+                       stock_qty=5, sort_order=1)
+    session.add(spec)
+    await session.flush()
+    order = _make_order(order_no)
+    order.subtotal, order.shipping_fee, order.total = 1760, 0, 1760
+    session.add(order)
+    await session.flush()
+    session.add(OrderItem(order_id=order.id, product_id=product.id, spec_id=spec.id,
+                          product_name="甘露梨", spec_label="A", unit_price=880,
+                          qty=2, line_total=1760))
+    await session.flush()
+    return spec
+
+
+async def test_update_order_address_only_after_price_change_keeps_order_price(
+    client: AsyncClient, db_session: AsyncSession
+):
+    # 回歸:規格調價後只改地址,下單價、金額、庫存不變(ADR 0004)
+    headers = await _auth_header(db_session)
+    spec = await _make_order_with_spec(db_session, "MM-UP05", slug="api-reprice")
+    spec.price = 1000
+    await db_session.flush()
+
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP05", json={"ship_street": "中山北路2號"}, headers=headers
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ship_street"] == "中山北路2號"
+    assert body["items"][0]["unit_price"] == 880
+    assert (body["subtotal"], body["shipping_fee"], body["total"]) == (1760, 0, 1760)
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 5
+
+
+async def test_update_order_address_only_with_inactive_spec(
+    client: AsyncClient, db_session: AsyncSession
+):
+    # 回歸:訂單含已下架規格時仍可只改地址
+    headers = await _auth_header(db_session)
+    spec = await _make_order_with_spec(db_session, "MM-UP06", slug="api-retired")
+    spec.is_active = False
+    await db_session.flush()
+
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP06", json={"ship_street": "中山北路2號"}, headers=headers
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["ship_street"] == "中山北路2號"
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 5
 
 
 async def test_update_transfer_info_requires_auth(client: AsyncClient):
