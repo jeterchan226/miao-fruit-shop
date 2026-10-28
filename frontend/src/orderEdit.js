@@ -12,7 +12,7 @@ export function orderItemsDiff(original, form) {
   return normalize(original) !== normalize(form);
 }
 
-// 既有規格沿用下單價(R6)、新增規格用目前價格(R5);
+// 既有規格沿用下單價(R6)、新增規格用目前價格(R5),與後端 order_items._unit_price 一致;
 // 規格不在清單中(未載入或已刪除)無從得知是否兩粒裝,回 null。
 export function previewAmounts(original, form, specs) {
   const lines = [];
