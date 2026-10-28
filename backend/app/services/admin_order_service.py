@@ -177,7 +177,8 @@ async def update_order(
             setattr(order, field, value)
 
     if data.items is not None:
-        assert data.expected_total is not None  # schema 已保證
+        if data.expected_total is None:  # schema 已擋下,此處僅防禦
+            raise ValueError("送出訂單品項時須附 expected_total")
         result = await order_items.apply_items(
             session,
             order.items,
