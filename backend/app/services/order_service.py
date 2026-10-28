@@ -58,7 +58,6 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
         [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
         expected_total=data.expected_total,
     )
-    amounts = result.amounts
     order_no = await _generate_unique_order_no(session)
 
     order = Order(
@@ -80,12 +79,8 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
         delivery_window=data.shipping.delivery_window,
         payment_method=data.payment_method,
         note=data.note,
-        subtotal=amounts.subtotal,
-        shipping_fee=amounts.shipping_fee,
-        cod_fee=amounts.cod_fee,
-        total=amounts.total,
     )
-    order.items = result.items
+    result.apply_to(order)
     await order_repo.add(session, order)
     await session.commit()
     await session.refresh(order)

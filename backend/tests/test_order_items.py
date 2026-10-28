@@ -16,7 +16,13 @@ from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.repositories import product_repo
-from app.services.order_items import ItemRequest, apply_items, release_items
+from app.services.order_items import (
+    Amounts,
+    ItemRequest,
+    ItemsResult,
+    apply_items,
+    release_items,
+)
 
 
 async def _seed_specs(db_session: AsyncSession, *specs: ProductSpec) -> list[ProductSpec]:
@@ -277,3 +283,16 @@ async def test_release_items_restores_all_stock_including_inactive_and_skips_del
     await release_items(db_session, [*order.items, deleted, orphan])
 
     assert (box.stock_qty, gone.stock_qty) == (7, 1)
+
+
+def test_items_result_apply_to_sets_items_and_amounts():
+    order = Order()
+    item = OrderItem(product_id=1, spec_id=1, product_name="甘露梨", spec_label="A",
+                     unit_price=880, qty=2, line_total=1760)
+    result = ItemsResult(items=[item], amounts=Amounts(subtotal=1760, shipping_fee=150,
+                                                       cod_fee=0, total=1910))
+
+    result.apply_to(order)
+
+    assert order.items == [item]
+    assert (order.subtotal, order.shipping_fee, order.cod_fee, order.total) == (1760, 150, 0, 1910)

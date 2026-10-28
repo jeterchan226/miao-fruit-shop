@@ -185,11 +185,7 @@ async def update_order(
             [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
             expected_total=data.expected_total,
         )
-        order.items = result.items
-        order.subtotal = result.amounts.subtotal
-        order.shipping_fee = result.amounts.shipping_fee
-        order.cod_fee = result.amounts.cod_fee
-        order.total = result.amounts.total
+        result.apply_to(order)
 
     await session.commit()
     await session.refresh(order)
