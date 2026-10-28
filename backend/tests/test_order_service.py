@@ -14,7 +14,7 @@ from app.models.product_spec import ProductSpec
 from app.repositories import product_repo
 from app.schemas.order import OrderCreate
 from app.services import order_service
-from app.services.order_service import compute_amounts, compute_layers, compute_shipping
+from app.services.order_items import compute_amounts, compute_layers, compute_shipping
 
 
 async def _seed_spec(db_session, *, price=1880, stock=10):

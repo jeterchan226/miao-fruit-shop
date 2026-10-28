@@ -23,7 +23,7 @@ from app.schemas.order import (
     AdminOrderUpdate,
     OrderItemRead,
 )
-from app.services import order_service
+from app.services import order_items
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
     "pending_payment": {"ready", "cancelled"},      # 待付款
@@ -160,11 +160,7 @@ async def change_order_status(
     if new_status not in allowed:
         raise InvalidStatusTransition(f"無法從 {order.status} 轉移到 {new_status}")
     if new_status == "cancelled":
-        for item in order.items:
-            if item.spec_id is not None:
-                spec = await spec_repo.get_for_update(session, item.spec_id)
-                if spec is not None:
-                    spec.stock_qty += item.qty
+        await order_items.release_items(session, order.items)
     order.status = new_status
     await session.commit()
     await session.refresh(order)
@@ -213,7 +209,7 @@ async def _replace_items(
         for spec, qty in locked
     ]
 
-    amounts = order_service.compute_amounts(
+    amounts = order_items.compute_amounts(
         [(spec.price, qty, spec.is_two_pack) for spec, qty in locked]
     )
     order.subtotal = amounts.subtotal

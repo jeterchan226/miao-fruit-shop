@@ -413,3 +413,30 @@ async def test_update_transfer_info_not_found(db_session: AsyncSession):
         await admin_order_service.update_transfer_info(
             db_session, "MM-GHOST", AdminOrderTransferUpdate(transfer_last5="00000")
         )
+
+
+async def test_cancel_restores_stock_of_inactive_spec_and_skips_deleted(
+    db_session: AsyncSession,
+):
+    product = Product(slug="kanro3", name="甘露梨", description="d", image="i", season="s")
+    db_session.add(product)
+    await db_session.flush()
+    gone = ProductSpec(product_id=product.id, label="下架", qty_text="q", price=800,
+                       stock_qty=0, sort_order=1, is_active=False)
+    db_session.add(gone)
+    await db_session.flush()
+
+    order = _make_order("MM-CANCEL3", status="ready")
+    db_session.add(order)
+    await db_session.flush()
+    for spec_id, qty in ((gone.id, 2), (999999, 1)):
+        db_session.add(OrderItem(order_id=order.id, product_id=product.id, spec_id=spec_id,
+                                 product_name="甘露梨", spec_label="x", unit_price=800,
+                                 qty=qty, line_total=800 * qty))
+    await db_session.flush()
+
+    result = await admin_order_service.change_order_status(db_session, "MM-CANCEL3", "cancelled")
+
+    assert result.status == "cancelled"
+    await db_session.refresh(gone)
+    assert gone.stock_qty == 2
