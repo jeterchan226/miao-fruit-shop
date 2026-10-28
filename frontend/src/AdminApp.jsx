@@ -544,11 +544,11 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     const itemsChanged = orderItemsDiff(detail.items, editForm.items);
     if (itemsChanged) {
       if (!editForm.items.length) {
-        setEditError('至少需要一項商品。');
+        setEditError('至少需要一個訂單品項。');
         return;
       }
       if (editForm.items.some((it) => !it.spec_id || Number(it.qty) < 1)) {
-        setEditError('請確認每個品項都有選規格,數量至少為 1。');
+        setEditError('請確認每個訂單品項都有選規格,數量至少為 1。');
         return;
       }
       if (!editPreview) {

@@ -401,7 +401,7 @@ async def test_update_order_items_applies_diff_keeping_order_price(db_session: A
     assert added.stock_qty == 9
 
 
-async def test_update_order_items_removes_line_and_restores_stock(db_session: AsyncSession):
+async def test_update_order_items_removes_order_item_and_restores_stock(db_session: AsyncSession):
     removed = await _make_product_and_spec(db_session, slug="removed", price=880, stock_qty=5)
     other = await _make_product_and_spec(db_session, slug="other", price=500, stock_qty=10)
     order = await _make_order_with_item(db_session, "MM-ED07", removed, unit_price=880, qty=2)
