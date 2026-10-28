@@ -64,6 +64,12 @@ const CHIP_OPTIONS = [
   { value: 'cancelled', label: '已取消' },
 ];
 
+const SOURCE_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: 'storefront', label: '顧客下單' },
+  { value: 'admin', label: '代客下單' },
+];
+
 const DELIVERY_WINDOW_LABELS = {
   any: '不指定',
   am: '上午 9–13',
@@ -96,6 +102,7 @@ const statusLabel = (s) => STATUS_LABELS[s] || '—';
 function resolveSearchParams(filters) {
   const params = {};
   if (filters.status) params.status = filters.status;
+  if (filters.source) params.source = filters.source;
   if (filters.date_from) params.date_from = filters.date_from;
   if (filters.date_to) params.date_to = filters.date_to;
   const text = (filters.searchText ?? '').trim();
@@ -123,6 +130,12 @@ function StatusBadge({ status, large }) {
       {statusLabel(status)}
     </span>
   );
+}
+
+/* ── 代客下單標籤(顧客下單不標示) ── */
+function SourceBadge({ source }) {
+  if (source !== 'admin') return null;
+  return <span className="adm-source-badge">代客下單</span>;
 }
 
 /* ── Login view ── */
@@ -285,6 +298,12 @@ function FilterStrip({ statusCounts, filters, setFilters, onSearch }) {
     onSearch(next);
   };
 
+  const setSource = (value) => {
+    const next = { ...filters, source: value };
+    setFilters(next);
+    onSearch(next);
+  };
+
   const setSearchText = (value) => {
     const next = { ...filters, searchText: value };
     setFilters(next);
@@ -300,21 +319,34 @@ function FilterStrip({ statusCounts, filters, setFilters, onSearch }) {
 
   return (
     <div className="adm-filters">
-      <div className="adm-chips">
-        {CHIP_OPTIONS.map(({ value, label }) => {
-          const grandTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
-          const count = value === '' ? grandTotal : (statusCounts?.[value] ?? 0);
-          return (
+      <div className="adm-filter-row">
+        <div className="adm-chips">
+          {CHIP_OPTIONS.map(({ value, label }) => {
+            const grandTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+            const count = value === '' ? grandTotal : (statusCounts?.[value] ?? 0);
+            return (
+              <button
+                key={value}
+                className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
+                onClick={() => setChipStatus(value)}
+              >
+                {label}
+                <span className="adm-chip__count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="adm-chips adm-chips--source" role="group" aria-label="訂單來源">
+          {SOURCE_OPTIONS.map(({ value, label }) => (
             <button
               key={value}
-              className={`adm-chip${filters.status === value ? ' adm-chip--active' : ''}`}
-              onClick={() => setChipStatus(value)}
+              className={`adm-chip${filters.source === value ? ' adm-chip--active' : ''}`}
+              onClick={() => setSource(value)}
             >
               {label}
-              <span className="adm-chip__count">{count}</span>
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
       <div className="adm-search-row">
         <div className="adm-search">
@@ -385,7 +417,10 @@ function OrdersTable({ orders, selectedOrderNo, onSelect }) {
               onClick={() => onSelect(order.order_no)}
             >
               <td><span className="adm-mono">{order.order_no}</span></td>
-              <td><StatusBadge status={order.status} /></td>
+              <td>
+                <StatusBadge status={order.status} />
+                <SourceBadge source={order.source} />
+              </td>
               <td>{order.customer_name}</td>
               <td className="adm-muted">{order.customer_phone}</td>
               <td className="adm-num">{money(order.total)}</td>
@@ -597,6 +632,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             </div>
           </div>
           <div className="adm-modal__head-right">
+            {detail && <SourceBadge source={detail.source} />}
             {detail && <StatusBadge status={detail.status} large />}
             {detail && editable && !editing && (
               <button className="adm-btn adm-btn--ghost" onClick={startEdit}>編輯訂單</button>
@@ -1680,6 +1716,7 @@ export default function AdminApp() {
 
   const [filters, setFilters] = useState({
     status: '',
+    source: '',
     searchText: '',
     date_from: '',
     date_to: '',
@@ -1790,6 +1827,7 @@ export default function AdminApp() {
   const latestNewOrder = newOrders[0] || null;
   const isDefaultView =
     !filters.status &&
+    !filters.source &&
     !filters.searchText.trim() &&
     !filters.date_from &&
     !filters.date_to &&

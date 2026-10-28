@@ -9,10 +9,13 @@ from app.models.order import Order
 from app.repositories import admin_repo, order_repo
 
 
-def _make_order(order_no: str, *, status: str = "pending_payment") -> Order:
+def _make_order(
+    order_no: str, *, status: str = "pending_payment", source: str = "storefront"
+) -> Order:
     return Order(
         order_no=order_no,
         status=status,
+        source=source,
         customer_name="王小明",
         customer_phone="0912345678",
         customer_email=None,
@@ -73,6 +76,47 @@ async def test_list_orders_filter_by_status(
     assert "MM-API03" not in nos
 
 
+async def test_list_orders_items_include_source(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-SRC01", source="admin"))
+    await db_session.flush()
+    resp = await client.get("/api/admin/orders?order_no=MM-SRC01", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["items"][0]["source"] == "admin"
+
+
+async def test_list_orders_filter_by_source(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-SRC02", source="storefront"))
+    await order_repo.add(db_session, _make_order("MM-SRC03", source="admin"))
+    await db_session.flush()
+
+    resp = await client.get("/api/admin/orders?source=admin", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    nos = [item["order_no"] for item in body["items"]]
+    assert "MM-SRC03" in nos
+    assert "MM-SRC02" not in nos
+    assert body["total"] == len(nos)
+
+    resp = await client.get("/api/admin/orders?source=storefront", headers=headers)
+    nos = [item["order_no"] for item in resp.json()["items"]]
+    assert "MM-SRC02" in nos
+    assert "MM-SRC03" not in nos
+
+
+async def test_list_orders_invalid_source_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    resp = await client.get("/api/admin/orders?source=line", headers=headers)
+    assert resp.status_code == 422
+
+
 async def test_orders_summary_requires_auth(client: AsyncClient):
     assert (await client.get("/api/admin/orders/summary")).status_code == 401
 
@@ -93,12 +137,13 @@ async def test_orders_summary(client: AsyncClient, db_session: AsyncSession):
 
 async def test_get_order_detail(client: AsyncClient, db_session: AsyncSession):
     headers = await _auth_header(db_session)
-    await order_repo.add(db_session, _make_order("MM-DT01"))
+    await order_repo.add(db_session, _make_order("MM-DT01", source="admin"))
     await db_session.flush()
     resp = await client.get("/api/admin/orders/MM-DT01", headers=headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["order_no"] == "MM-DT01"
+    assert body["source"] == "admin"
     assert "ship_city" in body
     assert "items" in body
 

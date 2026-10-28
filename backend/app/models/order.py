@@ -16,6 +16,10 @@ class Order(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     order_no: Mapped[str] = mapped_column(unique=True, index=True)
     status: Mapped[str] = mapped_column()
+    # 訂單來源:storefront(顧客下單)/ admin(代客下單)
+    source: Mapped[str] = mapped_column(
+        default="storefront", server_default="storefront"
+    )
     customer_name: Mapped[str] = mapped_column()
     customer_phone: Mapped[str] = mapped_column()
     customer_email: Mapped[str | None] = mapped_column(default=None)

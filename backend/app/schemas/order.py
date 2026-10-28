@@ -74,6 +74,7 @@ class PriceChangedResponse(BaseModel):
 class AdminOrderListItem(BaseModel):
     order_no: str
     status: str
+    source: str
     customer_name: str
     customer_phone: str
     total: int
@@ -101,6 +102,7 @@ class AdminOrderRead(BaseModel):
     id: int
     order_no: str
     status: str
+    source: str
     customer_name: str
     customer_phone: str
     customer_email: str | None
