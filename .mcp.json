@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "github-jeterchan226": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT_JETERCHAN226}"
+      }
+    }
+  }
+}

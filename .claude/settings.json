@@ -8,8 +8,7 @@
   "sandbox": {
     "excludedCommands": [
       "git push *",
-      "git branch *",
-      "git config *"
+      "git branch *"
     ]
   }
 }
