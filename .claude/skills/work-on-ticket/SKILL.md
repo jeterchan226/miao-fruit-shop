@@ -1,6 +1,6 @@
 ---
 name: work-on-ticket
-description: Take one GitHub ticket from start to an open PR, inside a worktree the user created. Usage: /work-on-ticket #NN
+description: "Take one GitHub ticket from start to an open PR, inside a worktree the user created. Usage: /work-on-ticket #NN"
 disable-model-invocation: true
 ---
 
