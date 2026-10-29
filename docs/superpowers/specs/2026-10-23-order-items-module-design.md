@@ -186,6 +186,8 @@ class AdminOrderCreate(BaseModel):
 
 - 訂單分頁新增「新增訂單」按鈕，開啟與編輯共用欄位的表單：顧客姓名、電話、Email（選填）、收件地址、希望到貨日、時段、備註、訂單品項。
 - 規格選單規則同 R8；即時試算總額；送出帶 `expected_total`。
+- 顧客/收件欄位驗證與商店頁購物車完全相同，兩邊呼叫同一個函式（`customerValidation.js` `validateCustomerShipping`）：姓名、電話（含格式）、縣市、區域、詳細地址必填，希望送達日不得早於明天；郵遞區號不必填。
+- 送出按鈕與 `PRICE_CHANGED` 提示統一用「儲存訂單」。
 - 成功後開啟該訂單明細並刷新列表。
 - `api.js` 新增 `createAdminOrder(token, payload)`。
 
