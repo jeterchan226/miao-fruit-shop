@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatRelativeTime,
   isAfter,
+  isCustomerOrder,
   newestCreatedAt,
   newOrdersSince,
   unreadOrders,
@@ -93,5 +94,46 @@ describe('newOrdersSince', () => {
   it('recentOrders 為空 / undefined → []', () => {
     expect(newOrdersSince([], ago(0))).toEqual([]);
     expect(newOrdersSince(undefined, ago(0))).toEqual([]);
+  });
+});
+
+describe('排除代客下單（source === admin）', () => {
+  it('只有代客下單 → 不計未讀', () => {
+    const orders = [{ order_no: 'A', source: 'admin', created_at: ago(1000) }];
+    expect(unreadOrders(orders, ago(5000))).toEqual([]);
+  });
+  it('混合 → 只計顧客下單未讀', () => {
+    const orders = [
+      { order_no: 'A', source: 'admin', created_at: ago(1000) },
+      { order_no: 'B', source: 'storefront', created_at: ago(2000) },
+    ];
+    expect(unreadOrders(orders, ago(5000)).map((o) => o.order_no)).toEqual(['B']);
+  });
+  it('只有代客下單 → 橫幅無新訂單', () => {
+    const recent = [{ order_no: 'A', source: 'admin', created_at: ago(1000) }];
+    expect(newOrdersSince(recent, ago(5000))).toEqual([]);
+    expect(newOrdersSince(recent, null)).toEqual([]);
+  });
+  it('混合 → 橫幅只列顧客下單', () => {
+    const recent = [
+      { order_no: 'A', source: 'admin', created_at: ago(1000) },
+      { order_no: 'B', source: 'storefront', created_at: ago(2000) },
+    ];
+    expect(newOrdersSince(recent, ago(5000)).map((o) => o.order_no)).toEqual(['B']);
+  });
+  it('只有代客下單 → 最新建立時間為 null，不響鈴', () => {
+    const orders = [{ order_no: 'A', source: 'admin', created_at: ago(1000) }];
+    expect(newestCreatedAt(orders)).toBe(null);
+  });
+  it('混合 → 最新建立時間只看顧客下單', () => {
+    const orders = [
+      { order_no: 'A', source: 'admin', created_at: ago(1000) },
+      { order_no: 'B', source: 'storefront', created_at: ago(2000) },
+    ];
+    expect(newestCreatedAt(orders)).toBe(ago(2000));
+  });
+  it('isCustomerOrder：代客下單為否，顧客下單為是', () => {
+    expect(isCustomerOrder({ source: 'admin' })).toBe(false);
+    expect(isCustomerOrder({ source: 'storefront' })).toBe(true);
   });
 });
