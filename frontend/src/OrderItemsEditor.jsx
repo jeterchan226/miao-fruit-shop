@@ -1,6 +1,7 @@
 /* 訂單品項編輯區 — 後台編輯訂單與代客下單共用 */
 
-import { addableSpecs, lineForSpec, money, previewAmounts, qtyStep } from './orderEdit.js';
+import { money } from './format.js';
+import { addableSpecs, lineForSpec, previewAmounts, qtyStep } from './orderEdit.js';
 
 /*
  * lines    — 編輯行(見 orderEdit.js),由呼叫端持有

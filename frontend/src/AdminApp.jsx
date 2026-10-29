@@ -48,6 +48,7 @@ import {
   validateLines,
 } from './orderEdit.js';
 import OrderItemsEditor from './OrderItemsEditor.jsx';
+import { money } from './format.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -94,7 +95,6 @@ const LINE_FRIENDSHIP_LABELS = {
   unknown: '未確認',
 };
 
-const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
 const dateText = (s) =>
   s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '—';
 const statusLabel = (s) => STATUS_LABELS[s] || '—';

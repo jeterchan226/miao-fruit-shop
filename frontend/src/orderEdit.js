@@ -1,4 +1,5 @@
 /* 後台訂單品項編輯 — 逐行規則、送出比對與金額試算(後台編輯與代客下單共用) */
+import { money } from './format.js';
 import { computeLayers, computeShipping } from './pricing.js';
 
 /*
@@ -102,8 +103,6 @@ export function repriceNewLines(lines, specs) {
     return spec ? { ...l, unitPrice: spec.price } : l;
   });
 }
-
-export const money = (n) => `NT$ ${Number(n || 0).toLocaleString()}`;
 
 const FALLBACK_MESSAGES = {
   ITEM_QTY_LOCKED: '已下架規格的數量不可修改，只能移除此訂單品項。',
