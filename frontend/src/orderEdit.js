@@ -1,4 +1,5 @@
 /* 後台訂單品項編輯 — 逐行規則、送出比對與金額試算(後台編輯與代客下單共用) */
+import { validateCustomerShipping } from './customerValidation.js';
 import { money } from './format.js';
 import { computeLayers, computeShipping } from './pricing.js';
 
@@ -111,21 +112,18 @@ export function emptyOrderForm() {
   };
 }
 
-const REQUIRED_ORDER_FIELDS = [
-  ['customer_name', '顧客姓名'],
-  ['customer_phone', '電話'],
-  ['ship_zipcode', '郵遞區號'],
-  ['ship_city', '縣市'],
-  ['ship_district', '鄉鎮區'],
-  ['ship_street', '街道地址'],
-  ['preferred_date', '希望送達日期'],
-];
-
-// 代客下單送出前檢查;回傳錯誤訊息,合法則回 null。後端仍會再驗一次。
-export function validateNewOrder(form, lines) {
-  for (const [field, label] of REQUIRED_ORDER_FIELDS) {
-    if (!String(form[field] ?? '').trim()) return `請填寫${label}。`;
-  }
+// 代客下單送出前檢查,顧客/收件欄位與商店頁共用同一套規則;回傳第一個錯誤訊息,合法則回 null。
+export function validateNewOrder(form, lines, now = new Date()) {
+  const errors = validateCustomerShipping({
+    name: form.customer_name,
+    phone: form.customer_phone,
+    city: form.ship_city,
+    district: form.ship_district,
+    street: form.ship_street,
+    preferredDate: form.preferred_date,
+  }, now);
+  const first = Object.values(errors)[0];
+  if (first) return first;
   if (!lines.length) return '請至少新增一個訂單品項。';
   return validateLines(lines);
 }

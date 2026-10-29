@@ -3,15 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { createOrder } from './api.js';
+import { getTomorrowStr, validateCustomerShipping } from './customerValidation.js';
 import { StoreIcon } from './Icons.jsx';
 import { initLineProfile, openLineAddFriend, refreshLineFriendship } from './line.js';
 import { FREE_SHIPPING, computeLayers, computeShipping } from './pricing.js';
-
-const getTomorrowStr = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
-};
 
 const formatDateDisplay = (s) => {
   if (!s) return '';
@@ -547,22 +542,17 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
   const total    = subtotal + shipping;
 
   const validate = () => {
-    const e = {};
-    if (!form.name.trim()) e.name = '請輸入姓名';
-    if (!form.phone.trim()) e.phone = '請輸入電話';
-    else if (!/^[0-9\-\s]{8,}$/.test(form.phone)) e.phone = '電話格式不正確';
-    if (!form.city) e.city = '請選擇縣市';
-    if (!form.district) e.district = '請選擇區域';
-    if (!form.street.trim()) e.street = '請輸入詳細地址';
+    // 顧客/收件欄位與代客下單共用同一套規則
+    const { preferredDate, ...rest } = validateCustomerShipping({
+      name: form.name,
+      phone: form.phone,
+      city: form.city,
+      district: form.district,
+      street: form.street,
+      preferredDate: form.ship,
+    });
+    const e = { ...rest, ...(preferredDate && { ship: preferredDate }) };
     if (!form.lineNotifyConsent) e.lineNotifyConsent = '請勾選 LINE 通知同意';
-    if (!form.ship) {
-      e.ship = '請選擇送達日期';
-    } else {
-      const entered  = new Date(form.ship + 'T00:00:00');
-      const tomorrow = new Date(getTomorrowStr() + 'T00:00:00');
-      if (isNaN(entered.getTime())) e.ship = '日期無效，請重新選擇';
-      else if (entered < tomorrow)  e.ship = '送達日不得早於明天';
-    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
