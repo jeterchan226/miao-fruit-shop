@@ -48,8 +48,8 @@ import {
   orderItemsDiff,
   previewAmounts,
   repriceNewLines,
-  validateLines,
   validateNewOrder,
+  validateOrderEdit,
 } from './orderEdit.js';
 import OrderItemsEditor from './OrderItemsEditor.jsx';
 import { money } from './format.js';
@@ -693,12 +693,10 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const saveEdit = async () => {
     // 訂單品項未變動就不送 items,訂單品項、金額、庫存不動(R13)
     const itemsChanged = orderItemsDiff(detail.items, editForm.items);
-    if (itemsChanged) {
-      const invalid = validateLines(editForm.items);
-      if (invalid) {
-        setEditError(invalid);
-        return;
-      }
+    const invalid = validateOrderEdit(editForm, detail);
+    if (invalid) {
+      setEditError(invalid);
+      return;
     }
     setEditSaving(true);
     setEditError('');

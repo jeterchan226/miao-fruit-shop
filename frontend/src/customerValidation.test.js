@@ -34,6 +34,13 @@ describe('validateCustomerShipping', () => {
     expect(validateCustomerShipping({ ...valid(), phone: '0912abc' }, NOW).phone).toBe('電話格式不正確');
   });
 
+  it('欄位為 null(如後台舊資料)也視為未填,不會拋錯', () => {
+    const errors = validateCustomerShipping(
+      { name: null, phone: null, city: null, district: null, street: null, preferredDate: null }, NOW,
+    );
+    expect(Object.keys(errors)).toEqual(['name', 'phone', 'city', 'district', 'street', 'preferredDate']);
+  });
+
   it('縣市、區域未填 → 提示選擇', () => {
     const errors = validateCustomerShipping({ ...valid(), city: '', district: '' }, NOW);
     expect(errors.city).toBe('請選擇縣市');
@@ -51,5 +58,22 @@ describe('validateCustomerShipping', () => {
 
   it('送達日為明天 → 合法', () => {
     expect(validateCustomerShipping(valid(), NOW).preferredDate).toBeUndefined();
+  });
+});
+
+describe('validateCustomerShipping — 既有訂單的原送達日', () => {
+  it('送達日維持訂單原值時,即使早於明天也放行', () => {
+    const fields = { ...valid(), preferredDate: '2026-11-01' };
+    expect(validateCustomerShipping(fields, NOW, { savedDate: '2026-11-01' })).toEqual({});
+  });
+  it('改成其他早於明天的日期 → 仍擋下', () => {
+    const fields = { ...valid(), preferredDate: '2026-11-05' };
+    expect(validateCustomerShipping(fields, NOW, { savedDate: '2026-11-01' }).preferredDate)
+      .toBe('送達日不得早於明天');
+  });
+  it('原送達日也不可清空', () => {
+    const fields = { ...valid(), preferredDate: '' };
+    expect(validateCustomerShipping(fields, NOW, { savedDate: '2026-11-01' }).preferredDate)
+      .toBe('請選擇送達日期');
   });
 });

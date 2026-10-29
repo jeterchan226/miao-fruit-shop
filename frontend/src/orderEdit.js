@@ -112,20 +112,33 @@ export function emptyOrderForm() {
   };
 }
 
+const customerFieldsOf = (form) => ({
+  name: form.customer_name,
+  phone: form.customer_phone,
+  city: form.ship_city,
+  district: form.ship_district,
+  street: form.ship_street,
+  preferredDate: form.preferred_date,
+});
+
+const firstError = (errors) => Object.values(errors)[0] ?? null;
+
 // 代客下單送出前檢查,顧客/收件欄位與商店頁共用同一套規則;回傳第一個錯誤訊息,合法則回 null。
 export function validateNewOrder(form, lines, now = new Date()) {
-  const errors = validateCustomerShipping({
-    name: form.customer_name,
-    phone: form.customer_phone,
-    city: form.ship_city,
-    district: form.ship_district,
-    street: form.ship_street,
-    preferredDate: form.preferred_date,
-  }, now);
-  const first = Object.values(errors)[0];
-  if (first) return first;
+  const invalid = firstError(validateCustomerShipping(customerFieldsOf(form), now));
+  if (invalid) return invalid;
   if (!lines.length) return '請至少新增一個訂單品項。';
   return validateLines(lines);
+}
+
+// 編輯訂單存檔前檢查,顧客/收件欄位同樣走共用規則;送達日維持原值時不受「不得早於明天」限制。
+// 訂單品項有變動才檢查品項(R13)。
+export function validateOrderEdit(form, order, now = new Date()) {
+  const invalid = firstError(
+    validateCustomerShipping(customerFieldsOf(form), now, { savedDate: order.preferred_date }),
+  );
+  if (invalid) return invalid;
+  return orderItemsDiff(order.items, form.items) ? validateLines(form.items) : null;
 }
 
 // 代客下單 request body(AdminOrderCreate);expected_total 為畫面試算總額(R15)。
