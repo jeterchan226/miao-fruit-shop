@@ -1003,7 +1003,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
     return () => { cancelled = true; };
   }, [token]);
 
-  // 建立中不可關閉,避免請求完成時寫回已卸載的元件
+  // 儲存中不可關閉,避免請求完成時寫回已卸載的元件
   const close = useCallback(() => { if (!saving) onClose(); }, [saving, onClose]);
 
   useEffect(() => {
@@ -1028,7 +1028,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
     } catch (err) {
       setError(orderEditErrorMessage(err));
       if (err?.code === 'PRICE_CHANGED') {
-        // 以最新價格重新試算,管理員確認畫面總額後可再送出
+        // 以最新價格重新試算,管理員確認畫面總額後可再儲存訂單
         try {
           const options = await loadAdminSpecOptions(token);
           setSpecOptions(options);
@@ -1088,7 +1088,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
               onClick={submit}
               disabled={saving || specsStatus !== 'ready'}
             >
-              {saving ? '建立中…' : '建立訂單'}
+              {saving ? '儲存中…' : '儲存訂單'}
             </button>
           </div>
         </div>
