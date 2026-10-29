@@ -95,6 +95,61 @@ export function validateLines(lines) {
   return null;
 }
 
+// 代客下單表單的初始值;欄位與後台編輯訂單相同。
+export function emptyOrderForm() {
+  return {
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    ship_zipcode: '',
+    ship_city: '',
+    ship_district: '',
+    ship_street: '',
+    preferred_date: '',
+    delivery_window: 'any',
+    note: '',
+  };
+}
+
+const REQUIRED_ORDER_FIELDS = [
+  ['customer_name', '顧客姓名'],
+  ['customer_phone', '電話'],
+  ['ship_zipcode', '郵遞區號'],
+  ['ship_city', '縣市'],
+  ['ship_district', '鄉鎮區'],
+  ['ship_street', '街道地址'],
+  ['preferred_date', '希望送達日期'],
+];
+
+// 代客下單送出前檢查;回傳錯誤訊息,合法則回 null。後端仍會再驗一次。
+export function validateNewOrder(form, lines) {
+  for (const [field, label] of REQUIRED_ORDER_FIELDS) {
+    if (!String(form[field] ?? '').trim()) return `請填寫${label}。`;
+  }
+  if (!lines.length) return '請至少新增一個訂單品項。';
+  return validateLines(lines);
+}
+
+// 代客下單 request body(AdminOrderCreate);expected_total 為畫面試算總額(R15)。
+export function adminOrderPayload(form, lines) {
+  return {
+    customer_name: form.customer_name,
+    customer_phone: form.customer_phone,
+    customer_email: form.customer_email || null,
+    shipping: {
+      zipcode: form.ship_zipcode,
+      city: form.ship_city,
+      district: form.ship_district,
+      street: form.ship_street,
+      preferred_date: form.preferred_date,
+      delivery_window: form.delivery_window,
+    },
+    items: lines.map((l) => ({ spec_id: Number(l.spec_id), qty: Number(l.qty) })),
+    note: form.note || null,
+    expected_total: previewAmounts(lines).total,
+  };
+}
+
 // PRICE_CHANGED 後重新載入規格:新行改用最新價格,既有行下單價不變。
 export function repriceNewLines(lines, specs) {
   return lines.map((l) => {
@@ -113,7 +168,7 @@ const FALLBACK_MESSAGES = {
 export function orderEditErrorMessage(err) {
   const data = err?.data || {};
   if (err?.code === 'PRICE_CHANGED') {
-    return `規格價格已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再儲存。`;
+    return `規格價格已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再送出。`;
   }
   if (err?.code === 'DUPLICATE_SPEC') return '同一規格只能有一個訂單品項，請合併數量。';
   if (err?.code in FALLBACK_MESSAGES) return data.detail || FALLBACK_MESSAGES[err.code];

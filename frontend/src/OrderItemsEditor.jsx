@@ -8,11 +8,12 @@ import { addableSpecs, lineForSpec, previewAmounts, qtyStep } from './orderEdit.
  * onChange — (nextLines) => void
  * specs    — 後台規格清單,每筆另帶 productName
  * orderItems — 訂單開啟時的訂單品項(新訂單為 [])
+ * isNewOrder — 代客下單:尚未成立,可移除到 0 行(R2 只限既有訂單)
  */
 export default function OrderItemsEditor({
-  lines, onChange, specs, orderItems = [], disabled = false,
+  lines, onChange, specs, orderItems = [], disabled = false, isNewOrder = false,
 }) {
-  const onlyOne = lines.length === 1;
+  const onlyOne = !isNewOrder && lines.length === 1;
   const addable = addableSpecs(specs, lines);
   const preview = previewAmounts(lines);
 
@@ -110,7 +111,9 @@ export default function OrderItemsEditor({
           disabled={disabled || addable.length === 0}
         >
           <option value="">
-            {addable.length ? '選擇要加訂的規格…' : '沒有可新增的規格'}
+            {!addable.length
+              ? '沒有可新增的規格'
+              : isNewOrder ? '選擇規格…' : '選擇要加訂的規格…'}
           </option>
           {addable.map((s) => (
             <option key={s.id} value={s.id}>

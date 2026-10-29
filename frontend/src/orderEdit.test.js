@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   addableSpecs,
+  adminOrderPayload,
+  emptyOrderForm,
   lineForSpec,
   linesFromOrderItems,
   newLine,
@@ -9,6 +11,7 @@ import {
   previewAmounts,
   repriceNewLines,
   validateLines,
+  validateNewOrder,
 } from './orderEdit.js';
 
 const original = [
@@ -172,7 +175,7 @@ describe('orderEditErrorMessage', () => {
 
   it('PRICE_CHANGED 顯示新金額請重新確認', () => {
     expect(orderEditErrorMessage(err('PRICE_CHANGED', { total: 3280 }))).toBe(
-      '規格價格已更新，新的訂單總額為 NT$ 3,280，請重新確認後再儲存。'
+      '規格價格已更新，新的訂單總額為 NT$ 3,280，請重新確認後再送出。'
     );
   });
   it.each([
@@ -197,5 +200,83 @@ describe('orderEditErrorMessage', () => {
   it('其他錯誤沿用後端 detail,否則通用訊息', () => {
     expect(orderEditErrorMessage(err('ORDER_NOT_EDITABLE', { detail: '已出貨' }))).toBe('已出貨');
     expect(orderEditErrorMessage(undefined)).toBe('儲存失敗。');
+  });
+});
+
+const filledForm = () => ({
+  ...emptyOrderForm(),
+  customer_name: '王小明',
+  customer_phone: '0912345678',
+  ship_zipcode: '100',
+  ship_city: '台北市',
+  ship_district: '中正區',
+  ship_street: '重慶南路1號',
+  preferred_date: '2026-11-12',
+});
+
+const boxLine = () => newLine({
+  id: 7, label: '5 台斤家庭箱', price: 1880, is_two_pack: false, productName: '甘露梨',
+});
+
+describe('emptyOrderForm', () => {
+  it('欄位皆空白,時段預設不指定', () => {
+    const form = emptyOrderForm();
+    expect(form.customer_name).toBe('');
+    expect(form.customer_email).toBe('');
+    expect(form.delivery_window).toBe('any');
+  });
+});
+
+describe('validateNewOrder', () => {
+  it('必填欄位都有、訂單品項合法 → null', () => {
+    expect(validateNewOrder(filledForm(), [boxLine()])).toBeNull();
+  });
+  it('Email、備註可留空', () => {
+    expect(validateNewOrder({ ...filledForm(), customer_email: '', note: '' }, [boxLine()])).toBeNull();
+  });
+  it('缺顧客姓名 → 提示', () => {
+    expect(validateNewOrder({ ...filledForm(), customer_name: '  ' }, [boxLine()])).toMatch('顧客姓名');
+  });
+  it('缺希望送達日期 → 提示', () => {
+    expect(validateNewOrder({ ...filledForm(), preferred_date: '' }, [boxLine()])).toMatch('希望送達日期');
+  });
+  it('沒有訂單品項 → 提示新增,不提取消訂單', () => {
+    const msg = validateNewOrder(filledForm(), []);
+    expect(msg).toMatch('請至少新增一個訂單品項');
+    expect(msg).not.toMatch('取消訂單');
+  });
+  it('訂單品項不合法 → 沿用 validateLines 訊息', () => {
+    const pair = newLine({ id: 8, label: '2 粒裝', price: 300, is_two_pack: true, productName: '甘露梨' });
+    expect(validateNewOrder(filledForm(), [{ ...pair, qty: 3 }])).toMatch('雙數');
+  });
+});
+
+describe('adminOrderPayload', () => {
+  it('組出 AdminOrderCreate,expected_total 為畫面試算總額', () => {
+    const lines = [{ ...boxLine(), qty: '2' }];
+    const payload = adminOrderPayload({ ...filledForm(), note: '電話訂購' }, lines);
+    expect(payload).toEqual({
+      customer_name: '王小明',
+      customer_phone: '0912345678',
+      customer_email: null,
+      shipping: {
+        zipcode: '100',
+        city: '台北市',
+        district: '中正區',
+        street: '重慶南路1號',
+        preferred_date: '2026-11-12',
+        delivery_window: 'any',
+      },
+      items: [{ spec_id: 7, qty: 2 }],
+      note: '電話訂購',
+      expected_total: previewAmounts(lines).total,
+    });
+  });
+  it('有填 Email 才送,備註空白送 null', () => {
+    const payload = adminOrderPayload(
+      { ...filledForm(), customer_email: 'a@b.tw', note: '' }, [boxLine()],
+    );
+    expect(payload.customer_email).toBe('a@b.tw');
+    expect(payload.note).toBeNull();
   });
 });
