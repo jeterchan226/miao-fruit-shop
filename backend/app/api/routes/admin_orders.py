@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +29,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 async def list_orders(
     session: SessionDep,
     status: str | None = Query(default=None),  # noqa: B008
+    source: Literal["storefront", "admin"] | None = Query(default=None),  # noqa: B008
     date_from: date | None = Query(default=None),  # noqa: B008
     date_to: date | None = Query(default=None),  # noqa: B008
     q: str | None = Query(default=None),  # noqa: B008
@@ -39,6 +40,7 @@ async def list_orders(
     return await admin_order_service.list_orders(
         session,
         status=status,
+        source=source,
         date_from=date_from,
         date_to=date_to,
         q=q,

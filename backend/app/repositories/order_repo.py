@@ -22,6 +22,7 @@ async def list_filtered(
     session: AsyncSession,
     *,
     status: str | None = None,
+    source: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     q: str | None = None,
@@ -36,6 +37,9 @@ async def list_filtered(
     if status is not None:
         count_stmt = count_stmt.where(Order.status == status)
         list_stmt = list_stmt.where(Order.status == status)
+    if source is not None:
+        count_stmt = count_stmt.where(Order.source == source)
+        list_stmt = list_stmt.where(Order.source == source)
     if date_from is not None:
         count_stmt = count_stmt.where(Order.created_at >= date_from)
         list_stmt = list_stmt.where(Order.created_at >= date_from)

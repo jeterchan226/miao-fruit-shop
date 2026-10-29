@@ -50,6 +50,7 @@ def _to_admin_list_item(order: Order) -> AdminOrderListItem:
     return AdminOrderListItem(
         order_no=order.order_no,
         status=order.status,
+        source=order.source,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         total=order.total,
@@ -64,6 +65,7 @@ def _to_admin_order_read(order: Order) -> AdminOrderRead:
         id=order.id,
         order_no=order.order_no,
         status=order.status,
+        source=order.source,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         customer_email=order.customer_email,
@@ -107,6 +109,7 @@ async def list_orders(
     session: AsyncSession,
     *,
     status: str | None = None,
+    source: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     q: str | None = None,
@@ -117,6 +120,7 @@ async def list_orders(
     total, orders = await order_repo.list_filtered(
         session,
         status=status,
+        source=source,
         date_from=date_from,
         date_to=date_to,
         q=q,
