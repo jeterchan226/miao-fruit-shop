@@ -1,13 +1,16 @@
 /* 訂單品項編輯區 — 後台編輯訂單與代客下單共用 */
 
-import { addableSpecs, money, newLine, previewAmounts, qtyStep } from './orderEdit.js';
+import { addableSpecs, lineForSpec, money, previewAmounts, qtyStep } from './orderEdit.js';
 
 /*
  * lines    — 編輯行(見 orderEdit.js),由呼叫端持有
  * onChange — (nextLines) => void
  * specs    — 後台規格清單,每筆另帶 productName
+ * orderItems — 訂單開啟時的訂單品項(新訂單為 [])
  */
-export default function OrderItemsEditor({ lines, onChange, specs, disabled = false }) {
+export default function OrderItemsEditor({
+  lines, onChange, specs, orderItems = [], disabled = false,
+}) {
   const onlyOne = lines.length === 1;
   const addable = addableSpecs(specs, lines);
   const preview = previewAmounts(lines);
@@ -25,7 +28,7 @@ export default function OrderItemsEditor({ lines, onChange, specs, disabled = fa
 
   const add = (specId) => {
     const spec = specs.find((s) => s.id === Number(specId));
-    if (spec) onChange([...lines, newLine(spec)]);
+    if (spec) onChange([...lines, lineForSpec(spec, orderItems)]);
   };
 
   return (

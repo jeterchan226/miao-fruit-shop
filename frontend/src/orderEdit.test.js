@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   addableSpecs,
+  lineForSpec,
   linesFromOrderItems,
   newLine,
   orderEditErrorMessage,
@@ -80,6 +81,23 @@ describe('newLine', () => {
   });
   it('兩粒裝預設數量 2', () => {
     expect(newLine({ ...specs[2], productName: '甘露梨' })).toMatchObject({ qty: 2, isTwoPack: true });
+  });
+});
+
+describe('lineForSpec', () => {
+  const orderItems = [
+    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', unit_price: 880, qty: 2 },
+  ];
+  it('規格不在訂單中 → 新行,用目前價格', () => {
+    expect(lineForSpec({ ...specs[2], productName: '甘露梨' }, orderItems)).toMatchObject({
+      spec_id: 3, unitPrice: 300, isNew: true,
+    });
+  });
+  it('移除後再加回訂單原有的規格 → 還原原行與下單價,與後端依規格比對一致', () => {
+    expect(lineForSpec({ ...specs[0], productName: '甘露梨' }, orderItems)).toEqual({
+      spec_id: 1, label: '甘露梨 · 5 台斤', unitPrice: 880, qty: 2,
+      isTwoPack: false, isNew: false, locked: false,
+    });
   });
 });
 

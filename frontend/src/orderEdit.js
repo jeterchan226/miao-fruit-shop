@@ -54,6 +54,13 @@ export function newLine(spec) {
   };
 }
 
+// 選單加入規格時建立的行。後端依規格比對差異,訂單原有的規格即使移除後再加回,
+// 仍沿用原下單價(R6),因此還原原行;其餘為新行。
+export function lineForSpec(spec, orderItems) {
+  const original = orderItems.find((it) => it.spec_id === spec.id);
+  return original ? linesFromOrderItems([original], [spec])[0] : newLine(spec);
+}
+
 // 可新增的規格:上架中、有庫存、且不在此訂單中(R8)。
 export function addableSpecs(specs, lines) {
   const taken = new Set(lines.map((l) => Number(l.spec_id)));

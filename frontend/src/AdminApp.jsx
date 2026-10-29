@@ -854,6 +854,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                   lines={editForm.items}
                   onChange={(items) => setEditForm((f) => ({ ...f, items }))}
                   specs={specOptions}
+                  orderItems={detail.items}
                   disabled={!specsLoaded || editSaving}
                 />
               </div>
