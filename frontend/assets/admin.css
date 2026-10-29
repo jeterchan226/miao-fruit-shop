@@ -503,14 +503,6 @@ button { cursor: pointer; }
   gap: 10px;
   margin-top: 12px;
 }
-.adm-modal__item-edit-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.adm-modal__item-edit-row select { flex: 1; min-width: 0; }
-.adm-modal__item-edit-qty { width: 60px; flex: 0 0 auto; }
 .adm-modal__item-row-remove {
   flex: 0 0 auto;
   width: 28px;
@@ -522,7 +514,49 @@ button { cursor: pointer; }
   font-size: 12px;
   transition: background var(--dur-micro);
 }
-.adm-modal__item-row-remove:hover { background: #E5D8C5; color: var(--brown-800); }
+.adm-modal__item-row-remove:not(:disabled):hover { background: #E5D8C5; color: var(--brown-800); }
+.adm-modal__item-row-remove:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 訂單品項編輯區(OrderItemsEditor,後台編輯與代客下單共用) */
+.adm-items-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #E6EBD7;
+}
+.adm-items-editor__info { flex: 1; min-width: 0; }
+.adm-items-editor__label { font-size: 13px; font-weight: 600; color: var(--brown-800); }
+.adm-items-editor__tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #E6EBD7;
+  color: var(--brown-700);
+  font-size: 11px;
+  font-weight: 500;
+}
+.adm-items-editor__price { font-size: 12px; color: var(--brown-500); margin-top: 2px; }
+.adm-items-editor__locked {
+  font-size: 12px;
+  color: var(--packaging-red, #c0392b);
+  margin-top: 2px;
+}
+.adm-items-editor__qty { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.adm-items-editor .adm-items-editor__qty-input { width: 56px; flex: 0 0 56px; padding-left: 4px; padding-right: 4px; text-align: center; }
+.adm-items-editor__step {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #E5D8C5;
+  background: #FBF7F0;
+  color: var(--brown-700);
+  font-size: 16px;
+  line-height: 1;
+}
+.adm-items-editor__step:disabled { opacity: 0.4; cursor: not-allowed; }
+.adm-items-editor .adm-field { margin-top: 10px; }
 
 /* Modal error */
 .adm-modal__error {

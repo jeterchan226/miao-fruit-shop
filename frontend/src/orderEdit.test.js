@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { orderItemsDiff, previewAmounts } from './orderEdit.js';
+import {
+  addableSpecs,
+  linesFromOrderItems,
+  newLine,
+  orderEditErrorMessage,
+  orderItemsDiff,
+  previewAmounts,
+  repriceNewLines,
+  validateLines,
+} from './orderEdit.js';
 
 const original = [
   { spec_id: 1, qty: 2, unit_price: 880 },
@@ -32,37 +41,143 @@ describe('orderItemsDiff', () => {
   });
 });
 
-describe('previewAmounts', () => {
-  const specs = [
-    { id: 1, price: 1000, is_two_pack: false },
-    { id: 2, price: 600, is_two_pack: false },
-    { id: 3, price: 300, is_two_pack: true },
-  ];
+const specs = [
+  { id: 1, label: '5 台斤', price: 1000, is_two_pack: false, is_active: true, stock_qty: 10 },
+  { id: 2, label: '3 台斤', price: 600, is_two_pack: false, is_active: false, stock_qty: 5 },
+  { id: 3, label: '2 粒裝', price: 300, is_two_pack: true, is_active: true, stock_qty: 8 },
+  { id: 4, label: '10 台斤', price: 1800, is_two_pack: false, is_active: true, stock_qty: 0 },
+  { id: 5, label: '8 台斤', price: 1500, is_two_pack: false, is_active: true, stock_qty: 3 },
+];
 
-  it('既有規格沿用下單價,不用目前價格', () => {
-    expect(previewAmounts(original, [{ spec_id: 1, qty: 1 }], specs)).toEqual({
-      subtotal: 880,
-      shippingFee: 100,
-      total: 980,
+describe('linesFromOrderItems', () => {
+  const items = [
+    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', unit_price: 880, qty: 2 },
+    { spec_id: 2, product_name: '甘露梨', spec_label: '3 台斤', unit_price: 500, qty: 1 },
+    { spec_id: null, product_name: '甘露梨', spec_label: '舊規格', unit_price: 400, qty: 1 },
+  ];
+  const lines = linesFromOrderItems(items, specs);
+
+  it('既有行沿用下單價與快照名稱', () => {
+    expect(lines[0]).toMatchObject({
+      spec_id: 1, label: '甘露梨 · 5 台斤', unitPrice: 880, qty: 2,
+      isTwoPack: false, isNew: false, locked: false,
     });
   });
-  it('新增規格用目前價格,兩粒裝每 2 箱 1 層', () => {
+  it('已下架規格的行鎖定數量(R10)', () => {
+    expect(lines[1]).toMatchObject({ spec_id: 2, locked: true, isTwoPack: false });
+  });
+  it('規格已刪除也鎖定,與後端一致視為非兩粒裝', () => {
+    expect(lines[2]).toMatchObject({ spec_id: null, locked: true, isTwoPack: false });
+  });
+});
+
+describe('newLine', () => {
+  it('用目前價格,箱裝預設數量 1', () => {
+    expect(newLine(specs[0], '甘露梨')).toEqual({
+      spec_id: 1, label: '甘露梨 · 5 台斤', unitPrice: 1000, qty: 1,
+      isTwoPack: false, isNew: true, locked: false,
+    });
+  });
+  it('兩粒裝預設數量 2', () => {
+    expect(newLine(specs[2], '甘露梨')).toMatchObject({ qty: 2, isTwoPack: true });
+  });
+});
+
+describe('addableSpecs', () => {
+  it('只列上架中、有庫存、且不在訂單中的規格(R8)', () => {
+    const lines = [{ spec_id: 1 }];
+    expect(addableSpecs(specs, lines).map((s) => s.id)).toEqual([3, 5]);
+  });
+});
+
+describe('previewAmounts', () => {
+  it('依每行單價與數量計算,箱裝每箱 1 層', () => {
+    expect(
+      previewAmounts([{ unitPrice: 880, qty: 1, isTwoPack: false }])
+    ).toEqual({ subtotal: 880, shippingFee: 100, total: 980 });
+  });
+  it('兩粒裝每 2 箱 1 層', () => {
     // 880*2 + 300*2 = 2360;層數 2 + 1 = 3 → 運費 180
     expect(
-      previewAmounts(original, [{ spec_id: 1, qty: 2 }, { spec_id: '3', qty: '2' }], specs)
+      previewAmounts([
+        { unitPrice: 880, qty: 2, isTwoPack: false },
+        { unitPrice: 300, qty: '2', isTwoPack: true },
+      ])
     ).toEqual({ subtotal: 2360, shippingFee: 180, total: 2540 });
   });
   it('達免運門檻運費 0', () => {
-    expect(previewAmounts(original, [{ spec_id: 1, qty: 4 }], specs)).toEqual({
-      subtotal: 3520,
-      shippingFee: 0,
-      total: 3520,
+    expect(previewAmounts([{ unitPrice: 880, qty: 4, isTwoPack: false }])).toEqual({
+      subtotal: 3520, shippingFee: 0, total: 3520,
     });
   });
-  it('有未知規格 → null', () => {
-    expect(previewAmounts(original, [{ spec_id: 9, qty: 1 }], specs)).toBeNull();
+  it('沒有任何行 → null', () => {
+    expect(previewAmounts([])).toBeNull();
   });
-  it('既有規格不在規格清單(未載入) → null,避免誤判兩粒裝', () => {
-    expect(previewAmounts(original, [{ spec_id: 1, qty: 2 }], [])).toBeNull();
+});
+
+describe('validateLines', () => {
+  const line = (over) => ({ spec_id: 1, qty: 1, isTwoPack: false, ...over });
+
+  it('合法 → null', () => {
+    expect(validateLines([line(), line({ spec_id: 3, qty: '4', isTwoPack: true })])).toBeNull();
+  });
+  it('沒有任何訂單品項 → 請改取消訂單(R2)', () => {
+    expect(validateLines([])).toBe('訂單至少保留一個訂單品項；全部不要請取消訂單。');
+  });
+  it.each([0, -1, 1.5, '', 'abc'])('數量 %s 不是正整數', (qty) => {
+    expect(validateLines([line({ qty })])).toBe('請確認每個訂單品項的數量為正整數。');
+  });
+  it('兩粒裝單數(R3)', () => {
+    expect(validateLines([line({ label: '甘露梨 · 2 粒精緻禮盒', qty: 3, isTwoPack: true })])).toBe(
+      '甘露梨 · 2 粒精緻禮盒 為兩粒裝，請以雙數（2、4、6…）購買。'
+    );
+  });
+  it('規格已刪除的訂單品項無法隨品項變更送出', () => {
+    expect(validateLines([line(), line({ spec_id: null, label: '甘露梨 · 舊規格' })])).toBe(
+      '甘露梨 · 舊規格 的規格已刪除，修改訂單品項前請先移除它。'
+    );
+  });
+});
+
+describe('repriceNewLines', () => {
+  it('新行改用規格最新價格,既有行下單價不變', () => {
+    const lines = [
+      { spec_id: 1, unitPrice: 880, isNew: false },
+      { spec_id: 3, unitPrice: 250, isNew: true },
+    ];
+    expect(repriceNewLines(lines, specs).map((l) => l.unitPrice)).toEqual([880, 300]);
+  });
+});
+
+describe('orderEditErrorMessage', () => {
+  const err = (code, data = {}, status = 409) => ({ code, status, data: { code, ...data } });
+
+  it('PRICE_CHANGED 顯示新金額請重新確認', () => {
+    expect(orderEditErrorMessage(err('PRICE_CHANGED', { total: 3280 }))).toBe(
+      '規格價格已更新，新的訂單總額為 NT$ 3,280，請重新確認後再儲存。'
+    );
+  });
+  it.each([
+    ['ITEM_QTY_LOCKED', '5 台斤 已下架，數量不可修改'],
+    ['INSUFFICIENT_STOCK', '庫存不足:5 台斤'],
+    ['EVEN_QTY_REQUIRED', '2 粒裝 為 2 粒裝，請以雙數（2、4、6…）購買'],
+  ])('%s 顯示後端訊息', (code, detail) => {
+    expect(orderEditErrorMessage(err(code, { detail }))).toBe(detail);
+  });
+  it.each([
+    ['ITEM_QTY_LOCKED', '已下架規格的數量不可修改，只能移除此訂單品項。'],
+    ['INSUFFICIENT_STOCK', '庫存不足，請調整數量。'],
+    ['EVEN_QTY_REQUIRED', '兩粒裝請以雙數（2、4、6…）購買。'],
+  ])('%s 無後端訊息時用預設', (code, fallback) => {
+    expect(orderEditErrorMessage(err(code))).toBe(fallback);
+  });
+  it('DUPLICATE_SPEC', () => {
+    expect(orderEditErrorMessage(err('DUPLICATE_SPEC', {}, 422))).toBe(
+      '同一規格只能有一個訂單品項，請合併數量。'
+    );
+  });
+  it('其他錯誤沿用後端 detail,否則通用訊息', () => {
+    expect(orderEditErrorMessage(err('ORDER_NOT_EDITABLE', { detail: '已出貨' }))).toBe('已出貨');
+    expect(orderEditErrorMessage(undefined)).toBe('儲存失敗。');
   });
 });

@@ -39,7 +39,15 @@ import {
 
 import { useOrderNotifications } from './useOrderNotifications.js';
 import { formatRelativeTime, isAfter, newestCreatedAt, newOrdersSince } from './notifications.js';
-import { orderItemsDiff, previewAmounts } from './orderEdit.js';
+import {
+  linesFromOrderItems,
+  orderEditErrorMessage,
+  orderItemsDiff,
+  previewAmounts,
+  repriceNewLines,
+  validateLines,
+} from './orderEdit.js';
+import OrderItemsEditor from './OrderItemsEditor.jsx';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -416,6 +424,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [specOptions, setSpecOptions] = useState([]);
+  const [specsLoaded, setSpecsLoaded] = useState(false);
 
   const [transferForm, setTransferForm] = useState({
     transfer_last5: '', transfer_payer_name: '', transfer_note: '',
@@ -480,8 +489,16 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     }
   };
 
+  const loadSpecOptions = async () => {
+    const products = await listAdminProducts(token);
+    return (products || []).flatMap((p) =>
+      (p.specs || []).map((s) => ({ ...s, productName: p.name }))
+    );
+  };
+
   const startEdit = async () => {
     setEditError('');
+    setSpecsLoaded(false);
     setEditForm({
       customer_name: detail.customer_name || '',
       customer_phone: detail.customer_phone || '',
@@ -493,22 +510,16 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       preferred_date: detail.preferred_date || '',
       delivery_window: detail.delivery_window || 'any',
       note: detail.note || '',
-      items: detail.items.map((i) => ({ spec_id: i.spec_id, qty: i.qty })),
+      items: linesFromOrderItems(detail.items, []),
     });
     setEditing(true);
     try {
-      const products = await listAdminProducts(token);
-      const options = (products || []).flatMap((p) =>
-        (p.specs || []).map((s) => ({
-          id: s.id,
-          price: s.price,
-          is_two_pack: s.is_two_pack,
-          label: `${p.name} · ${s.label}（NT$ ${s.price}）${s.is_active ? '' : '（已下架）'}`,
-        }))
-      );
+      const options = await loadSpecOptions();
       setSpecOptions(options);
+      setEditForm((f) => ({ ...f, items: linesFromOrderItems(detail.items, options) }));
+      setSpecsLoaded(true);
     } catch {
-      setEditError('無法載入商品規格清單,仍可編輯其他欄位。');
+      setEditError('無法載入商品規格清單，訂單品項暫不可修改，仍可編輯其他欄位。');
     }
   };
 
@@ -519,40 +530,18 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
 
   const setEditField = (field, value) => setEditForm((f) => ({ ...f, [field]: value }));
 
-  const setItemField = (idx, field, value) =>
-    setEditForm((f) => ({
-      ...f,
-      items: f.items.map((it, i) => (i === idx ? { ...it, [field]: value } : it)),
-    }));
-
-  const addItemRow = () =>
-    setEditForm((f) => ({
-      ...f,
-      items: [...f.items, { spec_id: specOptions[0]?.id ?? '', qty: 1 }],
-    }));
-
-  const removeItemRow = (idx) =>
-    setEditForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
-
   const editPreview = useMemo(
-    () => (editForm && detail ? previewAmounts(detail.items, editForm.items, specOptions) : null),
-    [editForm, detail, specOptions],
+    () => (editForm ? previewAmounts(editForm.items) : null),
+    [editForm],
   );
 
   const saveEdit = async () => {
     // 訂單品項未變動就不送 items,訂單品項、金額、庫存不動(R13)
     const itemsChanged = orderItemsDiff(detail.items, editForm.items);
     if (itemsChanged) {
-      if (!editForm.items.length) {
-        setEditError('至少需要一個訂單品項。');
-        return;
-      }
-      if (editForm.items.some((it) => !it.spec_id || Number(it.qty) < 1)) {
-        setEditError('請確認每個訂單品項都有選規格,數量至少為 1。');
-        return;
-      }
-      if (!editPreview) {
-        setEditError('無法試算總額，請重新載入規格清單後再試。');
+      const invalid = validateLines(editForm.items);
+      if (invalid) {
+        setEditError(invalid);
         return;
       }
     }
@@ -579,7 +568,17 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       setEditing(false);
       onStatusChange();
     } catch (err) {
-      setEditError(err?.data?.detail || '儲存失敗。');
+      setEditError(orderEditErrorMessage(err));
+      if (err?.code === 'PRICE_CHANGED') {
+        // 新行改用最新價格重新試算,管理員確認後可再儲存
+        try {
+          const options = await loadSpecOptions();
+          setSpecOptions(options);
+          setEditForm((f) => ({ ...f, items: repriceNewLines(f.items, options) }));
+        } catch {
+          // 保留錯誤訊息,管理員可取消後重新編輯
+        }
+      }
     } finally {
       setEditSaving(false);
     }
@@ -851,46 +850,12 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             <div>
               <div className="adm-modal__section">
                 <div className="adm-modal__section-title">商品明細</div>
-                <p className="adm-field__hint">
-                  既有訂單品項沿用下單價，新增訂單品項以規格目前售價計算。
-                </p>
-                {editForm.items.map((item, idx) => (
-                  <div className="adm-modal__item-edit-row" key={idx}>
-                    <select
-                      className="adm-field__input"
-                      value={item.spec_id ?? ''}
-                      onChange={(e) => setItemField(idx, 'spec_id', e.target.value)}
-                    >
-                      <option value="">請選擇規格…</option>
-                      {specOptions.map((o) => (
-                        <option key={o.id} value={o.id}>{o.label}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min="1"
-                      className="adm-field__input adm-modal__item-edit-qty"
-                      value={item.qty}
-                      onChange={(e) => setItemField(idx, 'qty', e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="adm-modal__item-row-remove"
-                      onClick={() => removeItemRow(idx)}
-                      aria-label="移除此品項"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                <button type="button" className="adm-btn adm-btn--ghost" onClick={addItemRow}>
-                  + 新增品項
-                </button>
-                {editPreview && (
-                  <p className="adm-field__hint">
-                    總額 NT$ {editPreview.total.toLocaleString()}（含運費 NT$ {editPreview.shippingFee}）
-                  </p>
-                )}
+                <OrderItemsEditor
+                  lines={editForm.items}
+                  onChange={(items) => setEditForm((f) => ({ ...f, items }))}
+                  specs={specOptions}
+                  disabled={!specsLoaded || editSaving}
+                />
               </div>
             </div>
             {editError && (
