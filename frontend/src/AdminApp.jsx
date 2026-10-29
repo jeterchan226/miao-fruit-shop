@@ -424,7 +424,8 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [specOptions, setSpecOptions] = useState([]);
-  const [specsLoaded, setSpecsLoaded] = useState(false);
+  // 規格清單載入狀態:'loading' | 'ready' | 'failed';未就緒前無從判斷已下架、兩粒裝
+  const [specsStatus, setSpecsStatus] = useState('loading');
 
   const [transferForm, setTransferForm] = useState({
     transfer_last5: '', transfer_payer_name: '', transfer_note: '',
@@ -498,7 +499,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
 
   const startEdit = async () => {
     setEditError('');
-    setSpecsLoaded(false);
+    setSpecsStatus('loading');
     setEditForm({
       customer_name: detail.customer_name || '',
       customer_phone: detail.customer_phone || '',
@@ -517,8 +518,9 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       const options = await loadSpecOptions();
       setSpecOptions(options);
       setEditForm((f) => ({ ...f, items: linesFromOrderItems(detail.items, options) }));
-      setSpecsLoaded(true);
+      setSpecsStatus('ready');
     } catch {
+      setSpecsStatus('failed');
       setEditError('無法載入商品規格清單，訂單品項暫不可修改，仍可編輯其他欄位。');
     }
   };
@@ -850,13 +852,34 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             <div>
               <div className="adm-modal__section">
                 <div className="adm-modal__section-title">商品明細</div>
-                <OrderItemsEditor
-                  lines={editForm.items}
-                  onChange={(items) => setEditForm((f) => ({ ...f, items }))}
-                  specs={specOptions}
-                  orderItems={detail.items}
-                  disabled={!specsLoaded || editSaving}
-                />
+                {specsStatus === 'ready' ? (
+                  <OrderItemsEditor
+                    lines={editForm.items}
+                    onChange={(items) => setEditForm((f) => ({ ...f, items }))}
+                    specs={specOptions}
+                    orderItems={detail.items}
+                    disabled={editSaving}
+                  />
+                ) : (
+                  <>
+                    {specsStatus === 'loading' && (
+                      <p className="adm-field__hint">載入規格清單中…</p>
+                    )}
+                    <div className="adm-modal__items">
+                      {detail.items.map((item, idx) => (
+                        <div className="adm-modal__item" key={idx}>
+                          <div>
+                            <div className="adm-modal__item-name">{item.product_name}</div>
+                            <div className="adm-modal__item-spec">
+                              {item.spec_label} × {item.qty}
+                            </div>
+                          </div>
+                          <div className="adm-modal__item-price">{money(item.line_total)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             {editError && (
