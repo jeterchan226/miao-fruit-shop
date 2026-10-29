@@ -650,8 +650,6 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     }
   };
 
-  const loadSpecOptions = () => loadAdminSpecOptions(token);
-
   const startEdit = async () => {
     setEditError('');
     setSpecsStatus('loading');
@@ -670,7 +668,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     });
     setEditing(true);
     try {
-      const options = await loadSpecOptions();
+      const options = await loadAdminSpecOptions(token);
       setSpecOptions(options);
       setEditForm((f) => ({ ...f, items: linesFromOrderItems(detail.items, options) }));
       setSpecsStatus('ready');
@@ -729,7 +727,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       if (err?.code === 'PRICE_CHANGED') {
         // 新行改用最新價格重新試算,管理員確認後可再儲存
         try {
-          const options = await loadSpecOptions();
+          const options = await loadAdminSpecOptions(token);
           setSpecOptions(options);
           setEditForm((f) => ({ ...f, items: repriceNewLines(f.items, options) }));
         } catch {
