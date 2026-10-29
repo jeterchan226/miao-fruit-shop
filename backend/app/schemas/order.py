@@ -71,6 +71,20 @@ class PriceChangedResponse(BaseModel):
     total: int
 
 
+class AdminOrderCreate(BaseModel):
+    """代客下單:無 LINE 身份欄位,付款方式固定轉帳。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    customer_name: str
+    customer_phone: str
+    customer_email: str | None = None
+    shipping: ShippingCreate
+    items: list[OrderItemCreate] = Field(min_length=1)
+    note: str | None = None
+    expected_total: int = Field(ge=0)
+
+
 class AdminOrderListItem(BaseModel):
     order_no: str
     status: str

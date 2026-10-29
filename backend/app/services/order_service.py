@@ -20,7 +20,7 @@ def _new_order_no() -> str:
     return f"MM-{suffix}"
 
 
-async def _generate_unique_order_no(session: AsyncSession) -> str:
+async def generate_unique_order_no(session: AsyncSession) -> str:
     for _ in range(5):
         candidate = _new_order_no()
         if await order_repo.get_by_order_no(session, candidate) is None:
@@ -58,7 +58,7 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
         [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
         expected_total=data.expected_total,
     )
-    order_no = await _generate_unique_order_no(session)
+    order_no = await generate_unique_order_no(session)
 
     order = Order(
         order_no=order_no,

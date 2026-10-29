@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import {
+  createAdminOrder,
   createSpec,
   deleteProductImage,
   deleteSpec,
@@ -40,12 +41,15 @@ import {
 import { useOrderNotifications } from './useOrderNotifications.js';
 import { formatRelativeTime, isAfter, newestCreatedAt, newOrdersSince } from './notifications.js';
 import {
+  adminOrderPayload,
+  emptyOrderForm,
   linesFromOrderItems,
   orderEditErrorMessage,
   orderItemsDiff,
   previewAmounts,
   repriceNewLines,
-  validateLines,
+  validateNewOrder,
+  validateOrderEdit,
 } from './orderEdit.js';
 import OrderItemsEditor from './OrderItemsEditor.jsx';
 import { money } from './format.js';
@@ -464,6 +468,108 @@ function OrderItemsList({ items }) {
   );
 }
 
+/* ── 訂單表單共用(編輯訂單、代客下單) ── */
+// 後台規格清單,每筆另帶 productName(供訂單品項編輯區使用)
+async function loadAdminSpecOptions(token) {
+  const products = await listAdminProducts(token);
+  return (products || []).flatMap((p) =>
+    (p.specs || []).map((s) => ({ ...s, productName: p.name }))
+  );
+}
+
+/* 顧客/收件欄位 — 編輯訂單與代客下單共用;form 的欄位見 orderEdit.js emptyOrderForm */
+function OrderInfoFields({ form, setField }) {
+  return (
+    <div className="adm-spec-form">
+      <label className="adm-field">
+        <span className="adm-field__label">顧客姓名</span>
+        <input
+          className="adm-field__input"
+          value={form.customer_name}
+          onChange={(e) => setField('customer_name', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">電話</span>
+        <input
+          className="adm-field__input"
+          value={form.customer_phone}
+          onChange={(e) => setField('customer_phone', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">Email</span>
+        <input
+          className="adm-field__input"
+          value={form.customer_email}
+          onChange={(e) => setField('customer_email', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">郵遞區號</span>
+        <input
+          className="adm-field__input"
+          value={form.ship_zipcode}
+          onChange={(e) => setField('ship_zipcode', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">縣市</span>
+        <input
+          className="adm-field__input"
+          value={form.ship_city}
+          onChange={(e) => setField('ship_city', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">鄉鎮區</span>
+        <input
+          className="adm-field__input"
+          value={form.ship_district}
+          onChange={(e) => setField('ship_district', e.target.value)}
+        />
+      </label>
+      <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
+        <span className="adm-field__label">街道地址</span>
+        <input
+          className="adm-field__input"
+          value={form.ship_street}
+          onChange={(e) => setField('ship_street', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">希望送達日期</span>
+        <input
+          type="date"
+          className="adm-field__input"
+          value={form.preferred_date}
+          onChange={(e) => setField('preferred_date', e.target.value)}
+        />
+      </label>
+      <label className="adm-field">
+        <span className="adm-field__label">配送時段</span>
+        <select
+          className="adm-field__input"
+          value={form.delivery_window}
+          onChange={(e) => setField('delivery_window', e.target.value)}
+        >
+          {Object.entries(DELIVERY_WINDOW_LABELS).map(([v, label]) => (
+            <option key={v} value={v}>{label}</option>
+          ))}
+        </select>
+      </label>
+      <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
+        <span className="adm-field__label">備註</span>
+        <input
+          className="adm-field__input"
+          value={form.note}
+          onChange={(e) => setField('note', e.target.value)}
+        />
+      </label>
+    </div>
+  );
+}
+
 /* ── Order detail modal ── */
 function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [detail, setDetail] = useState(null);
@@ -544,13 +650,6 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     }
   };
 
-  const loadSpecOptions = async () => {
-    const products = await listAdminProducts(token);
-    return (products || []).flatMap((p) =>
-      (p.specs || []).map((s) => ({ ...s, productName: p.name }))
-    );
-  };
-
   const startEdit = async () => {
     setEditError('');
     setSpecsStatus('loading');
@@ -569,7 +668,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
     });
     setEditing(true);
     try {
-      const options = await loadSpecOptions();
+      const options = await loadAdminSpecOptions(token);
       setSpecOptions(options);
       setEditForm((f) => ({ ...f, items: linesFromOrderItems(detail.items, options) }));
       setSpecsStatus('ready');
@@ -594,12 +693,10 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const saveEdit = async () => {
     // 訂單品項未變動就不送 items,訂單品項、金額、庫存不動(R13)
     const itemsChanged = orderItemsDiff(detail.items, editForm.items);
-    if (itemsChanged) {
-      const invalid = validateLines(editForm.items);
-      if (invalid) {
-        setEditError(invalid);
-        return;
-      }
+    const invalid = validateOrderEdit(editForm, detail);
+    if (invalid) {
+      setEditError(invalid);
+      return;
     }
     setEditSaving(true);
     setEditError('');
@@ -628,7 +725,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
       if (err?.code === 'PRICE_CHANGED') {
         // 新行改用最新價格重新試算,管理員確認後可再儲存
         try {
-          const options = await loadSpecOptions();
+          const options = await loadAdminSpecOptions(token);
           setSpecOptions(options);
           setEditForm((f) => ({ ...f, items: repriceNewLines(f.items, options) }));
         } catch {
@@ -803,93 +900,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             <div>
               <div className="adm-modal__section">
                 <div className="adm-modal__section-title">收件資訊</div>
-                <div className="adm-spec-form">
-                  <label className="adm-field">
-                    <span className="adm-field__label">客戶姓名</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.customer_name}
-                      onChange={(e) => setEditField('customer_name', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">電話</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.customer_phone}
-                      onChange={(e) => setEditField('customer_phone', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">Email</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.customer_email}
-                      onChange={(e) => setEditField('customer_email', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">郵遞區號</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.ship_zipcode}
-                      onChange={(e) => setEditField('ship_zipcode', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">縣市</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.ship_city}
-                      onChange={(e) => setEditField('ship_city', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">鄉鎮區</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.ship_district}
-                      onChange={(e) => setEditField('ship_district', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
-                    <span className="adm-field__label">街道地址</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.ship_street}
-                      onChange={(e) => setEditField('ship_street', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">希望送達日期</span>
-                    <input
-                      type="date"
-                      className="adm-field__input"
-                      value={editForm.preferred_date}
-                      onChange={(e) => setEditField('preferred_date', e.target.value)}
-                    />
-                  </label>
-                  <label className="adm-field">
-                    <span className="adm-field__label">配送時段</span>
-                    <select
-                      className="adm-field__input"
-                      value={editForm.delivery_window}
-                      onChange={(e) => setEditField('delivery_window', e.target.value)}
-                    >
-                      {Object.entries(DELIVERY_WINDOW_LABELS).map(([v, label]) => (
-                        <option key={v} value={v}>{label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adm-field" style={{ gridColumn: '1 / -1' }}>
-                    <span className="adm-field__label">備註</span>
-                    <input
-                      className="adm-field__input"
-                      value={editForm.note}
-                      onChange={(e) => setEditField('note', e.target.value)}
-                    />
-                  </label>
-                </div>
+                <OrderInfoFields form={editForm} setField={setEditField} />
               </div>
             </div>
             <div>
@@ -960,6 +971,125 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── 代客下單 modal(電話訂購等,規則同顧客下單) ── */
+function CreateOrderModal({ token, onClose, onCreated }) {
+  const [form, setForm] = useState(emptyOrderForm);
+  const [lines, setLines] = useState([]);
+  const [specOptions, setSpecOptions] = useState([]);
+  const [specsStatus, setSpecsStatus] = useState('loading');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAdminSpecOptions(token)
+      .then((options) => {
+        if (cancelled) return;
+        setSpecOptions(options);
+        setSpecsStatus('ready');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSpecsStatus('failed');
+        setError('無法載入商品規格清單，請關閉後重試。');
+      });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  // 儲存中不可關閉,避免請求完成時寫回已卸載的元件
+  const close = useCallback(() => { if (!saving) onClose(); }, [saving, onClose]);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [close]);
+
+  const setField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
+
+  const submit = async () => {
+    const invalid = validateNewOrder(form, lines);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const created = await createAdminOrder(token, adminOrderPayload(form, lines));
+      onCreated(created);
+    } catch (err) {
+      setError(orderEditErrorMessage(err));
+      if (err?.code === 'PRICE_CHANGED') {
+        // 以最新價格重新試算,管理員確認畫面總額後可再儲存訂單
+        try {
+          const options = await loadAdminSpecOptions(token);
+          setSpecOptions(options);
+          setLines((ls) => repriceNewLines(ls, options));
+        } catch {
+          // 保留錯誤訊息,管理員可關閉後重新填單
+        }
+      }
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="adm-modal-overlay" onClick={close}>
+      <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="adm-modal__head">
+          <div>
+            <div className="adm-modal__order-no">新增訂單</div>
+            <div className="adm-modal__customer">代客下單 · 轉帳付款，不發 LINE 通知</div>
+          </div>
+          <div className="adm-modal__head-right">
+            <button className="adm-modal__close" onClick={close} disabled={saving}>✕</button>
+          </div>
+        </div>
+        <div className="adm-modal__body">
+          <div>
+            <div className="adm-modal__section">
+              <div className="adm-modal__section-title">收件資訊</div>
+              <OrderInfoFields form={form} setField={setField} />
+            </div>
+          </div>
+          <div>
+            <div className="adm-modal__section">
+              <div className="adm-modal__section-title">訂單品項</div>
+              {specsStatus === 'ready' ? (
+                <OrderItemsEditor
+                  lines={lines}
+                  onChange={setLines}
+                  specs={specOptions}
+                  disabled={saving}
+                  isNewOrder
+                />
+              ) : (
+                specsStatus === 'loading' && <p className="adm-field__hint">載入規格清單中…</p>
+              )}
+            </div>
+          </div>
+          {error && (
+            <div className="adm-alert" style={{ gridColumn: '1 / -1' }}>{error}</div>
+          )}
+          <div className="adm-modal__edit-actions" style={{ gridColumn: '1 / -1' }}>
+            <button className="adm-btn adm-btn--ghost" onClick={close} disabled={saving}>
+              取消
+            </button>
+            <button
+              className="adm-modal__update-btn"
+              onClick={submit}
+              disabled={saving || specsStatus !== 'ready'}
+            >
+              {saving ? '儲存中…' : '儲存訂單'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1735,6 +1865,7 @@ export default function AdminApp() {
 
   const [selectedOrderNo, setSelectedOrderNo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [summaryKey, setSummaryKey] = useState(0);
   // 「稍後處理」/ 關閉 新訂單通知卡後,記下當時最新訂單時間;
   // 只有出現更新的訂單才會再次跳出通知卡。
@@ -1965,7 +2096,12 @@ export default function AdminApp() {
           )}
           <div className="adm-page-head">
             <h1 className="adm-page-head__title">訂單管理</h1>
-            <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
+            <div className="adm-page-head__actions">
+              <span className="adm-page-head__count">共 {orders.total} 筆訂單</span>
+              <button className="adm-btn adm-btn--primary" onClick={() => setCreateOpen(true)}>
+                ＋ 新增訂單
+              </button>
+            </div>
           </div>
           <StatCards token={token} reloadSignal={summaryKey} />
           <FilterStrip
@@ -2024,6 +2160,18 @@ export default function AdminApp() {
           </div>
           <ProductsTab token={token} />
         </>
+      )}
+
+      {createOpen && (
+        <CreateOrderModal
+          token={token}
+          onClose={() => setCreateOpen(false)}
+          onCreated={(order) => {
+            setCreateOpen(false);
+            refreshOrders();
+            openModal(order.order_no);
+          }}
+        />
       )}
 
       {/* 訂單明細 modal：移到 shell 層，讓任一分頁 / 通知點擊都能開啟 */}

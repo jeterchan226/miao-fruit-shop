@@ -10,6 +10,7 @@ from app.core.exceptions import (
 from app.models.order import Order
 from app.repositories import order_repo
 from app.schemas.order import (
+    AdminOrderCreate,
     AdminOrderListItem,
     AdminOrderListResponse,
     AdminOrderRead,
@@ -18,7 +19,7 @@ from app.schemas.order import (
     AdminOrderUpdate,
     OrderItemRead,
 )
-from app.services import order_items
+from app.services import order_items, order_service
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
     "pending_payment": {"ready", "cancelled"},      # 待付款
@@ -146,6 +147,37 @@ async def get_order_detail(session: AsyncSession, order_no: str) -> AdminOrderRe
     order = await order_repo.get_by_order_no(session, order_no)
     if order is None:
         raise NotFoundError("找不到訂單")
+    return _to_admin_order_read(order)
+
+
+async def create_order(session: AsyncSession, data: AdminOrderCreate) -> AdminOrderRead:
+    """代客下單:規則同顧客下單,但來源記為 admin、無 LINE 身份、不發 LINE 通知。"""
+    result = await order_items.apply_items(
+        session,
+        [],
+        [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
+        expected_total=data.expected_total,
+    )
+    order = Order(
+        order_no=await order_service.generate_unique_order_no(session),
+        status=order_service.initial_status(),
+        source="admin",
+        customer_name=data.customer_name,
+        customer_phone=data.customer_phone,
+        customer_email=data.customer_email,
+        ship_zipcode=data.shipping.zipcode,
+        ship_city=data.shipping.city,
+        ship_district=data.shipping.district,
+        ship_street=data.shipping.street,
+        preferred_date=data.shipping.preferred_date,
+        delivery_window=data.shipping.delivery_window,
+        payment_method="transfer",
+        note=data.note,
+    )
+    result.apply_to(order)
+    await order_repo.add(session, order)
+    await session.commit()
+    await session.refresh(order)
     return _to_admin_order_read(order)
 
 

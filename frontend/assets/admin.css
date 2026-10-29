@@ -124,6 +124,7 @@ button { cursor: pointer; }
   margin: 0;
 }
 .adm-page-head__count { font-size: 14.5px; color: var(--brown-500); padding-bottom: 3px; }
+.adm-page-head__actions { display: flex; align-items: flex-end; gap: 12px; }
 
 /* ── Alert ── */
 .adm-alert {

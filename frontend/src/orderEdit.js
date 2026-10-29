@@ -1,4 +1,5 @@
 /* 後台訂單品項編輯 — 逐行規則、送出比對與金額試算(後台編輯與代客下單共用) */
+import { validateCustomerShipping } from './customerValidation.js';
 import { money } from './format.js';
 import { computeLayers, computeShipping } from './pricing.js';
 
@@ -95,6 +96,71 @@ export function validateLines(lines) {
   return null;
 }
 
+// 代客下單表單的初始值;欄位與後台編輯訂單相同。
+export function emptyOrderForm() {
+  return {
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    ship_zipcode: '',
+    ship_city: '',
+    ship_district: '',
+    ship_street: '',
+    preferred_date: '',
+    delivery_window: 'any',
+    note: '',
+  };
+}
+
+const customerFieldsOf = (form) => ({
+  name: form.customer_name,
+  phone: form.customer_phone,
+  city: form.ship_city,
+  district: form.ship_district,
+  street: form.ship_street,
+  preferredDate: form.preferred_date,
+});
+
+const firstError = (errors) => Object.values(errors)[0] ?? null;
+
+// 代客下單送出前檢查,顧客/收件欄位與商店頁共用同一套規則;回傳第一個錯誤訊息,合法則回 null。
+export function validateNewOrder(form, lines, now = new Date()) {
+  const invalid = firstError(validateCustomerShipping(customerFieldsOf(form), now));
+  if (invalid) return invalid;
+  if (!lines.length) return '請至少新增一個訂單品項。';
+  return validateLines(lines);
+}
+
+// 編輯訂單存檔前檢查,顧客/收件欄位同樣走共用規則;送達日維持原值時不受「不得早於明天」限制。
+// 訂單品項有變動才檢查品項(R13)。
+export function validateOrderEdit(form, order, now = new Date()) {
+  const invalid = firstError(
+    validateCustomerShipping(customerFieldsOf(form), now, { savedDate: order.preferred_date }),
+  );
+  if (invalid) return invalid;
+  return orderItemsDiff(order.items, form.items) ? validateLines(form.items) : null;
+}
+
+// 代客下單 request body(AdminOrderCreate);expected_total 為畫面試算總額(R15)。
+export function adminOrderPayload(form, lines) {
+  return {
+    customer_name: form.customer_name,
+    customer_phone: form.customer_phone,
+    customer_email: form.customer_email || null,
+    shipping: {
+      zipcode: form.ship_zipcode,
+      city: form.ship_city,
+      district: form.ship_district,
+      street: form.ship_street,
+      preferred_date: form.preferred_date,
+      delivery_window: form.delivery_window,
+    },
+    items: lines.map((l) => ({ spec_id: Number(l.spec_id), qty: Number(l.qty) })),
+    note: form.note || null,
+    expected_total: previewAmounts(lines).total,
+  };
+}
+
 // PRICE_CHANGED 後重新載入規格:新行改用最新價格,既有行下單價不變。
 export function repriceNewLines(lines, specs) {
   return lines.map((l) => {
@@ -113,7 +179,7 @@ const FALLBACK_MESSAGES = {
 export function orderEditErrorMessage(err) {
   const data = err?.data || {};
   if (err?.code === 'PRICE_CHANGED') {
-    return `規格價格已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再儲存。`;
+    return `規格價格已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再儲存訂單。`;
   }
   if (err?.code === 'DUPLICATE_SPEC') return '同一規格只能有一個訂單品項，請合併數量。';
   if (err?.code in FALLBACK_MESSAGES) return data.detail || FALLBACK_MESSAGES[err.code];
