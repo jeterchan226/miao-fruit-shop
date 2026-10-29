@@ -1003,11 +1003,14 @@ function CreateOrderModal({ token, onClose, onCreated }) {
     return () => { cancelled = true; };
   }, [token]);
 
+  // 建立中不可關閉,避免請求完成時寫回已卸載的元件
+  const close = useCallback(() => { if (!saving) onClose(); }, [saving, onClose]);
+
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [close]);
 
   const setField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -1039,7 +1042,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
   };
 
   return (
-    <div className="adm-modal-overlay" onClick={onClose}>
+    <div className="adm-modal-overlay" onClick={close}>
       <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="adm-modal__head">
           <div>
@@ -1047,7 +1050,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
             <div className="adm-modal__customer">代客下單 · 轉帳付款，不發 LINE 通知</div>
           </div>
           <div className="adm-modal__head-right">
-            <button className="adm-modal__close" onClick={onClose}>✕</button>
+            <button className="adm-modal__close" onClick={close} disabled={saving}>✕</button>
           </div>
         </div>
         <div className="adm-modal__body">
@@ -1077,7 +1080,7 @@ function CreateOrderModal({ token, onClose, onCreated }) {
             <div className="adm-alert" style={{ gridColumn: '1 / -1' }}>{error}</div>
           )}
           <div className="adm-modal__edit-actions" style={{ gridColumn: '1 / -1' }}>
-            <button className="adm-btn adm-btn--ghost" onClick={onClose} disabled={saving}>
+            <button className="adm-btn adm-btn--ghost" onClick={close} disabled={saving}>
               取消
             </button>
             <button
