@@ -213,3 +213,21 @@ async def test_admin_create_order_validation_422(
         "/api/admin/orders", json=_body([], expected_total=0), headers=headers
     )
     assert resp.status_code == 422
+
+
+async def test_admin_create_order_inactive_spec_404(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    (spec,) = await _seed_specs(db_session, _spec())
+    spec.is_active = False
+    await db_session.flush()
+
+    resp = await client.post(
+        "/api/admin/orders",
+        json=_body([{"spec_id": spec.id, "qty": 1}], expected_total=1980),
+        headers=headers,
+    )
+
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "NOT_FOUND"
