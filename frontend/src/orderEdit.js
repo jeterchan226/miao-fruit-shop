@@ -41,11 +41,11 @@ export function linesFromOrderItems(items, specs) {
 // 兩粒裝數量以 2 為單位增減(R3)。
 export const qtyStep = (isTwoPack) => (isTwoPack ? 2 : 1);
 
-// 加訂新規格的行:單價為目前價格(R5),兩粒裝從 2 起跳(R3)。
-export function newLine(spec, productName) {
+// 加訂新規格的行:單價為目前價格(R5),兩粒裝從 2 起跳(R3)。spec 需帶 productName。
+export function newLine(spec) {
   return {
     spec_id: spec.id,
-    label: specLabel(productName, spec.label),
+    label: specLabel(spec.productName, spec.label),
     unitPrice: spec.price,
     qty: qtyStep(spec.is_two_pack),
     isTwoPack: spec.is_two_pack,

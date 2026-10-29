@@ -25,7 +25,7 @@ export default function OrderItemsEditor({ lines, onChange, specs, disabled = fa
 
   const add = (specId) => {
     const spec = specs.find((s) => s.id === Number(specId));
-    if (spec) onChange([...lines, newLine(spec, spec.productName)]);
+    if (spec) onChange([...lines, newLine(spec)]);
   };
 
   return (

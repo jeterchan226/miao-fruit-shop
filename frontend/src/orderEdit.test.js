@@ -73,13 +73,13 @@ describe('linesFromOrderItems', () => {
 
 describe('newLine', () => {
   it('用目前價格,箱裝預設數量 1', () => {
-    expect(newLine(specs[0], '甘露梨')).toEqual({
+    expect(newLine({ ...specs[0], productName: '甘露梨' })).toEqual({
       spec_id: 1, label: '甘露梨 · 5 台斤', unitPrice: 1000, qty: 1,
       isTwoPack: false, isNew: true, locked: false,
     });
   });
   it('兩粒裝預設數量 2', () => {
-    expect(newLine(specs[2], '甘露梨')).toMatchObject({ qty: 2, isTwoPack: true });
+    expect(newLine({ ...specs[2], productName: '甘露梨' })).toMatchObject({ qty: 2, isTwoPack: true });
   });
 });
 
