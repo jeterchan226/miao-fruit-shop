@@ -410,6 +410,25 @@ function OrdersTable({ orders, selectedOrderNo, onSelect }) {
 /* 未出貨/未取消的訂單才可編輯內容(品項/收件資訊等);轉帳資訊不受此限制。 */
 const NOT_EDITABLE_STATUSES = new Set(['shipping', 'cancelled']);
 
+/* ── 訂單品項(唯讀) ── */
+function OrderItemsList({ items }) {
+  return (
+    <div className="adm-modal__items">
+      {items.map((item, idx) => (
+        <div className="adm-modal__item" key={idx}>
+          <div>
+            <div className="adm-modal__item-name">{item.product_name}</div>
+            <div className="adm-modal__item-spec">
+              {item.spec_label} × {item.qty}
+            </div>
+          </div>
+          <div className="adm-modal__item-price">{money(item.line_total)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Order detail modal ── */
 function OrderModal({ orderNo, token, onClose, onStatusChange }) {
   const [detail, setDetail] = useState(null);
@@ -677,19 +696,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
             <div>
               <div className="adm-modal__section">
                 <div className="adm-modal__section-title">商品明細</div>
-                <div className="adm-modal__items">
-                  {detail.items.map((item, idx) => (
-                    <div className="adm-modal__item" key={idx}>
-                      <div>
-                        <div className="adm-modal__item-name">{item.product_name}</div>
-                        <div className="adm-modal__item-spec">
-                          {item.spec_label} × {item.qty}
-                        </div>
-                      </div>
-                      <div className="adm-modal__item-price">{money(item.line_total)}</div>
-                    </div>
-                  ))}
-                </div>
+                <OrderItemsList items={detail.items} />
                 <div className="adm-modal__totals">
                   <span>小計</span><span>{money(detail.subtotal)}</span>
                   <span>運費</span><span>{money(detail.shipping_fee)}</span>
@@ -865,19 +872,7 @@ function OrderModal({ orderNo, token, onClose, onStatusChange }) {
                     {specsStatus === 'loading' && (
                       <p className="adm-field__hint">載入規格清單中…</p>
                     )}
-                    <div className="adm-modal__items">
-                      {detail.items.map((item, idx) => (
-                        <div className="adm-modal__item" key={idx}>
-                          <div>
-                            <div className="adm-modal__item-name">{item.product_name}</div>
-                            <div className="adm-modal__item-spec">
-                              {item.spec_label} × {item.qty}
-                            </div>
-                          </div>
-                          <div className="adm-modal__item-price">{money(item.line_total)}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <OrderItemsList items={detail.items} />
                   </>
                 )}
               </div>
