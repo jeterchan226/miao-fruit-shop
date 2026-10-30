@@ -231,6 +231,7 @@ async def update_order(
 async def update_transfer_info(
     session: AsyncSession, order_no: str, data: AdminOrderTransferUpdate
 ) -> AdminOrderRead:
+    # 只寫轉帳欄位、不動狀態與庫存,並行時後寫覆蓋即可,不需訂單列鎖
     order = await order_repo.get_by_order_no(session, order_no)
     if order is None:
         raise NotFoundError("找不到訂單")
