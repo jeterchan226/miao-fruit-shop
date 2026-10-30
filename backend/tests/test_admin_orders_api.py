@@ -358,12 +358,16 @@ async def test_update_order_required_field_null_is_422(
     headers = await _auth_header(db_session)
     await order_repo.add(db_session, _make_order("MM-UP04"))
     await db_session.flush()
+    # 同一請求帶合法欄位,整筆 PATCH 仍應被拒、不部分寫入
     resp = await client.patch(
-        "/api/admin/orders/MM-UP04", json={field: None}, headers=headers
+        "/api/admin/orders/MM-UP04",
+        json={"note": "不該寫入", field: None},
+        headers=headers,
     )
     assert resp.status_code == 422
-    detail = await client.get("/api/admin/orders/MM-UP04", headers=headers)
-    assert detail.json()["customer_name"] == "王小明"
+    detail = (await client.get("/api/admin/orders/MM-UP04", headers=headers)).json()
+    assert detail["customer_name"] == "王小明"
+    assert detail["note"] is None
 
 
 async def test_update_order_not_editable_when_shipping(
