@@ -10,6 +10,7 @@
 
 ## 決定與偏離
 - 偏離 `tasks.md` 一處：`關鍵字比對` 情境原無以電話片段查詢的測試，補上 `test_list_orders_filter_by_phone_fragment`，並列為 task 1.3。
+- `tasks.md` 未完全依 `openspec/config.yaml`：各組不以失敗測試開頭，因純重構的新測試在現狀即通過，理由與紅燈方式見 [design.md](../../../openspec/changes/archive/2026-10-30-dedupe-order-list-filters/design.md) 的 Testing Decisions。
 - 紅燈步驟範圍大於 task：六個條件逐一從總筆數查詢移除，每次新測試皆轉紅，之後還原。
 
 ## 驗收結果
