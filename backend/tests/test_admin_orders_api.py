@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -120,6 +121,78 @@ async def test_list_orders_invalid_source_422(
     assert resp.status_code == 422
 
 
+# 台北 2026-10-30 = UTC [2026-10-29T16:00Z, 2026-10-30T16:00Z)
+TAIPEI_OCT_30 = {
+    "created_from": "2026-10-29T16:00:00.000Z",
+    "created_before": "2026-10-30T16:00:00.000Z",
+}
+TAIPEI_OCT_29 = {
+    "created_from": "2026-10-28T16:00:00+00:00",
+    "created_before": "2026-10-29T16:00:00+00:00",
+}
+
+
+async def test_list_orders_created_range_uses_utc_instants(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    # 台北 10/30 03:00 = UTC 10/29 19:00:UTC 切日會錯分到 10/29
+    early = _make_order("MM-TZ01")
+    early.created_at = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    # 台北 10/30 00:00 整:起點包含
+    midnight = _make_order("MM-TZ02")
+    midnight.created_at = datetime(2026, 10, 29, 16, 0, tzinfo=UTC)
+    # 台北 10/31 00:00 整:終點不包含
+    next_day = _make_order("MM-TZ03")
+    next_day.created_at = datetime(2026, 10, 30, 16, 0, tzinfo=UTC)
+    for order in (early, midnight, next_day):
+        await order_repo.add(db_session, order)
+    await db_session.flush()
+
+    resp = await client.get("/api/admin/orders", params=TAIPEI_OCT_30, headers=headers)
+    assert resp.status_code == 200
+    nos = {item["order_no"] for item in resp.json()["items"]}
+    assert {"MM-TZ01", "MM-TZ02"} <= nos
+    assert "MM-TZ03" not in nos
+
+    resp = await client.get("/api/admin/orders", params=TAIPEI_OCT_29, headers=headers)
+    assert resp.status_code == 200
+    nos = {item["order_no"] for item in resp.json()["items"]}
+    assert not nos & {"MM-TZ01", "MM-TZ02", "MM-TZ03"}
+
+
+async def test_list_orders_accepts_offset_datetime(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TZ04")
+    order.created_at = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.get(
+        "/api/admin/orders",
+        params={"created_from": "2026-10-30T00:00:00+08:00"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert "MM-TZ04" in {item["order_no"] for item in resp.json()["items"]}
+
+
+async def test_list_orders_rejects_naive_datetime_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    for value in ("2026-10-30T00:00:00", "2026-10-30"):
+        resp = await client.get(
+            "/api/admin/orders", params={"created_from": value}, headers=headers
+        )
+        assert resp.status_code == 422, value
+        resp = await client.get(
+            "/api/admin/orders", params={"created_before": value}, headers=headers
+        )
+        assert resp.status_code == 422, value
+
+
 async def test_orders_summary_requires_auth(client: AsyncClient):
     assert (await client.get("/api/admin/orders/summary")).status_code == 401
 
@@ -222,6 +295,79 @@ async def test_update_order_simple_fields(
     assert body["customer_name"] == "陳大文"
     assert body["note"] == "客戶臨時改地址"
     assert body["ship_city"] == "台北市"  # 未送的欄位不變
+
+
+async def test_update_order_explicit_null_clears_optional_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-UP02")
+    order.customer_email = "a@example.com"
+    order.note = "舊備註"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP02",
+        json={"customer_email": None, "note": None},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["customer_email"] is None
+    assert body["note"] is None
+
+
+async def test_update_order_omitted_optional_fields_unchanged(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-UP03")
+    order.customer_email = "a@example.com"
+    order.note = "舊備註"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP03",
+        json={"ship_city": "新北市"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ship_city"] == "新北市"
+    assert body["customer_email"] == "a@example.com"
+    assert body["note"] == "舊備註"
+    assert body["customer_name"] == "王小明"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "customer_name",
+        "customer_phone",
+        "ship_zipcode",
+        "ship_city",
+        "ship_district",
+        "ship_street",
+        "preferred_date",
+        "delivery_window",
+    ],
+)
+async def test_update_order_required_field_null_is_422(
+    client: AsyncClient, db_session: AsyncSession, field: str
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP04"))
+    await db_session.flush()
+    # 同一請求帶合法欄位,整筆 PATCH 仍應被拒、不部分寫入
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP04",
+        json={"note": "不該寫入", field: None},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+    detail = (await client.get("/api/admin/orders/MM-UP04", headers=headers)).json()
+    assert detail["customer_name"] == "王小明"
+    assert detail["note"] is None
 
 
 async def test_update_order_not_editable_when_shipping(
@@ -365,6 +511,53 @@ async def test_update_transfer_info(client: AsyncClient, db_session: AsyncSessio
     assert body["transfer_payer_name"] == "王小明"
     assert body["transfer_note"] == "已核對"
     assert body["status"] == "pending_payment"  # 不影響狀態
+
+
+async def test_update_transfer_info_explicit_null_clears_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TX04")
+    order.transfer_last5 = "12345"
+    order.transfer_payer_name = "填錯的人"
+    order.transfer_note = "填錯"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX04/transfer",
+        json={
+            "transfer_last5": None,
+            "transfer_payer_name": None,
+            "transfer_note": None,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["transfer_last5"] is None
+    assert body["transfer_payer_name"] is None
+    assert body["transfer_note"] is None
+
+
+async def test_update_transfer_info_omitted_fields_unchanged(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TX05")
+    order.transfer_payer_name = "王小明"
+    order.transfer_note = "已核對"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX05/transfer",
+        json={"transfer_last5": "54321"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["transfer_last5"] == "54321"
+    assert body["transfer_payer_name"] == "王小明"
+    assert body["transfer_note"] == "已核對"
 
 
 async def test_update_transfer_info_allowed_even_when_shipping(

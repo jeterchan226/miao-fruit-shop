@@ -156,6 +156,18 @@ class AdminOrderItemUpdate(BaseModel):
     qty: int = Field(ge=1)
 
 
+ADMIN_ORDER_REQUIRED_FIELDS = (
+    "customer_name",
+    "customer_phone",
+    "ship_zipcode",
+    "ship_city",
+    "ship_district",
+    "ship_street",
+    "preferred_date",
+    "delivery_window",
+)
+
+
 class AdminOrderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -172,6 +184,18 @@ class AdminOrderUpdate(BaseModel):
     # 期望的完整訂單品項清單;只改顧客/收件資訊時不送(R13)
     items: list[AdminOrderItemUpdate] | None = Field(default=None, min_length=1)
     expected_total: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _required_fields_not_null(self) -> Self:
+        # 欄位可省略(不改),但必填欄位不可明確送 null 清空
+        nulled = [
+            f
+            for f in ADMIN_ORDER_REQUIRED_FIELDS
+            if f in self.model_fields_set and getattr(self, f) is None
+        ]
+        if nulled:
+            raise ValueError(f"必填欄位不可為 null: {', '.join(nulled)}")
+        return self
 
     @model_validator(mode="after")
     def _items_require_expected_total(self) -> Self:
