@@ -16,14 +16,15 @@
 
 ## 驗收結果
 - [ ] Node 版本單一宣告 — CI 使用宣告的 LTS 版本：PR #76 的 frontend job 綠燈，`actions/setup-node` 步驟成功，但 log 需登入 GitHub 才能看，尚未親眼確認 `v24`。
-- [ ] Node 版本單一宣告 — Vercel build 與 CI 版本一致：repo 端已宣告，PR #76 的 Vercel preview 部署 Ready，但 build log 需登入 Vercel，尚未確認版本。
+- [ ] Node 版本單一宣告 — Vercel build 與 CI 版本一致：repo 端已宣告，PR #76 的 Vercel preview 部署 Ready，bot comment metadata 的 `rootDirectory` 為 `null`（repo 根目錄），但 build log 需登入 Vercel，尚未確認版本。
 - [x] CI 依 lockfile 驗證前端 — 安裝、測試與 build 全數通過：PR 的 CI frontend job；本機 Node 24.22 / npm 11.19 `npm ci`、106 tests、build 通過。
 - [x] CI 依 lockfile 驗證前端 — lockfile 不同步時失敗：乾淨副本把 `react` 改成 `^17.0.0` 不更新 lockfile，`npm ci` exit 1，`EUSAGE`，`Invalid: lock file's react@18.3.1 does not satisfy react@17.0.2`。
 
 ## 留待之後
-- 確認 Vercel 專案 Root Directory 是 repo 根目錄：repo 同時有 `vercel.json` 與 `frontend/vercel.json`，若 Root Directory 是 `frontend`，根目錄 `engines` 不生效。看第一次部署的 build log，不是 24 時依 design.md Risks 處理。
-- `frontend/vercel.json` 疑似舊檔（最後改動早於根目錄 `vercel.json`），確認 Root Directory 後可刪。
-- Vercel `installCommand` 仍是 `npm install --prefix frontend`，正式 build 不經 lockfile 驗證。
+- 登入確認 PR #76 的 CI log 與 Vercel build log 顯示 Node 24；不是 24 時依 design.md Risks 處理。
+- `frontend/Dockerfile` 的 Node 版本與 `engines` 不同步：#79。
+- Vercel `installCommand` 未依 lockfile 安裝：#80。
+- 移除疑似舊檔 `frontend/vercel.json`：#81。
 
 ## 下一步
 - 

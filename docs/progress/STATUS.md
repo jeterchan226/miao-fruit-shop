@@ -18,10 +18,11 @@
 
 | 項目 | 來源 ticket | 備註 |
 |---|---|---|
-| 確認 Vercel Root Directory 是 repo 根目錄，build log 顯示 Node 24 | #31 | 否則根目錄 `engines` 不生效 |
-| 確認後刪除疑似舊檔 `frontend/vercel.json` | #31 | |
-| Vercel `installCommand` 未依 lockfile 安裝 | #31 | 仍是 `npm install --prefix frontend` |
+| 確認 PR #76 的 CI log 與 Vercel build log 顯示 Node 24 | #31 | log 需登入；Vercel `rootDirectory` metadata 為 `null`，根目錄 `engines` 應生效 |
+| `frontend/Dockerfile` 的 Node 版本與 `engines` 不同步 | #31 | #79 |
+| Vercel `installCommand` 未依 lockfile 安裝 | #31 | #80 |
+| 移除疑似舊檔 `frontend/vercel.json` | #31 | #81 |
 
 ## 下一步建議
 
-- 下次 Vercel 部署時看 build log 的 Node 版本（#31）。
+- 登入後看 PR #76 的 CI log 與 Vercel build log，確認 Node 24（#31）。
