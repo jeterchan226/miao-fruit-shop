@@ -20,7 +20,7 @@
 - [x] 錯誤訊息以訂單上的名稱稱呼訂單品項 — 新增的訂單品項用規格現況名稱：`test_error_messages_use_current_label_for_new_item`
 - [x] 後台編輯訂單介面 — 僅剩一個訂單品項：本 PR 未動。此 scenario 無自動測試（`validateLines([])` 只測零行，非此狀態）；手動讀 `OrderItemsEditor.jsx:16,95-96,104` 確認
 - [x] 後台編輯訂單介面 — 已下架規格的訂單品項：本 PR 未動。`已下架規格的行鎖定數量(R10)`；欄位停用與標示無自動測試，手動讀 `OrderItemsEditor.jsx:56-57,78,85` 確認
-- [x] 後台編輯訂單介面 — 價格已更新：本 PR 未動。訊息：`PRICE_CHANGED 顯示新金額請重新確認`；重新試算：`repriceNewLines` 測試組；`AdminApp.jsx` 串接兩者的流程無自動測試，手動讀 `AdminApp.jsx:739-745,1042-1048` 確認
+- [x] 後台編輯訂單介面 — 價格已更新：本 PR 只改提示字串，判定與試算未動。訊息：`PRICE_CHANGED 顯示新金額請重新確認`；重新試算：`repriceNewLines` 測試組；`AdminApp.jsx` 串接兩者的流程無自動測試，手動讀 `AdminApp.jsx:739-745,1042-1048` 確認
 - [x] 後台編輯訂單介面 — 提示涵蓋包裝類型改動：`orderEdit.test.js`「PRICE_CHANGED 顯示新金額請重新確認」
 - [x] 後台編輯訂單介面 — 保留過去的送達日：本 PR 未動。驗證規則：`送達日維持原值即使已過 → 放行;改成早於明天的新日期 → 擋下`；實際儲存流程無自動測試
 
