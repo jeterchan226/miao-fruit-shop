@@ -19,9 +19,11 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            const pattern = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi;
+            // 只認獨立成行的 "Closes #NN":段落內文、code span、code block 內只是提到,不算關閉指令。
+            const pattern = /^[ \t]*(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)[ \t]+#(\d+)[ \t]*$/gim;
+            const body = (pr.body || '').replace(/\r\n/g, '\n').replace(/^(```|~~~)[\s\S]*?^\1[ \t]*$/gm, '');
             const numbers = new Set();
-            for (const m of (pr.body || '').matchAll(pattern)) numbers.add(Number(m[1]));
+            for (const m of body.matchAll(pattern)) numbers.add(Number(m[1]));
             for (const issue_number of numbers) {
               const { data: issue } = await github.rest.issues.get({ ...context.repo, issue_number });
               if (issue.pull_request || issue.state === 'closed') continue;
