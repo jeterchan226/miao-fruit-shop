@@ -47,3 +47,5 @@ Migration 手動驗證：空 DB 上 `upgrade head`、`alembic check` 無差異�
 - 無。
 
 ## Review
+- 2026-10-30 `/review-and-fix`，範圍 `b45a0f2..898c4c5`：auto-fix 1、needs-decision 1、rejected 7、deferred 0。
+- Needs decision：`order_service` 直接接 `sqlalchemy.exc.IntegrityError`，與 `backend/CLAUDE.md`「Only `repositories/` touches the DB」有落差。
