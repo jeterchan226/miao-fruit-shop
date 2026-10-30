@@ -15,8 +15,8 @@
 - `frontend/Dockerfile` 的 `node:22-alpine` 依 design.md Non-Goals 不動，是 repo 內第二個 Node 版本字串，但不屬於 CI / Vercel 路徑。
 
 ## 驗收結果
-- [x] Node 版本單一宣告 — CI 使用宣告的 LTS 版本：見 PR 的 CI frontend job log（Node v24）。
-- [ ] Node 版本單一宣告 — Vercel build 與 CI 版本一致：repo 端已宣告，尚待部署後看 Vercel build log。
+- [ ] Node 版本單一宣告 — CI 使用宣告的 LTS 版本：PR #76 的 frontend job 綠燈，`actions/setup-node` 步驟成功，但 log 需登入 GitHub 才能看，尚未親眼確認 `v24`。
+- [ ] Node 版本單一宣告 — Vercel build 與 CI 版本一致：repo 端已宣告，PR #76 的 Vercel preview 部署 Ready，但 build log 需登入 Vercel，尚未確認版本。
 - [x] CI 依 lockfile 驗證前端 — 安裝、測試與 build 全數通過：PR 的 CI frontend job；本機 Node 24.22 / npm 11.19 `npm ci`、106 tests、build 通過。
 - [x] CI 依 lockfile 驗證前端 — lockfile 不同步時失敗：乾淨副本把 `react` 改成 `^17.0.0` 不更新 lockfile，`npm ci` exit 1，`EUSAGE`，`Invalid: lock file's react@18.3.1 does not satisfy react@17.0.2`。
 
