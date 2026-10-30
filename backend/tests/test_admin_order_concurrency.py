@@ -10,7 +10,7 @@ from datetime import date as date_type
 from typing import NamedTuple
 
 import pytest_asyncio
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.exceptions import InvalidStatusTransition
@@ -20,6 +20,9 @@ from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.schemas.order import AdminOrderItemUpdate, AdminOrderUpdate
 from app.services import admin_order_service
+
+_SLUG = "kanro-race"
+_ORDER_NO = "MM-RACE01"
 
 
 class Seeded(NamedTuple):
@@ -39,8 +42,10 @@ async def seeded(
 ) -> AsyncGenerator[Seeded]:
     """已 commit 的待付款訂單:規格 A(單價 880、庫存 10)× 2;另有規格 B(單價 880、庫存 10)。"""
     async with committing_sessionmaker() as s:
+        # 先清掉上次被中斷(未跑到 teardown)留下的資料,否則 unique 衝突、也會污染其他測試
+        await _delete_seeded(s)
         product = Product(
-            slug="kanro-race", name="甘露梨", description="d", image="i", season="s"
+            slug=_SLUG, name="甘露梨", description="d", image="i", season="s"
         )
         s.add(product)
         await s.flush()
@@ -63,7 +68,7 @@ async def seeded(
         s.add_all([spec, other_spec])
         await s.flush()
         order = Order(
-            order_no="MM-RACE01",
+            order_no=_ORDER_NO,
             status="pending_payment",
             customer_name="王小明",
             customer_phone="0912345678",
@@ -97,16 +102,21 @@ async def seeded(
         seeded = Seeded(
             order_no=order.order_no, spec_id=spec.id, other_spec_id=other_spec.id
         )
-        product_id = product.id
     try:
         yield seeded
     finally:
         async with committing_sessionmaker() as s:
-            await s.execute(delete(OrderItem).where(OrderItem.product_id == product_id))
-            await s.execute(delete(Order).where(Order.order_no == seeded.order_no))
-            await s.execute(delete(ProductSpec).where(ProductSpec.product_id == product_id))
-            await s.execute(delete(Product).where(Product.id == product_id))
-            await s.commit()
+            await _delete_seeded(s)
+
+
+async def _delete_seeded(s: AsyncSession) -> None:
+    order_ids = select(Order.id).where(Order.order_no == _ORDER_NO)
+    product_ids = select(Product.id).where(Product.slug == _SLUG)
+    await s.execute(delete(OrderItem).where(OrderItem.order_id.in_(order_ids)))
+    await s.execute(delete(Order).where(Order.order_no == _ORDER_NO))
+    await s.execute(delete(ProductSpec).where(ProductSpec.product_id.in_(product_ids)))
+    await s.execute(delete(Product).where(Product.slug == _SLUG))
+    await s.commit()
 
 
 async def _stock(committing_sessionmaker: async_sessionmaker[AsyncSession], spec_id: int) -> int:
