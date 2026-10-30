@@ -121,6 +121,93 @@ async def test_list_orders_invalid_source_422(
     assert resp.status_code == 422
 
 
+async def test_list_orders_filter_by_phone_fragment(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    hit = _make_order("MM-Q01")
+    hit.customer_phone = "0987654321"
+    await order_repo.add(db_session, hit)
+    await order_repo.add(db_session, _make_order("MM-Q02"))
+    await db_session.flush()
+
+    resp = await client.get(
+        "/api/admin/orders", params={"q": "87654"}, headers=headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [item["order_no"] for item in body["items"]] == ["MM-Q01"]
+    assert body["total"] == 1
+
+
+async def test_list_orders_multiple_filters_all_apply(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(
+        db_session, _make_order("MM-AND01", status="shipping", source="admin")
+    )
+    await order_repo.add(
+        db_session, _make_order("MM-AND02", status="shipping", source="storefront")
+    )
+    await order_repo.add(
+        db_session, _make_order("MM-AND03", status="pending_payment", source="admin")
+    )
+    await db_session.flush()
+
+    resp = await client.get(
+        "/api/admin/orders",
+        params={"status": "shipping", "source": "admin"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [item["order_no"] for item in body["items"]] == ["MM-AND01"]
+    assert body["total"] == 1
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_total"),
+    [
+        ({"status": "shipping"}, 2),
+        ({"source": "admin"}, 2),
+        ({"created_from": "2026-10-29T00:00:00Z"}, 3),
+        ({"created_before": "2026-10-30T00:00:00Z"}, 3),
+        ({"q": "林美麗"}, 2),
+        ({"order_no": "MM-TOT01"}, 1),
+    ],
+)
+async def test_list_orders_total_counts_all_matches_across_pages(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    params: dict[str, str],
+    expected_total: int,
+):
+    headers = await _auth_header(db_session)
+    matching = [
+        _make_order("MM-TOT01", status="shipping", source="admin"),
+        _make_order("MM-TOT02", status="shipping", source="admin"),
+    ]
+    for order in matching:
+        order.customer_name = "林美麗"
+        order.created_at = datetime(2026, 10, 29, 12, 0, tzinfo=UTC)
+    earlier = _make_order("MM-TOT03")
+    earlier.created_at = datetime(2026, 10, 28, 12, 0, tzinfo=UTC)
+    later = _make_order("MM-TOT04")
+    later.created_at = datetime(2026, 10, 30, 12, 0, tzinfo=UTC)
+    for order in (*matching, earlier, later):
+        await order_repo.add(db_session, order)
+    await db_session.flush()
+
+    resp = await client.get(
+        "/api/admin/orders", params={**params, "page_size": 1}, headers=headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == expected_total
+    assert len(body["items"]) == 1
+
+
 # 台北 2026-10-30 = UTC [2026-10-29T16:00Z, 2026-10-30T16:00Z)
 TAIPEI_OCT_30 = {
     "created_from": "2026-10-29T16:00:00.000Z",
