@@ -11,7 +11,7 @@
 
 ## 決定與偏離
 - 共用 helper 放 `backend/app/schemas/validators.py`（design 未指定檔名）。
-- 依 design，訂單 `AdminOrderUpdate` 改呼叫同一 helper，行為不變，由既有訂單測試保護。
+- 訂單 `AdminOrderUpdate` 改呼叫同一 helper，見 [design.md](../../../openspec/changes/archive/2026-10-30-reject-null-catalog-required-fields/design.md)。
 - 測試內另列一份必填欄位清單、不 import app 常數：常數漏列時測試才會失敗。
 - 對不存在的 id 送必填 `null` 回 422 而非 404，因 schema 驗證先於查詢；spec 未定義，與訂單相同，不改。
 
