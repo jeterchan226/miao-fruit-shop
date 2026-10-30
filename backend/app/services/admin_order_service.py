@@ -23,7 +23,6 @@ from app.schemas.order import (
     AdminOrderSummary,
     AdminOrderTransferUpdate,
     AdminOrderUpdate,
-    CustomerCreate,
     OrderItemRead,
 )
 from app.services import order_items, order_service
@@ -150,7 +149,7 @@ async def create_order(session: AsyncSession, data: AdminOrderCreate) -> AdminOr
     order = await order_service.place_order(
         session,
         source=ORDER_SOURCE_ADMIN,
-        customer=CustomerCreate(
+        customer=order_service.OrderCustomer(
             name=data.customer_name,
             phone=data.customer_phone,
             email=data.customer_email,

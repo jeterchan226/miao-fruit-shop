@@ -1,4 +1,5 @@
 import secrets
+from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +11,6 @@ from app.core.constants import (
 from app.models.order import Order
 from app.repositories import order_repo
 from app.schemas.order import (
-    CustomerCreate,
     OrderCreate,
     OrderItemCreate,
     OrderItemRead,
@@ -20,6 +20,20 @@ from app.schemas.order import (
 from app.services import line_service, order_items
 
 ORDER_NO_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+@dataclass(frozen=True)
+class OrderCustomer:
+    """建立訂單用的顧客資料。不做驗證,請求驗證留在 schema 層。"""
+
+    name: str
+    phone: str
+    email: str | None = None
+    line_user_id: str | None = None
+    line_display_name: str | None = None
+    line_picture_url: str | None = None
+    line_friendship_status: str | None = None
+    line_notification_consent: bool = False
 
 
 def initial_status() -> str:
@@ -67,7 +81,7 @@ async def place_order(
     session: AsyncSession,
     *,
     source: OrderSource,
-    customer: CustomerCreate,
+    customer: OrderCustomer,
     shipping: ShippingCreate,
     items: list[OrderItemCreate],
     expected_total: int,
@@ -113,7 +127,16 @@ async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
     order = await place_order(
         session,
         source=ORDER_SOURCE_STOREFRONT,
-        customer=data.customer,
+        customer=OrderCustomer(
+            name=data.customer.name,
+            phone=data.customer.phone,
+            email=data.customer.email,
+            line_user_id=data.customer.line_user_id,
+            line_display_name=data.customer.line_display_name,
+            line_picture_url=data.customer.line_picture_url,
+            line_friendship_status=data.customer.line_friendship_status,
+            line_notification_consent=data.customer.line_notification_consent,
+        ),
         shipping=data.shipping,
         items=data.items,
         expected_total=data.expected_total,
