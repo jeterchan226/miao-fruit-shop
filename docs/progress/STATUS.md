@@ -26,8 +26,8 @@
 | `frontend/Dockerfile` 的 Node 版本與 `engines` 不同步 | #31 | #79 |
 | Vercel `installCommand` 未依 lockfile 安裝 | #31 | #80 |
 | 移除疑似舊檔 `frontend/vercel.json` | #31 | #81 |
-| 關鍵字 `q` 未跳脫 `%`、`_` | #43 | 查 `%` 會比對全部訂單；既有行為 |
-| `list_filtered` 的 `status` 型別為 `str`，與 `source` 不一致 | #43 | |
+| 關鍵字 `q` 未跳脫 `%`、`_` | #43 | #91；查 `%` 會比對全部訂單，既有行為 |
+| `list_filtered` 的 `status` 型別為 `str`，與 `source` 不一致 | #43 | #92 |
 | 錯誤訊息改用快照名稱與正確用語 | #46 | 追蹤於 #83，可併入 #45 |
 | GLOSSARY「包裝類型建立後不變」與 admin-catalog 可改的落差 | #46 | 追蹤於 #84 |
 | ADR 0003／0004 未提包裝類型快照 | #46 | 追蹤於 #85 |

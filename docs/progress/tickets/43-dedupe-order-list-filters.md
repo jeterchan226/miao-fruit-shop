@@ -22,9 +22,10 @@
 - [x] 訂單列表篩選 — 總筆數與篩選結果一致：`test_list_orders_total_counts_all_matches_across_pages`（六個條件各一組）
 
 ## 留待之後
-- 關鍵字 `q` 未跳脫 `%`、`_`：查 `%` 會比對全部訂單。既有行為，本票不改。
-- `list_filtered` 的 `status` 為 `str`，`source` 為 `OrderSource`，型別不一致。
+- 關鍵字 `q` 未跳脫 `%`、`_`：查 `%` 會比對全部訂單。既有行為，本票不改。追蹤於 #91。
+- `list_filtered` 的 `status` 為 `str`，`source` 為 `OrderSource`，型別不一致。追蹤於 #92。
 
 ## 下一步
 
 ## Review
+- 2026-10-30 `/review-and-fix`：審查 `3ee4204..097c693`，修正見 `75670f6`。共 7 項：auto-fix 1、needs-decision 0、rejected 4、deferred 2（#91、#92）。修正僅文件，未重跑 re-review。
