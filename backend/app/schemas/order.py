@@ -4,6 +4,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.constants import PAYMENT_METHOD_TRANSFER, PaymentMethod
+from app.schemas.validators import reject_null_required_fields
 
 
 class CustomerCreate(BaseModel):
@@ -190,14 +191,7 @@ class AdminOrderUpdate(BaseModel):
 
     @model_validator(mode="after")
     def _required_fields_not_null(self) -> Self:
-        # 欄位可省略(不改),但必填欄位不可明確送 null 清空
-        nulled = [
-            f
-            for f in ADMIN_ORDER_REQUIRED_FIELDS
-            if f in self.model_fields_set and getattr(self, f) is None
-        ]
-        if nulled:
-            raise ValueError(f"必填欄位不可為 null: {', '.join(nulled)}")
+        reject_null_required_fields(self, ADMIN_ORDER_REQUIRED_FIELDS)
         return self
 
     @model_validator(mode="after")
