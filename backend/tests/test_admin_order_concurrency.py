@@ -13,7 +13,7 @@ import pytest_asyncio
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from app.core.exceptions import InvalidStatusTransition
+from app.core.exceptions import InvalidStatusTransition, OrderNotEditableError
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
@@ -183,3 +183,29 @@ async def test_concurrent_edit_restores_removed_item_stock_once(
     assert results == [None, None]
     assert await _stock(committing_sessionmaker, seeded.spec_id) == 12
     assert await _stock(committing_sessionmaker, seeded.other_spec_id) == 9
+
+
+async def test_concurrent_cancel_and_edit_end_with_full_stock_restored(
+    committing_sessionmaker: async_sessionmaker[AsyncSession], seeded: Seeded
+):
+    # 取消與編輯(A × 2 → A × 4)同時送出:不論誰先拿到訂單列鎖,取消後 A 都應回到 12
+    # 取消先 → 編輯被擋(OrderNotEditableError);編輯先 → 取消補回編輯後的 4
+    data = AdminOrderUpdate(
+        items=[AdminOrderItemUpdate(spec_id=seeded.spec_id, qty=4)], expected_total=3520
+    )
+
+    async def cancel() -> None:
+        async with committing_sessionmaker() as s:
+            await admin_order_service.change_order_status(s, seeded.order_no, "cancelled")
+
+    async def edit() -> None:
+        async with committing_sessionmaker() as s:
+            await admin_order_service.update_order(s, seeded.order_no, data)
+
+    cancel_result, edit_result = await asyncio.wait_for(
+        asyncio.gather(cancel(), edit(), return_exceptions=True), _RACE_TIMEOUT_S
+    )
+
+    assert cancel_result is None
+    assert edit_result is None or isinstance(edit_result, OrderNotEditableError)
+    assert await _stock(committing_sessionmaker, seeded.spec_id) == 12
