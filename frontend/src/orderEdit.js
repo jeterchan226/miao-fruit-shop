@@ -178,7 +178,7 @@ const FALLBACK_MESSAGES = {
 export function orderEditErrorMessage(err) {
   const data = err?.data || {};
   if (err?.code === 'PRICE_CHANGED') {
-    return `規格價格已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再儲存訂單。`;
+    return `規格價格或包裝類型已更新，新的訂單總額為 ${money(data.total)}，請重新確認後再儲存訂單。`;
   }
   if (err?.code === 'DUPLICATE_SPEC') return '同一規格只能有一個訂單品項，請合併數量。';
   if (err?.code in FALLBACK_MESSAGES) return data.detail || FALLBACK_MESSAGES[err.code];

@@ -113,9 +113,10 @@ async def apply_items(
         active[spec_id] = spec
 
     # 3) 兩粒裝須以雙數購買
-    for spec_id, spec in active.items():
+    for spec_id in active:
         if _is_two_pack(current_by_spec, active, spec_id) and requested_qty[spec_id] % 2 != 0:
-            raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
+            label = _spec_label(current_by_spec, active, spec_id)
+            raise EvenQtyRequiredError(f"{label} 為 2 粒裝，請以雙數（2、4、6…）購買")
 
     # 4) 先補回再扣除,檢查庫存不為負(規格已刪除則略過補回)
     new_stock: list[tuple[ProductSpec, int]] = []
@@ -129,7 +130,8 @@ async def apply_items(
             - requested_qty.get(spec_id, 0)
         )
         if stock < 0:
-            raise InsufficientStockError(f"庫存不足:{spec.label}")
+            label = _spec_label(current_by_spec, active, spec_id)
+            raise InsufficientStockError(f"庫存不足:{label}")
         new_stock.append((spec, stock))
 
     # 5) 以下單價與包裝類型快照計算金額(既有沿用快照、新增用規格現況)並比對 expected_total
@@ -193,6 +195,14 @@ async def release_items(session: AsyncSession, items: Sequence[OrderItem]) -> No
 def _current_qty(current_by_spec: dict[int, OrderItem], spec_id: int) -> int:
     existing = current_by_spec.get(spec_id)
     return existing.qty if existing is not None else 0
+
+
+def _spec_label(
+    current_by_spec: dict[int, OrderItem], active: dict[int, ProductSpec], spec_id: int
+) -> str:
+    # 既有訂單品項沿用名稱快照;新增的以規格現況為準
+    existing = current_by_spec.get(spec_id)
+    return existing.spec_label if existing is not None else active[spec_id].label
 
 
 def _unit_price(

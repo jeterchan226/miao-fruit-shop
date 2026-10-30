@@ -341,3 +341,53 @@ async def test_new_item_uses_current_spec_pack_type(db_session: AsyncSession):
     result = await apply_items(db_session, [], [ItemRequest(spec.id, 2)], expected_total=700)
 
     assert result.items[0].is_two_pack is True
+
+
+async def test_even_qty_message_uses_snapshot_label_for_existing_item(db_session: AsyncSession):
+    (pair,) = await _seed_specs(
+        db_session, _spec("精緻禮盒", price=300, stock=8, two_pack=True),
+    )
+    order = await _existing_order(db_session, (pair, 4, 300))
+    pair.label = "豪華禮盒"
+
+    with pytest.raises(EvenQtyRequiredError) as exc:
+        await apply_items(
+            db_session, order.items, [ItemRequest(pair.id, 3)], expected_total=0,
+        )
+
+    assert "精緻禮盒" in exc.value.detail
+    assert "豪華禮盒" not in exc.value.detail
+
+
+async def test_insufficient_stock_message_uses_snapshot_label_for_existing_item(
+    db_session: AsyncSession,
+):
+    (box,) = await _seed_specs(db_session, _spec("精緻禮盒", price=1000, stock=1))
+    order = await _existing_order(db_session, (box, 1, 1000))
+    box.label = "豪華禮盒"
+
+    with pytest.raises(InsufficientStockError) as exc:
+        await apply_items(
+            db_session, order.items, [ItemRequest(box.id, 3)], expected_total=0,
+        )
+
+    assert "精緻禮盒" in exc.value.detail
+    assert "豪華禮盒" not in exc.value.detail
+
+
+async def test_error_messages_use_current_label_for_new_item(db_session: AsyncSession):
+    pair, box = await _seed_specs(
+        db_session,
+        _spec("舊兩粒裝", price=300, stock=8, two_pack=True),
+        _spec("舊箱裝", price=1000, stock=1),
+    )
+    pair.label = "豪華禮盒"
+    box.label = "豪華箱裝"
+
+    with pytest.raises(EvenQtyRequiredError) as even_exc:
+        await apply_items(db_session, [], [ItemRequest(pair.id, 3)], expected_total=0)
+    with pytest.raises(InsufficientStockError) as stock_exc:
+        await apply_items(db_session, [], [ItemRequest(box.id, 2)], expected_total=0)
+
+    assert "豪華禮盒" in even_exc.value.detail
+    assert "豪華箱裝" in stock_exc.value.detail
