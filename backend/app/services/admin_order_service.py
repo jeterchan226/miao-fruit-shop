@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,8 +100,8 @@ async def list_orders(
     *,
     status: str | None = None,
     source: str | None = None,
-    date_from: date | None = None,
-    date_to: date | None = None,
+    created_from: datetime | None = None,
+    created_before: datetime | None = None,
     q: str | None = None,
     order_no: str | None = None,
     page: int = 1,
@@ -111,8 +111,8 @@ async def list_orders(
         session,
         status=status,
         source=source,
-        date_from=date_from,
-        date_to=date_to,
+        created_from=created_from,
+        created_before=created_before,
         q=q,
         order_no=order_no,
         page=page,
