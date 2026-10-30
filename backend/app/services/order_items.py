@@ -114,7 +114,7 @@ async def apply_items(
 
     # 3) 兩粒裝須以雙數購買
     for spec_id, spec in active.items():
-        if spec.is_two_pack and requested_qty[spec_id] % 2 != 0:
+        if _is_two_pack(current_by_spec, active, spec_id) and requested_qty[spec_id] % 2 != 0:
             raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
 
     # 4) 先補回再扣除,檢查庫存不為負(規格已刪除則略過補回)
@@ -132,16 +132,14 @@ async def apply_items(
             raise InsufficientStockError(f"庫存不足:{spec.label}")
         new_stock.append((spec, stock))
 
-    # 5) 以下單價計算金額(既有沿用原下單價、新增用規格目前價格)並比對 expected_total
-    is_two_pack: dict[int, bool] = {}
-    for r in requested:
-        spec = locked[r.spec_id] if r.spec_id in locked else await spec_repo.get_by_id(
-            session, r.spec_id
-        )
-        is_two_pack[r.spec_id] = spec is not None and spec.is_two_pack
+    # 5) 以下單價與包裝類型快照計算金額(既有沿用快照、新增用規格現況)並比對 expected_total
     amounts = compute_amounts(
         [
-            (_unit_price(current_by_spec, active, r.spec_id), r.qty, is_two_pack[r.spec_id])
+            (
+                _unit_price(current_by_spec, active, r.spec_id),
+                r.qty,
+                _is_two_pack(current_by_spec, active, r.spec_id),
+            )
             for r in requested
         ]
     )
@@ -172,6 +170,7 @@ async def apply_items(
                 spec_id=spec.id,
                 product_name=spec.product.name,
                 spec_label=spec.label,
+                is_two_pack=spec.is_two_pack,
                 unit_price=spec.price,
                 qty=r.qty,
                 line_total=spec.price * r.qty,
@@ -202,3 +201,11 @@ def _unit_price(
     # 既有訂單品項沿用原下單價(R6);新增的以規格目前價格為下單價(R5)
     existing = current_by_spec.get(spec_id)
     return existing.unit_price if existing is not None else active[spec_id].price
+
+
+def _is_two_pack(
+    current_by_spec: dict[int, OrderItem], active: dict[int, ProductSpec], spec_id: int
+) -> bool:
+    # 既有訂單品項沿用包裝類型快照;新增的以規格現況為準
+    existing = current_by_spec.get(spec_id)
+    return existing.is_two_pack if existing is not None else active[spec_id].is_two_pack

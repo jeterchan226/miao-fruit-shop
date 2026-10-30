@@ -1,6 +1,9 @@
 {
   "name": "miao-fruit-shop",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "npm run build --prefix frontend"
   }

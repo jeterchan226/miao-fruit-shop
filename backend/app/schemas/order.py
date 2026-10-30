@@ -46,6 +46,7 @@ class OrderItemRead(BaseModel):
     spec_id: int | None = None
     product_name: str
     spec_label: str
+    is_two_pack: bool
     unit_price: int
     qty: int
     line_total: int
