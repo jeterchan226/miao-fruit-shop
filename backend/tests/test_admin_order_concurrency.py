@@ -119,14 +119,13 @@ async def _stock(committing_sessionmaker: async_sessionmaker[AsyncSession], spec
 async def test_concurrent_cancel_restores_stock_once(
     committing_sessionmaker: async_sessionmaker[AsyncSession], seeded: Seeded
 ):
-    async def cancel() -> str:
+    async def cancel() -> None:
         async with committing_sessionmaker() as s:
             await admin_order_service.change_order_status(s, seeded.order_no, "cancelled")
-            return "ok"
 
     results = await asyncio.gather(cancel(), cancel(), return_exceptions=True)
 
-    assert results.count("ok") == 1
+    assert results.count(None) == 1
     assert sum(isinstance(r, InvalidStatusTransition) for r in results) == 1
     assert await _stock(committing_sessionmaker, seeded.spec_id) == 12
 
