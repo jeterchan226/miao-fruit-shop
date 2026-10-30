@@ -77,9 +77,9 @@ The shop is architecturally locked to one product (甘露梨) rendered as multip
 
 Target device baseline for the storefront is iPadOS 15 Safari/WebKit — avoid `transparent` in gradients and keep first-load images light (see project memory on frontend target).
 
-### Infrastructure (`terraform/`)
+### Infrastructure
 
-GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) are managed via Terraform. `terraform/bootstrap/` creates the remote-state GCS bucket (run once, local state); the root `terraform/` module owns everything else, backed by that bucket (`terraform init -backend-config="bucket=<project_id>-tfstate"`). Cloud Run `image` fields are `lifecycle.ignore_changes` — Terraform owns the service shell (env vars, secrets, scaling, Cloud SQL wiring), `backend/deploy.sh` owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; DB/JWT secrets are Terraform-generated so they can never drift from what's actually set on the resource (see project memory on Cloud SQL password sync). LINE tokens are manual (`gcloud secrets versions add ...`) since they come from the LINE Developers Console.
+GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) exist in production but are currently not managed by any IaC in this repo — the previous Terraform setup was removed to be rebuilt from scratch. Until then, change them with `gcloud`/Console directly; `backend/deploy.sh` still owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; the Cloud SQL `miao_app` password must stay in sync with `db-password` (see project memory on Cloud SQL password sync).
 
 ### Deployment
 
