@@ -30,4 +30,5 @@
 - 
 
 ## Review
-- 
+- 2026-10-30 `/review-and-fix`（`add2c38..8e3e0ae`，修正 `28bee89`）：12 項，auto-fix 2、needs-decision 1、rejected 6、deferred 3（#79、#80、#81）。
+- Needs decision：兩條 Node 版本驗收尚未看到 log 確認，ticket 仍標「完成」；建議使用者看過 log 再合併。
