@@ -194,7 +194,7 @@ describe('orderEditErrorMessage', () => {
 
   it('PRICE_CHANGED 顯示新金額請重新確認', () => {
     expect(orderEditErrorMessage(err('PRICE_CHANGED', { total: 3280 }))).toBe(
-      '規格價格已更新，新的訂單總額為 NT$ 3,280，請重新確認後再儲存訂單。'
+      '規格價格或包裝類型已更新，新的訂單總額為 NT$ 3,280，請重新確認後再儲存訂單。'
     );
   });
   it.each([
