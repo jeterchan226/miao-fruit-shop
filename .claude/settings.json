@@ -8,7 +8,10 @@
   "sandbox": {
     "excludedCommands": [
       "git push *",
-      "git branch *"
+      "git branch *",
+      "docker compose *",
+      "uv run pytest *",
+      "uv run alembic *"
     ]
   }
 }

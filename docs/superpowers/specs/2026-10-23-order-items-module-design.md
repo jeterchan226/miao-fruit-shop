@@ -180,12 +180,15 @@ class AdminOrderCreate(BaseModel):
 - 「新增訂單品項」選單只列上架中、有庫存、且不在此訂單的規格（R8）；新行顯示目前價格。
 - 即時試算總額：既有行用下單價、新行用目前價格，運費用 `pricing.js` 的 `computeShipping`/`computeLayers`。
 - 送出時比對：訂單品項（規格+數量）與開啟時相同就不送 `items`（R13）；不同則送完整清單與 `expected_total`。
+- 存檔前顧客/收件欄位走與商店頁、代客下單相同的 `validateCustomerShipping`（必填欄位不可為空或 null、電話格式）；希望送達日維持訂單原值時不受「不得早於明天」限制，改成新日期才檢查。
 - 處理 409 `PRICE_CHANGED`（顯示新金額請重新確認）、`ITEM_QTY_LOCKED`、`INSUFFICIENT_STOCK`、`EVEN_QTY_REQUIRED`、`DUPLICATE_SPEC` 的錯誤訊息。
 
 ### 代客下單
 
 - 訂單分頁新增「新增訂單」按鈕，開啟與編輯共用欄位的表單：顧客姓名、電話、Email（選填）、收件地址、希望到貨日、時段、備註、訂單品項。
 - 規格選單規則同 R8；即時試算總額；送出帶 `expected_total`。
+- 顧客/收件欄位驗證與商店頁購物車完全相同，兩邊呼叫同一個函式（`customerValidation.js` `validateCustomerShipping`）：姓名、電話（含格式）、縣市、區域、詳細地址必填，希望送達日不得早於明天；郵遞區號不必填。
+- 送出按鈕與 `PRICE_CHANGED` 提示統一用「儲存訂單」。
 - 成功後開啟該訂單明細並刷新列表。
 - `api.js` 新增 `createAdminOrder(token, payload)`。
 

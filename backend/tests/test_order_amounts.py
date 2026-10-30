@@ -1,9 +1,5 @@
-from app.services.order_service import (
-    Amounts,
-    _new_order_no,
-    compute_amounts,
-    initial_status,
-)
+from app.services.order_items import Amounts, compute_amounts
+from app.services.order_service import _new_order_no, initial_status
 
 ORDER_NO_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 

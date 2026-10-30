@@ -73,3 +73,18 @@ def test_admin_order_item_update_requires_positive_qty():
 def test_admin_order_transfer_update_forbids_extra():
     with pytest.raises(ValidationError):
         AdminOrderTransferUpdate(status="ready")
+
+
+def test_admin_order_update_items_requires_expected_total():
+    with pytest.raises(ValidationError):
+        AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=1, qty=1)])
+
+
+def test_admin_order_update_items_with_expected_total():
+    update = AdminOrderUpdate(items=[AdminOrderItemUpdate(spec_id=1, qty=1)], expected_total=880)
+    assert update.expected_total == 880
+
+
+def test_admin_order_update_rejects_empty_items():
+    with pytest.raises(ValidationError):
+        AdminOrderUpdate(items=[], expected_total=0)

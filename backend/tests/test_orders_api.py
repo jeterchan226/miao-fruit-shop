@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
 from app.models.product_spec import ProductSpec
-from app.repositories import product_repo
+from app.repositories import order_repo, product_repo
 
 
 async def _seed_spec(db_session, *, price=1880, stock=10):
@@ -50,6 +50,17 @@ async def test_create_order_201(client: AsyncClient, db_session: AsyncSession):
     assert data["total"] == 1980
     assert data["items"][0]["unit_price"] == 1880
     assert "stock_qty" not in str(data)
+
+
+async def test_create_order_source_is_storefront(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    resp = await client.post("/api/orders", json=_body(spec.id, 1, expected_total=1980))
+    assert resp.status_code == 201
+    order = await order_repo.get_by_order_no(db_session, resp.json()["order_no"])
+    assert order is not None
+    assert order.source == "storefront"
 
 
 async def test_create_order_price_changed_409(client: AsyncClient, db_session: AsyncSession):

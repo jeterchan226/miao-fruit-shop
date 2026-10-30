@@ -3,18 +3,14 @@ from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    EvenQtyRequiredError,
-    InsufficientStockError,
     InvalidStatusTransition,
     NotFoundError,
     OrderNotEditableError,
 )
 from app.models.order import Order
-from app.models.order_item import OrderItem
-from app.models.product_spec import ProductSpec
-from app.repositories import order_repo, spec_repo
+from app.repositories import order_repo
 from app.schemas.order import (
-    AdminOrderItemUpdate,
+    AdminOrderCreate,
     AdminOrderListItem,
     AdminOrderListResponse,
     AdminOrderRead,
@@ -23,7 +19,7 @@ from app.schemas.order import (
     AdminOrderUpdate,
     OrderItemRead,
 )
-from app.services import order_service
+from app.services import order_items, order_service
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
     "pending_payment": {"ready", "cancelled"},      # 待付款
@@ -55,6 +51,7 @@ def _to_admin_list_item(order: Order) -> AdminOrderListItem:
     return AdminOrderListItem(
         order_no=order.order_no,
         status=order.status,
+        source=order.source,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         total=order.total,
@@ -69,6 +66,7 @@ def _to_admin_order_read(order: Order) -> AdminOrderRead:
         id=order.id,
         order_no=order.order_no,
         status=order.status,
+        source=order.source,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         customer_email=order.customer_email,
@@ -112,6 +110,7 @@ async def list_orders(
     session: AsyncSession,
     *,
     status: str | None = None,
+    source: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     q: str | None = None,
@@ -122,6 +121,7 @@ async def list_orders(
     total, orders = await order_repo.list_filtered(
         session,
         status=status,
+        source=source,
         date_from=date_from,
         date_to=date_to,
         q=q,
@@ -150,6 +150,37 @@ async def get_order_detail(session: AsyncSession, order_no: str) -> AdminOrderRe
     return _to_admin_order_read(order)
 
 
+async def create_order(session: AsyncSession, data: AdminOrderCreate) -> AdminOrderRead:
+    """代客下單:規則同顧客下單,但來源記為 admin、無 LINE 身份、不發 LINE 通知。"""
+    result = await order_items.apply_items(
+        session,
+        [],
+        [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
+        expected_total=data.expected_total,
+    )
+    order = Order(
+        order_no=await order_service.generate_unique_order_no(session),
+        status=order_service.initial_status(),
+        source="admin",
+        customer_name=data.customer_name,
+        customer_phone=data.customer_phone,
+        customer_email=data.customer_email,
+        ship_zipcode=data.shipping.zipcode,
+        ship_city=data.shipping.city,
+        ship_district=data.shipping.district,
+        ship_street=data.shipping.street,
+        preferred_date=data.shipping.preferred_date,
+        delivery_window=data.shipping.delivery_window,
+        payment_method="transfer",
+        note=data.note,
+    )
+    result.apply_to(order)
+    await order_repo.add(session, order)
+    await session.commit()
+    await session.refresh(order)
+    return _to_admin_order_read(order)
+
+
 async def change_order_status(
     session: AsyncSession, order_no: str, new_status: str
 ) -> AdminOrderRead:
@@ -160,66 +191,11 @@ async def change_order_status(
     if new_status not in allowed:
         raise InvalidStatusTransition(f"無法從 {order.status} 轉移到 {new_status}")
     if new_status == "cancelled":
-        for item in order.items:
-            if item.spec_id is not None:
-                spec = await spec_repo.get_for_update(session, item.spec_id)
-                if spec is not None:
-                    spec.stock_qty += item.qty
+        await order_items.release_items(session, order.items)
     order.status = new_status
     await session.commit()
     await session.refresh(order)
     return _to_admin_order_read(order)
-
-
-async def _replace_items(
-    session: AsyncSession, order: Order, new_items: list[AdminOrderItemUpdate]
-) -> None:
-    # 1) 舊品項先加回庫存
-    for item in order.items:
-        if item.spec_id is not None:
-            spec = await spec_repo.get_for_update(session, item.spec_id)
-            if spec is not None:
-                spec.stock_qty += item.qty
-
-    # 2) 鎖定新品項規格,驗證存在/啟用/2 粒裝雙數
-    locked: list[tuple[ProductSpec, int]] = []
-    for new_item in new_items:
-        spec = await spec_repo.get_for_update(session, new_item.spec_id)
-        if spec is None or not spec.is_active:
-            raise NotFoundError(f"找不到規格 {new_item.spec_id}")
-        if spec.is_two_pack and new_item.qty % 2 != 0:
-            raise EvenQtyRequiredError(f"{spec.label} 為 2 粒裝，請以雙數（2、4、6…）購買")
-        locked.append((spec, new_item.qty))
-
-    # 3) 驗庫存(此時舊品項已加回)
-    for spec, qty in locked:
-        if spec.stock_qty < qty:
-            raise InsufficientStockError(f"庫存不足:{spec.label}")
-
-    # 4) 扣新庫存、以現價快照換品項
-    for spec, qty in locked:
-        spec.stock_qty -= qty
-
-    order.items = [
-        OrderItem(
-            product_id=spec.product_id,
-            spec_id=spec.id,
-            product_name=spec.product.name,
-            spec_label=spec.label,
-            unit_price=spec.price,
-            qty=qty,
-            line_total=spec.price * qty,
-        )
-        for spec, qty in locked
-    ]
-
-    amounts = order_service.compute_amounts(
-        [(spec.price, qty, spec.is_two_pack) for spec, qty in locked]
-    )
-    order.subtotal = amounts.subtotal
-    order.shipping_fee = amounts.shipping_fee
-    order.cod_fee = amounts.cod_fee
-    order.total = amounts.total
 
 
 async def update_order(
@@ -237,7 +213,15 @@ async def update_order(
             setattr(order, field, value)
 
     if data.items is not None:
-        await _replace_items(session, order, data.items)
+        if data.expected_total is None:  # schema 已擋下,此處僅防禦
+            raise ValueError("送出訂單品項時須附 expected_total")
+        result = await order_items.apply_items(
+            session,
+            order.items,
+            [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
+            expected_total=data.expected_total,
+        )
+        result.apply_to(order)
 
     await session.commit()
     await session.refresh(order)

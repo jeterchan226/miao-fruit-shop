@@ -208,6 +208,15 @@ export const getAdminOrder = (token, orderNo) => request(
   }
 );
 
+export const createAdminOrder = (token, payload) => request(
+  '/api/admin/orders',
+  {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  }
+);
+
 export const updateAdminOrderStatus = (token, orderNo, status) => request(
   `/api/admin/orders/${encodeURIComponent(orderNo)}/status`,
   {
@@ -237,6 +246,7 @@ export const updateAdminOrderTransfer = (token, orderNo, payload) => request(
 
 window.MiaoApi = {
   ApiError,
+  createAdminOrder,
   createOrder,
   createSpec,
   deleteProductImage,
