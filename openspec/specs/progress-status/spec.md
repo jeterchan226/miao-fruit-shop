@@ -1,7 +1,7 @@
 # progress-status Specification
 
 ## Purpose
-TBD - created by archiving change auto-generate-progress-status. Update Purpose after archive.
+進度快照（`docs/progress/STATUS.md`）的來源、區塊內容、自動更新時機與失敗行為：快照由 ticket 紀錄與 issue 狀態產生，PR 不手改。
 ## Requirements
 ### Requirement: 合併後自動更新進度快照
 
