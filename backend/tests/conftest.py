@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import make_url
@@ -18,6 +19,12 @@ from app.main import app
 TEST_DATABASE_URL = make_url(settings.sqlalchemy_database_url).set(
     database="miao_test"
 ).render_as_string(hide_password=False)
+
+
+@pytest.fixture(autouse=True)
+def no_real_line_push(monkeypatch: pytest.MonkeyPatch) -> None:
+    """測試不帶 LINE token,避免本機 .env 的 token 真的呼叫 LINE;需要的測試自行 monkeypatch。"""
+    monkeypatch.setattr(settings, "line_channel_access_token", "")
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
