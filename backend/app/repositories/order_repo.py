@@ -18,6 +18,17 @@ async def get_by_order_no(session: AsyncSession, order_no: str) -> Order | None:
     return result.scalar_one_or_none()
 
 
+async def get_by_order_no_for_update(session: AsyncSession, order_no: str) -> Order | None:
+    """以列鎖(SELECT ... FOR UPDATE)讀取訂單,並發改動同一筆訂單時依序執行。
+
+    ORM 的 FOR UPDATE 會覆寫 session 內已載入的舊值,鎖到後讀的是最新狀態。
+    """
+    result = await session.execute(
+        select(Order).where(Order.order_no == order_no).with_for_update()
+    )
+    return result.scalar_one_or_none()
+
+
 async def list_filtered(
     session: AsyncSession,
     *,
