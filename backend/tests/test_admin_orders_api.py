@@ -1,5 +1,6 @@
 from datetime import date
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -224,6 +225,75 @@ async def test_update_order_simple_fields(
     assert body["ship_city"] == "台北市"  # 未送的欄位不變
 
 
+async def test_update_order_explicit_null_clears_optional_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-UP02")
+    order.customer_email = "a@example.com"
+    order.note = "舊備註"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP02",
+        json={"customer_email": None, "note": None},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["customer_email"] is None
+    assert body["note"] is None
+
+
+async def test_update_order_omitted_optional_fields_unchanged(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-UP03")
+    order.customer_email = "a@example.com"
+    order.note = "舊備註"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP03",
+        json={"ship_city": "新北市"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ship_city"] == "新北市"
+    assert body["customer_email"] == "a@example.com"
+    assert body["note"] == "舊備註"
+    assert body["customer_name"] == "王小明"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "customer_name",
+        "customer_phone",
+        "ship_zipcode",
+        "ship_city",
+        "ship_district",
+        "ship_street",
+        "preferred_date",
+        "delivery_window",
+    ],
+)
+async def test_update_order_required_field_null_is_422(
+    client: AsyncClient, db_session: AsyncSession, field: str
+):
+    headers = await _auth_header(db_session)
+    await order_repo.add(db_session, _make_order("MM-UP04"))
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-UP04", json={field: None}, headers=headers
+    )
+    assert resp.status_code == 422
+    detail = await client.get("/api/admin/orders/MM-UP04", headers=headers)
+    assert detail.json()["customer_name"] == "王小明"
+
+
 async def test_update_order_not_editable_when_shipping(
     client: AsyncClient, db_session: AsyncSession
 ):
@@ -365,6 +435,53 @@ async def test_update_transfer_info(client: AsyncClient, db_session: AsyncSessio
     assert body["transfer_payer_name"] == "王小明"
     assert body["transfer_note"] == "已核對"
     assert body["status"] == "pending_payment"  # 不影響狀態
+
+
+async def test_update_transfer_info_explicit_null_clears_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TX04")
+    order.transfer_last5 = "12345"
+    order.transfer_payer_name = "填錯的人"
+    order.transfer_note = "填錯"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX04/transfer",
+        json={
+            "transfer_last5": None,
+            "transfer_payer_name": None,
+            "transfer_note": None,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["transfer_last5"] is None
+    assert body["transfer_payer_name"] is None
+    assert body["transfer_note"] is None
+
+
+async def test_update_transfer_info_omitted_fields_unchanged(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TX05")
+    order.transfer_payer_name = "王小明"
+    order.transfer_note = "已核對"
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.patch(
+        "/api/admin/orders/MM-TX05/transfer",
+        json={"transfer_last5": "54321"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["transfer_last5"] == "54321"
+    assert body["transfer_payer_name"] == "王小明"
+    assert body["transfer_note"] == "已核對"
 
 
 async def test_update_transfer_info_allowed_even_when_shipping(

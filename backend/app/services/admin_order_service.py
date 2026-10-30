@@ -10,6 +10,7 @@ from app.core.exceptions import (
 from app.models.order import Order
 from app.repositories import order_repo
 from app.schemas.order import (
+    ADMIN_ORDER_REQUIRED_FIELDS,
     AdminOrderCreate,
     AdminOrderListItem,
     AdminOrderListResponse,
@@ -31,20 +32,8 @@ VALID_TRANSITIONS: dict[str, set[str]] = {
 # 出貨後/已取消的訂單不可再編輯內容(仍可填轉帳資訊)。
 NOT_EDITABLE_STATUSES: set[str] = {"shipping", "cancelled"}
 
-_SIMPLE_UPDATE_FIELDS = (
-    "customer_name",
-    "customer_phone",
-    "customer_email",
-    "ship_zipcode",
-    "ship_city",
-    "ship_district",
-    "ship_street",
-    "preferred_date",
-    "delivery_window",
-    "note",
-)
-
-_TRANSFER_UPDATE_FIELDS = ("transfer_last5", "transfer_payer_name", "transfer_note")
+# 必填欄位與 AdminOrderUpdate 的 null 檢查共用同一份清單
+_SIMPLE_UPDATE_FIELDS = (*ADMIN_ORDER_REQUIRED_FIELDS, "customer_email", "note")
 
 
 def _to_admin_list_item(order: Order) -> AdminOrderListItem:
@@ -207,10 +196,10 @@ async def update_order(
     if order.status in NOT_EDITABLE_STATUSES:
         raise OrderNotEditableError(f"訂單狀態為 {order.status},無法編輯")
 
-    for field in _SIMPLE_UPDATE_FIELDS:
-        value = getattr(data, field)
-        if value is not None:
-            setattr(order, field, value)
+    # 只更新請求中有送的欄位;明確送 null 代表清空(必填欄位送 null 已由 schema 擋下)
+    fields = data.model_dump(include=set(_SIMPLE_UPDATE_FIELDS), exclude_unset=True)
+    for field, value in fields.items():
+        setattr(order, field, value)
 
     if data.items is not None:
         if data.expected_total is None:  # schema 已擋下,此處僅防禦
@@ -235,10 +224,8 @@ async def update_transfer_info(
     if order is None:
         raise NotFoundError("找不到訂單")
 
-    for field in _TRANSFER_UPDATE_FIELDS:
-        value = getattr(data, field)
-        if value is not None:
-            setattr(order, field, value)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(order, field, value)
 
     await session.commit()
     await session.refresh(order)
