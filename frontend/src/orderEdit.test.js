@@ -180,6 +180,13 @@ describe('repriceNewLines', () => {
     ];
     expect(repriceNewLines(lines, specs).map((l) => l.unitPrice)).toEqual([880, 300]);
   });
+  it('新行改用規格目前的包裝類型,既有行維持快照', () => {
+    const lines = [
+      { spec_id: 1, unitPrice: 880, isTwoPack: true, isNew: false },
+      { spec_id: 3, unitPrice: 300, isTwoPack: false, isNew: true },
+    ];
+    expect(repriceNewLines(lines, specs).map((l) => l.isTwoPack)).toEqual([true, true]);
+  });
 });
 
 describe('orderEditErrorMessage', () => {

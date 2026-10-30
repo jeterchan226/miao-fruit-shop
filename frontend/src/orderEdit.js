@@ -160,12 +160,12 @@ export function adminOrderPayload(form, lines) {
   };
 }
 
-// PRICE_CHANGED 後重新載入規格:新行改用最新價格,既有行下單價不變。
+// PRICE_CHANGED 後重新載入規格:新行改用最新價格與包裝類型,既有行維持快照。
 export function repriceNewLines(lines, specs) {
   return lines.map((l) => {
     if (!l.isNew) return l;
     const spec = specs.find((s) => s.id === l.spec_id);
-    return spec ? { ...l, unitPrice: spec.price } : l;
+    return spec ? { ...l, unitPrice: spec.price, isTwoPack: spec.is_two_pack } : l;
   });
 }
 
