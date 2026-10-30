@@ -52,3 +52,21 @@ export function newOrdersSince(recentOrders, sinceIso) {
   if (!sinceIso) return customer;
   return customer.filter((o) => isAfter(o.created_at, sinceIso));
 }
+
+const EPOCH_ISO = new Date(0).toISOString();
+
+// 一次輪詢的判斷。state 為 null 表示尚未輪詢過；否則 newest 是上次的最新顧客下單時間（可為 null）。
+// 回傳下一個 state、是否響鈴，以及要初始化的已讀標記（不需初始化時為 null）。
+export function evaluatePoll(state, orders, hasLastRead) {
+  const newest = newestCreatedAt(orders);
+  if (state === null) {
+    // 首次：不響鈴。newest 為 null（無訂單或全為代客下單）時以 epoch 為已讀標記，之後的顧客下單都算未讀。
+    return {
+      state: { newest },
+      chime: false,
+      initLastReadAt: hasLastRead ? null : newest || EPOCH_ISO,
+    };
+  }
+  const chime = Boolean(newest) && (state.newest === null || isAfter(newest, state.newest));
+  return { state: { newest }, chime, initLastReadAt: null };
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  evaluatePoll,
   formatRelativeTime,
   isAfter,
   isCustomerOrder,
@@ -135,5 +136,44 @@ describe('排除代客下單（source === admin）', () => {
   it('isCustomerOrder：代客下單為否，顧客下單為是', () => {
     expect(isCustomerOrder({ source: 'admin' })).toBe(false);
     expect(isCustomerOrder({ source: 'storefront' })).toBe(true);
+  });
+});
+
+describe('evaluatePoll', () => {
+  const customer = (no, t) => ({ order_no: no, source: 'storefront', created_at: t });
+  const admin = (no, t) => ({ order_no: no, source: 'admin', created_at: t });
+
+  it('首次輪詢：以最新顧客下單為基準，不響鈴；無已讀標記時初始化為該時間', () => {
+    const r = evaluatePoll(null, [customer('A', ago(1000))], false);
+    expect(r).toEqual({ state: { newest: ago(1000) }, chime: false, initLastReadAt: ago(1000) });
+  });
+  it('首次輪詢：已有已讀標記時不初始化', () => {
+    expect(evaluatePoll(null, [customer('A', ago(1000))], true).initLastReadAt).toBe(null);
+  });
+  it('首次輪詢：只有代客下單 → 基準為 null，已讀標記初始化為 epoch', () => {
+    const r = evaluatePoll(null, [admin('A', ago(1000))], false);
+    expect(r).toEqual({
+      state: { newest: null },
+      chime: false,
+      initLastReadAt: '1970-01-01T00:00:00.000Z',
+    });
+  });
+  it('出現更新的顧客下單 → 響鈴並推進基準', () => {
+    const r = evaluatePoll({ newest: ago(5000) }, [customer('A', ago(1000))], true);
+    expect(r).toEqual({ state: { newest: ago(1000) }, chime: true, initLastReadAt: null });
+  });
+  it('只多了代客下單 → 不響鈴', () => {
+    const orders = [admin('B', ago(1000)), customer('A', ago(5000))];
+    const r = evaluatePoll({ newest: ago(5000) }, orders, true);
+    expect(r.chime).toBe(false);
+    expect(r.state).toEqual({ newest: ago(5000) });
+  });
+  it('基準為 null（先前只有代客下單）後出現顧客下單 → 響鈴', () => {
+    const orders = [customer('B', ago(1000)), admin('A', ago(5000))];
+    expect(evaluatePoll({ newest: null }, orders, true).chime).toBe(true);
+  });
+  it('沒有新訂單 → 不響鈴', () => {
+    const r = evaluatePoll({ newest: ago(1000) }, [customer('A', ago(1000))], true);
+    expect(r.chime).toBe(false);
   });
 });

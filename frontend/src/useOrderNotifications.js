@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listAdminOrders } from './api.js';
 import { createChime } from './chime.js';
-import { isAfter, isCustomerOrder, newestCreatedAt, unreadOrders } from './notifications.js';
+import {
+  evaluatePoll,
+  isAfter,
+  isCustomerOrder,
+  newestCreatedAt,
+  unreadOrders,
+} from './notifications.js';
 
 const LAST_READ_KEY = 'admin_notif_last_read_at';
 const SOUND_KEY = 'admin_notif_sound_on';
 // 輪詢間隔:5 秒。櫃檯平板長開,新單最多 5 秒內就會被偵測到並發聲/跳橫幅。
 const POLL_MS = 5000;
 const RECENT_SIZE = 10;
-const EPOCH_ISO = new Date(0).toISOString();
 
 export function useOrderNotifications({ token, onAuthError }) {
   const [recentOrders, setRecentOrders] = useState([]);
@@ -21,8 +26,7 @@ export function useOrderNotifications({ token, onAuthError }) {
 
   const chimeRef = useRef(null);
   if (chimeRef.current === null) chimeRef.current = createChime();
-  const initializedRef = useRef(false);
-  const prevNewestRef = useRef(null);
+  const pollStateRef = useRef(null);
   const soundOnRef = useRef(soundOn);
   const unlockedRef = useRef(false);
 
@@ -47,23 +51,15 @@ export function useOrderNotifications({ token, onAuthError }) {
     }
     const items = data.items || [];
     setRecentOrders(items);
-    const newest = newestCreatedAt(items);
-
-    // 首次：以最新訂單初始化基準，不發聲；無標記時順便初始化已讀標記。
-    // newest 可能為 null（無訂單或全為代客下單），此時之後的顧客下單都算新、算未讀。
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      prevNewestRef.current = newest;
-      if (!localStorage.getItem(LAST_READ_KEY)) persistLastRead(newest || EPOCH_ISO);
-      return;
-    }
+    const { state, chime, initLastReadAt } = evaluatePoll(
+      pollStateRef.current,
+      items,
+      Boolean(localStorage.getItem(LAST_READ_KEY)),
+    );
+    pollStateRef.current = state;
+    if (initLastReadAt) persistLastRead(initLastReadAt);
     // 出現更新的顧客下單 → 發聲（需已解鎖音訊且開啟）。
-    const hasNewer =
-      newest && (prevNewestRef.current === null || isAfter(newest, prevNewestRef.current));
-    if (hasNewer) {
-      if (unlockedRef.current && soundOnRef.current) chimeRef.current.play();
-    }
-    prevNewestRef.current = newest;
+    if (chime && unlockedRef.current && soundOnRef.current) chimeRef.current.play();
   }, [token, onAuthError, persistLastRead]);
 
   // 輪詢：立即一次 + 每 POLL_MS。
