@@ -176,11 +176,11 @@ async def test_same_key_returns_original_order_after_price_or_stock_change(
 
     spec.stock_qty = 0
     await db_session.flush()
-    sold_out = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+    no_stock = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
 
-    assert repriced.status_code == sold_out.status_code == 201
+    assert repriced.status_code == no_stock.status_code == 201
     assert repriced.json()["order_no"] == first.json()["order_no"]
-    assert sold_out.json()["order_no"] == first.json()["order_no"]
+    assert no_stock.json()["order_no"] == first.json()["order_no"]
     assert await _order_count(db_session) == 1
 
 
