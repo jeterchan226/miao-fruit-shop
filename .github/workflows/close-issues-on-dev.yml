@@ -1,7 +1,8 @@
-name: Close issues on dev merge
+name: Close issues and generate status on dev merge
 
 # GitHub 只在 PR 合併進預設分支(master)時處理 "Closes #NN"。
 # PR 一律發到 dev,所以合併進 dev 時由這裡關閉 PR 內文引用的 issue。
+# 關閉後重新產生進度快照,已解決的「留待之後」才會在同一輪消失。
 on:
   pull_request:
     types: [closed]
@@ -40,3 +41,38 @@ jobs:
               });
               core.info(`closed #${issue_number}`);
             }
+
+  generate-status:
+    needs: close-issues
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+    # 序列化連續合併;排隊中被取代的 run 不影響結果,後一個 run 讀到的 dev 已包含前者。
+    concurrency:
+      group: generate-status
+      cancel-in-progress: false
+    steps:
+      # 要最新的 dev,不是觸發事件當下的 commit。
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Generate STATUS.md
+        run: python3 scripts/generate_status.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- docs/progress/STATUS.md; then
+            echo "STATUS.md unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/progress/STATUS.md
+          git commit -m "docs: regenerate progress status"
+          git push

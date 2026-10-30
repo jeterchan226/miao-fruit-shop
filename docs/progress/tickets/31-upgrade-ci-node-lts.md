@@ -21,10 +21,13 @@
 - [x] CI 依 lockfile 驗證前端 — lockfile 不同步時失敗：乾淨副本把 `react` 改成 `^17.0.0` 不更新 lockfile，`npm ci` exit 1，`EUSAGE`，`Invalid: lock file's react@18.3.1 does not satisfy react@17.0.2`。
 
 ## 留待之後
-- 登入確認 PR #76 的 CI log 與 Vercel build log 顯示 Node 24；不是 24 時依 design.md Risks 處理。
+- 登入確認 PR #76 的 CI log 與 Vercel build log 顯示 Node 24；不是 24 時依 design.md Risks 處理。Vercel `rootDirectory` metadata 為 `null`，根目錄 `engines` 應生效。
 - `frontend/Dockerfile` 的 Node 版本與 `engines` 不同步：#79。
 - Vercel `installCommand` 未依 lockfile 安裝：#80。
 - 移除疑似舊檔 `frontend/vercel.json`：#81。
+
+## 系統現況
+- 前端 Node 版本宣告於根目錄 `package.json` 的 `engines.node`（24.x），CI 前端 job 依此取得版本並以 `npm ci` 驗證 lockfile。
 
 ## 下一步
 - 

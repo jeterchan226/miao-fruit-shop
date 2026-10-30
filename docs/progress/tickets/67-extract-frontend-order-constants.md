@@ -1,4 +1,4 @@
-# #67 refactor: 前端訂單來源、付款方式字串改用常數模組
+# #67 前端訂單來源、付款方式字串改用常數模組
 
 - 狀態：完成
 - OpenSpec change：`extract-frontend-order-constants`（archive 後：`openspec/changes/archive/2026-10-30-extract-frontend-order-constants/`）
@@ -29,7 +29,10 @@
 未實際開瀏覽器操作；以上「無自動測試」項目依 design 的驗證方式處理。
 
 ## 留待之後
-- 公開下單回應不含後台欄位缺明確的自動測試：#82。
+- 公開下單回應不含後台欄位缺明確的自動測試（`test_create_order_201` 只斷言 `stock_qty`）：#82。
+
+## 系統現況
+- 純重構，未改變系統能力。
 
 ## 下一步
 
