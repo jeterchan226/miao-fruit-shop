@@ -4,7 +4,7 @@
 
 ## 系統現況
 
-（每完成一個 ticket，用 1–3 句更新系統目前能做什麼。）
+#67 為純重構，未改變系統能力。
 
 ## 已完成
 
@@ -17,7 +17,7 @@
 | 項目 | 來源 ticket | 備註 |
 |---|---|---|
 | `PAYMENT_METHOD_LABELS` 物件 key 仍手寫 `transfer` | #67 | 可改 `[PAYMENT_METHOD_TRANSFER]` |
-| 公開下單回應不含後台欄位缺明確自動測試 | #67 | `test_create_order_201` 只斷言 `stock_qty` |
+| 公開下單回應不含後台欄位缺明確自動測試 | #67 | #82；`test_create_order_201` 只斷言 `stock_qty` |
 
 ## 下一步建議
 
