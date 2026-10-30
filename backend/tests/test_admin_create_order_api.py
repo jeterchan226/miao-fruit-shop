@@ -231,3 +231,19 @@ async def test_admin_create_order_inactive_spec_404(
 
     assert resp.status_code == 404
     assert resp.json()["code"] == "NOT_FOUND"
+
+
+async def test_admin_create_order_snapshots_pack_type(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    (pair,) = await _seed_specs(db_session, _spec("2 粒裝", price=300, two_pack=True))
+
+    resp = await client.post(
+        "/api/admin/orders",
+        json=_body([{"spec_id": pair.id, "qty": 2}], expected_total=700),
+        headers=headers,
+    )
+
+    assert resp.status_code == 201
+    assert resp.json()["items"][0]["is_two_pack"] is True

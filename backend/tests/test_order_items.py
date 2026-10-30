@@ -59,6 +59,7 @@ async def test_new_order_snapshots_current_price_and_deducts_stock(db_session: A
         ("甘露梨", "5 台斤家庭箱"),
         ("甘露梨", "2 粒裝"),
     ]
+    assert [i.is_two_pack for i in result.items] == [False, True]
     # 1 箱 + 2 粒裝×2 = 2 層 → 運費 150
     assert (result.amounts.subtotal, result.amounts.shipping_fee, result.amounts.total) == (
         1800, 150, 1950,
@@ -78,8 +79,8 @@ async def _existing_order(db_session: AsyncSession, *lines: tuple[ProductSpec, i
     )
     order.items = [
         OrderItem(product_id=spec.product_id, spec_id=spec.id, product_name="甘露梨",
-                  spec_label=spec.label, unit_price=unit_price, qty=qty,
-                  line_total=unit_price * qty)
+                  spec_label=spec.label, is_two_pack=spec.is_two_pack,
+                  unit_price=unit_price, qty=qty, line_total=unit_price * qty)
         for spec, qty, unit_price in lines
     ]
     db_session.add(order)
@@ -296,3 +297,47 @@ def test_items_result_apply_to_sets_items_and_amounts():
 
     assert order.items == [item]
     assert (order.subtotal, order.shipping_fee, order.cod_fee, order.total) == (1760, 150, 0, 1910)
+
+
+async def test_existing_item_layers_use_snapshot_not_current_spec(db_session: AsyncSession):
+    pair, box = await _seed_specs(
+        db_session,
+        _spec("2 粒裝", price=300, stock=8, two_pack=True),
+        _spec("箱裝", price=500, stock=8),
+    )
+    order = await _existing_order(db_session, (pair, 4, 300), (box, 1, 500))
+    pair.is_two_pack = False
+
+    # 兩粒裝快照 ×4 = 2 層 → 運費 150
+    result = await apply_items(
+        db_session, order.items, [ItemRequest(pair.id, 4)], expected_total=1350,
+    )
+
+    assert result.amounts.shipping_fee == 150
+    assert result.items[0].is_two_pack is True
+
+
+async def test_existing_two_pack_snapshot_rejects_odd_qty_after_spec_became_box(
+    db_session: AsyncSession,
+):
+    (pair,) = await _seed_specs(db_session, _spec("2 粒裝", price=300, stock=8, two_pack=True))
+    order = await _existing_order(db_session, (pair, 4, 300))
+    pair.is_two_pack = False
+
+    with pytest.raises(EvenQtyRequiredError):
+        await apply_items(
+            db_session, order.items, [ItemRequest(pair.id, 3)], expected_total=0,
+        )
+
+
+async def test_new_item_uses_current_spec_pack_type(db_session: AsyncSession):
+    (spec,) = await _seed_specs(db_session, _spec("A", price=300, stock=8))
+    spec.is_two_pack = True
+
+    with pytest.raises(EvenQtyRequiredError):
+        await apply_items(db_session, [], [ItemRequest(spec.id, 3)], expected_total=0)
+
+    # 兩粒裝 ×2 = 1 層 → 運費 100
+    result = await apply_items(db_session, [], [ItemRequest(spec.id, 2)], expected_total=700)
+
+    assert result.items[0].is_two_pack is True
