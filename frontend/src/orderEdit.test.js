@@ -56,9 +56,11 @@ const specs = [
 
 describe('linesFromOrderItems', () => {
   const items = [
-    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', unit_price: 880, qty: 2 },
-    { spec_id: 2, product_name: '甘露梨', spec_label: '3 台斤', unit_price: 500, qty: 1 },
-    { spec_id: null, product_name: '甘露梨', spec_label: '舊規格', unit_price: 400, qty: 1 },
+    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', is_two_pack: false, unit_price: 880, qty: 2 },
+    { spec_id: 2, product_name: '甘露梨', spec_label: '3 台斤', is_two_pack: false, unit_price: 500, qty: 1 },
+    { spec_id: 99, product_name: '甘露梨', spec_label: '2 粒精緻禮盒', is_two_pack: true, unit_price: 300, qty: 4 },
+    { spec_id: 3, product_name: '甘露梨', spec_label: '改過包裝的規格', is_two_pack: false, unit_price: 300, qty: 3 },
+    { spec_id: null, product_name: '甘露梨', spec_label: '舊規格', is_two_pack: false, unit_price: 400, qty: 1 },
   ];
   const lines = linesFromOrderItems(items, specs);
 
@@ -71,8 +73,17 @@ describe('linesFromOrderItems', () => {
   it('已下架規格的行鎖定數量(R10)', () => {
     expect(lines[1]).toMatchObject({ spec_id: 2, locked: true, isTwoPack: false });
   });
-  it('規格已刪除也鎖定,與後端一致視為非兩粒裝', () => {
-    expect(lines[2]).toMatchObject({ spec_id: null, locked: true, isTwoPack: false });
+  it('規格已刪除仍以快照為兩粒裝,並鎖定數量', () => {
+    expect(lines[2]).toMatchObject({ spec_id: 99, locked: true, isTwoPack: true });
+  });
+  it('規格改過包裝類型時採快照', () => {
+    expect(lines[3]).toMatchObject({ spec_id: 3, isTwoPack: false });
+  });
+  it('無 spec_id 的舊資料鎖定數量', () => {
+    expect(lines[4]).toMatchObject({ spec_id: null, locked: true, isTwoPack: false });
+  });
+  it('規格已刪除的兩粒裝 ×4 以 2 層試算,與後端一致', () => {
+    expect(previewAmounts([lines[2]])).toEqual({ subtotal: 1200, shippingFee: 150, total: 1350 });
   });
 });
 
@@ -90,7 +101,7 @@ describe('newLine', () => {
 
 describe('lineForSpec', () => {
   const orderItems = [
-    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', unit_price: 880, qty: 2 },
+    { spec_id: 1, product_name: '甘露梨', spec_label: '5 台斤', is_two_pack: false, unit_price: 880, qty: 2 },
   ];
   it('規格不在訂單中 → 新行,用目前價格', () => {
     expect(lineForSpec({ ...specs[2], productName: '甘露梨' }, orderItems)).toMatchObject({

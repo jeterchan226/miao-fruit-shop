@@ -63,6 +63,7 @@ def _to_order_read(order: Order) -> OrderRead:
                 spec_id=i.spec_id,
                 product_name=i.product_name,
                 spec_label=i.spec_label,
+                is_two_pack=i.is_two_pack,
                 unit_price=i.unit_price,
                 qty=i.qty,
                 line_total=i.line_total,

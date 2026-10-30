@@ -23,7 +23,7 @@ export function orderItemsDiff(original, form) {
 
 const specLabel = (productName, label) => (productName ? `${productName} · ${label}` : label);
 
-// 訂單既有的訂單品項 → 編輯行。名稱用下單時的快照,規格現況只用來判斷包裝類型與是否上架。
+// 訂單既有的訂單品項 → 編輯行。名稱與包裝類型用下單時的快照,規格現況只用來判斷是否上架。
 export function linesFromOrderItems(items, specs) {
   return items.map((it) => {
     const spec = specs.find((s) => s.id === it.spec_id);
@@ -32,8 +32,7 @@ export function linesFromOrderItems(items, specs) {
       label: specLabel(it.product_name, it.spec_label),
       unitPrice: it.unit_price,
       qty: it.qty,
-      // 規格已刪除時與後端 compute_amounts 一致,視為非兩粒裝
-      isTwoPack: spec ? spec.is_two_pack : false,
+      isTwoPack: it.is_two_pack,
       isNew: false,
       locked: !spec || !spec.is_active,
     };
