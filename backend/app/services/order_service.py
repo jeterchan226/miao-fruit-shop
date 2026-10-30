@@ -88,7 +88,10 @@ async def place_order(
     payment_method: PaymentMethod,
     note: str | None,
 ) -> Order:
-    """顧客下單與代客下單共用:扣庫存、核對金額、成立訂單並提交。不發通知。"""
+    """顧客下單與代客下單共用:扣庫存、核對金額、成立訂單並提交。不發通知。
+
+    僅供 service 間使用;回傳 ORM 物件,須由呼叫端轉成回應 schema。
+    """
     result = await order_items.apply_items(
         session,
         [],
