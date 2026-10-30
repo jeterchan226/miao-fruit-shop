@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -18,6 +18,7 @@ class OrderItem(Base):
     spec_id: Mapped[int | None] = mapped_column(default=None)
     product_name: Mapped[str] = mapped_column()
     spec_label: Mapped[str] = mapped_column()
+    is_two_pack: Mapped[bool] = mapped_column(default=False, server_default=false())
     unit_price: Mapped[int] = mapped_column()
     qty: Mapped[int] = mapped_column()
     line_total: Mapped[int] = mapped_column()
