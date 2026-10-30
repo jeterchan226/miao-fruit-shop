@@ -1,9 +1,11 @@
 // 純邏輯：通知中心的相對時間、未讀計算、新單偵測。
 // 無 DOM、無 localStorage、無副作用，便於單元測試。
 
+import { ORDER_SOURCE_ADMIN } from './constants.js';
+
 // 代客下單是管理員自己建的，不提醒（鈴聲、未讀、新訂單橫幅），也不推進已讀標記。
 export function isCustomerOrder(order) {
-  return order.source !== 'admin';
+  return order.source !== ORDER_SOURCE_ADMIN;
 }
 
 function customerOrders(orders) {

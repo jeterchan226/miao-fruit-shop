@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { createOrder } from './api.js';
+import { PAYMENT_METHOD_TRANSFER } from './constants.js';
 import { getTomorrowStr, validateCustomerShipping } from './customerValidation.js';
 import { StoreIcon } from './Icons.jsx';
 import { initLineProfile, openLineAddFriend, refreshLineFriendship } from './line.js';
@@ -594,7 +595,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
       spec_id: i.specId,
       qty: i.count,
     })),
-    payment_method: 'transfer',
+    payment_method: PAYMENT_METHOD_TRANSFER,
     note: form.note || null,
     expected_total: total,
   });

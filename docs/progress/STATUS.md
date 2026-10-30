@@ -4,18 +4,21 @@
 
 ## 系統現況
 
-（每完成一個 ticket，用 1–3 句更新系統目前能做什麼。）
+前端的訂單來源與付款方式集中於 `frontend/src/constants.js`；前後端仍各有一份定義，須手動保持一致。
 
 ## 已完成
 
 | # | 標題 | OpenSpec change | 完成日 | 紀錄 |
 |---|---|---|---|---|
+| 67 | 前端訂單來源、付款方式字串改用常數模組 | `extract-frontend-order-constants` | 2026-10-30 | [紀錄](tickets/67-extract-frontend-order-constants.md) |
 
 ## 留待之後
 
 | 項目 | 來源 ticket | 備註 |
 |---|---|---|
+| `PAYMENT_METHOD_LABELS` 物件 key 仍手寫 `transfer` | #67 | 可改 `[PAYMENT_METHOD_TRANSFER]` |
+| 公開下單回應不含後台欄位缺明確自動測試 | #67 | `test_create_order_201` 只斷言 `stock_qty` |
 
 ## 下一步建議
 
-- 
+- 處理「留待之後」兩項小修。

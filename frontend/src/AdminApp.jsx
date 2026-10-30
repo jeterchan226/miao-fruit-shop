@@ -60,6 +60,7 @@ import {
 import OrderItemsEditor from './OrderItemsEditor.jsx';
 import { money } from './format.js';
 import { localDateRangeToUtc } from './dateRange.js';
+import { ORDER_SOURCE_ADMIN, ORDER_SOURCE_STOREFRONT } from './constants.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -87,8 +88,8 @@ const CHIP_OPTIONS = [
 
 const SOURCE_OPTIONS = [
   { value: '', label: '全部' },
-  { value: 'storefront', label: '顧客下單' },
-  { value: 'admin', label: '代客下單' },
+  { value: ORDER_SOURCE_STOREFRONT, label: '顧客下單' },
+  { value: ORDER_SOURCE_ADMIN, label: '代客下單' },
 ];
 
 const DELIVERY_WINDOW_LABELS = {
@@ -157,7 +158,7 @@ function StatusBadge({ status, large }) {
 
 /* ── 代客下單標籤(顧客下單不標示) ── */
 function SourceBadge({ source }) {
-  if (source !== 'admin') return null;
+  if (source !== ORDER_SOURCE_ADMIN) return null;
   return <span className="adm-source-badge">代客下單</span>;
 }
 
