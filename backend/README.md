@@ -15,11 +15,7 @@ uv sync                       # 安裝相依
 - 用 compose:`docker compose up -d db`
 - 或本機已裝 PostgreSQL 17
 
-建立測試資料庫(一次性):
-```bash
-docker compose exec db createdb -U miao miao_test   # 用 compose 時
-# 或本機:createdb -h localhost -U miao miao_test
-```
+測試資料庫由 `tests/conftest.py` 自動建立:主 checkout 與 CI 用 `miao_test`,linked worktree 用 `miao_test_<worktree>`,可用 `TEST_DB_NAME` 覆寫。
 
 ## 跑起來
 
