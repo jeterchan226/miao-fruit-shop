@@ -1,6 +1,7 @@
 import secrets
 from dataclasses import dataclass
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import (
@@ -8,6 +9,7 @@ from app.core.constants import (
     OrderSource,
     PaymentMethod,
 )
+from app.core.exceptions import AppError
 from app.models.order import Order
 from app.repositories import order_repo
 from app.schemas.order import (
@@ -88,6 +90,7 @@ async def place_order(
     expected_total: int,
     payment_method: PaymentMethod,
     note: str | None,
+    idempotency_key: str | None = None,
 ) -> Order:
     """顧客下單與代客下單共用:扣庫存、核對金額、成立訂單並提交。不發通知。
 
@@ -119,6 +122,7 @@ async def place_order(
         delivery_window=shipping.delivery_window,
         payment_method=payment_method,
         note=note,
+        idempotency_key=idempotency_key,
     )
     result.apply_to(order)
     await order_repo.add(session, order)
@@ -127,25 +131,42 @@ async def place_order(
     return order
 
 
-async def create_order(session: AsyncSession, data: OrderCreate) -> OrderRead:
-    order = await place_order(
-        session,
-        source=ORDER_SOURCE_STOREFRONT,
-        customer=OrderCustomer(
-            name=data.customer.name,
-            phone=data.customer.phone,
-            email=data.customer.email,
-            line_user_id=data.customer.line_user_id,
-            line_display_name=data.customer.line_display_name,
-            line_picture_url=data.customer.line_picture_url,
-            line_friendship_status=data.customer.line_friendship_status,
-            line_notification_consent=data.customer.line_notification_consent,
-        ),
-        shipping=data.shipping,
-        items=data.items,
-        expected_total=data.expected_total,
-        payment_method=data.payment_method,
-        note=data.note,
-    )
+async def create_order(
+    session: AsyncSession, data: OrderCreate, idempotency_key: str | None = None
+) -> OrderRead:
+    if idempotency_key is not None:
+        existing = await order_repo.get_by_idempotency_key(session, idempotency_key)
+        if existing is not None:
+            return _to_order_read(existing)
+    try:
+        order = await place_order(
+            session,
+            source=ORDER_SOURCE_STOREFRONT,
+            customer=OrderCustomer(
+                name=data.customer.name,
+                phone=data.customer.phone,
+                email=data.customer.email,
+                line_user_id=data.customer.line_user_id,
+                line_display_name=data.customer.line_display_name,
+                line_picture_url=data.customer.line_picture_url,
+                line_friendship_status=data.customer.line_friendship_status,
+                line_notification_consent=data.customer.line_notification_consent,
+            ),
+            shipping=data.shipping,
+            items=data.items,
+            expected_total=data.expected_total,
+            payment_method=data.payment_method,
+            note=data.note,
+            idempotency_key=idempotency_key,
+        )
+    except (IntegrityError, AppError):
+        if idempotency_key is None:
+            raise
+        # 相同 key 並發時,輸家可能撞唯一約束,也可能等到規格列鎖後才遇到庫存或價格錯誤
+        await session.rollback()
+        existing = await order_repo.get_by_idempotency_key(session, idempotency_key)
+        if existing is None:
+            raise
+        return _to_order_read(existing)
     await line_service.send_order_created(order)
     return _to_order_read(order)

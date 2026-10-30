@@ -1,8 +1,9 @@
 /* Cart drawer + multi-step checkout (data → payment → done) */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createOrder } from './api.js';
+import { nextCheckoutKey } from './checkoutKey.js';
 import { PAYMENT_METHOD_TRANSFER } from './constants.js';
 import { getTomorrowStr, validateCustomerShipping } from './customerValidation.js';
 import { StoreIcon } from './Icons.jsx';
@@ -494,6 +495,9 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
   const [orderId, setOrderId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // state 要到下一次 render 才生效，同一輪事件內的連按靠 ref 同步擋下
+  const submitLockRef = useRef(false);
+  const checkoutKeyRef = useRef(null);
 
   useEffect(() => {
     if (open && items.length === 0 && step !== 'cart' && step !== 'done') setStep('cart');
@@ -628,11 +632,15 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
       setSubmitError(null);
       if (validate()) setStep('pay');
     } else if (step === 'pay') {
-      if (submitting) return;
+      if (submitLockRef.current) return;
+      submitLockRef.current = true;
       setSubmitting(true);
       setSubmitError(null);
       try {
-        const order = await createOrder(buildOrderPayload());
+        const payload = buildOrderPayload();
+        checkoutKeyRef.current = nextCheckoutKey(checkoutKeyRef.current, payload);
+        const order = await createOrder(payload, checkoutKeyRef.current.key);
+        checkoutKeyRef.current = null;
         setOrderId(order.order_no);
         setStep('done');
         onPlaceOrder?.();
@@ -640,6 +648,7 @@ export const CartDrawer = ({ open, onClose, items, onQty, onRemove, onPlaceOrder
         console.error('[order] create failed:', err);
         setSubmitError(formatApiError(err));
       } finally {
+        submitLockRef.current = false;
         setSubmitting(false);
       }
     }

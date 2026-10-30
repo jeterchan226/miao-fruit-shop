@@ -77,8 +77,9 @@ export const listProducts = async () => {
   return products.map(normalizeProduct);
 };
 
-export const createOrder = (payload) => request('/api/orders', {
+export const createOrder = (payload, idempotencyKey) => request('/api/orders', {
   method: 'POST',
+  headers: { 'Idempotency-Key': idempotencyKey },
   body: JSON.stringify(payload),
 });
 
