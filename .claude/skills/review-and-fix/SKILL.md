@@ -1,7 +1,6 @@
 ---
 name: review-and-fix
 description: "Review an open PR, commit fixes for the clear-cut problems, and list the ones needing a decision in the PR body. Usage: /review-and-fix <PR number>"
-disable-model-invocation: true
 ---
 
 # Review and fix a PR

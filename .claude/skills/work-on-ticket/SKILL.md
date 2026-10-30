@@ -1,7 +1,6 @@
 ---
 name: work-on-ticket
 description: "Take one GitHub ticket from start to an open PR, inside a worktree the user created. Usage: /work-on-ticket #NN"
-disable-model-invocation: true
 ---
 
 # Work on a ticket
@@ -26,7 +25,7 @@ Move on only when each step passes. If any step fails, stop and report the cause
    - If `openspec/changes/<change-id>/` is missing, bring in the spec commit: `git fetch origin spec/<change-id>`, then `git cherry-pick origin/dev..origin/spec/<change-id>`.
    - Read `proposal.md`, `design.md`, every `specs/**/spec.md` and `tasks.md`; `openspec validate <change-id> --strict` passes.
    - The ticket's acceptance criteria match the spec scenarios one to one; on a mismatch, ask the user which is right.
-   - A ticket with no `## OpenSpec` section (written before this workflow) proceeds from the issue alone; say so in the summary.
+   - A ticket with no `## OpenSpec` section stops here: report it, so its spec can be written first.
 6. **Database**: tests need Postgres. If it is not running, `docker compose up db -d` in `backend/`.
 7. **Baseline**: `uv run pytest -q` in `backend/` passes in full (and `npm run test` in `frontend/` when the ticket touches the frontend). This proves existing features worked before you started. If it fails, report the failing tests and change nothing.
 
