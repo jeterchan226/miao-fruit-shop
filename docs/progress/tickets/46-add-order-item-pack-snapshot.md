@@ -37,11 +37,13 @@
 - [x] 前端試算 — 後台試算規格已刪除的兩粒裝：`orderEdit.test.js`「規格已刪除的兩粒裝 ×4 以 2 層試算,與後端一致」
 
 ## 留待之後
-- 雙數錯誤訊息用 `spec.label`（現況名稱），規格改名後與訂單快照名稱不同；可併入 #45 的錯誤訊息用語調整。
-- GLOSSARY「規格」寫包裝類型建立後不變，但 admin-catalog 可改；design.md 列為 Non-Goal，落差仍在。
-- ADR 0003／0004 未提包裝類型快照，可補一句。
+- 錯誤訊息改用快照名稱與正確用語：#83。
+- GLOSSARY 與 admin-catalog 對包裝類型可否修改的落差：#84。
+- ADR 補記包裝類型快照：#85。
 
 ## 下一步
 - 無。
 
 ## Review
+- 2026-10-30 `/review-and-fix`，範圍 `46da816..091b89e`：auto-fix 2、needs-decision 1、rejected 9、deferred 3。
+- Needs decision：新測試的 `box` 命名與 GLOSSARY _Avoid_ 不符，但沿用既有測試慣例。
