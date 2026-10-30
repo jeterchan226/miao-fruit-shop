@@ -31,10 +31,7 @@ export function isAfter(aIso, bIso) {
 export function newestCreatedAt(orders) {
   if (!orders) return null;
   return customerOrders(orders).reduce(
-    (max, o) =>
-      max === null || new Date(o.created_at).getTime() > new Date(max).getTime()
-        ? o.created_at
-        : max,
+    (max, o) => (max === null || isAfter(o.created_at, max) ? o.created_at : max),
     null,
   );
 }
