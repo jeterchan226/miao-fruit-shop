@@ -79,7 +79,7 @@ Target device baseline for the storefront is iPadOS 15 Safari/WebKit — avoid `
 
 ### Infrastructure
 
-GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) exist in production but are currently not managed by any IaC in this repo — the previous Terraform setup was removed to be rebuilt from scratch. Until then, change them with `gcloud`/Console directly; `backend/deploy.sh` still owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; the Cloud SQL `miao_app` password must stay in sync with `db-password` (see project memory on Cloud SQL password sync).
+GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) exist in production but are not managed by any IaC in this repo; change them with `gcloud`/Console directly; `backend/deploy.sh` still owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; the Cloud SQL `miao_app` password must stay in sync with `db-password` (see project memory on Cloud SQL password sync).
 
 ### Deployment
 
