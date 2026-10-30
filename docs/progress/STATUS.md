@@ -28,7 +28,8 @@
 | Vercel `installCommand` 未依 lockfile 安裝 | #31 | #80 |
 | 移除疑似舊檔 `frontend/vercel.json` | #31 | #81 |
 | GLOSSARY「包裝類型建立後不變」與 admin-catalog 可改的落差 | #46 | 追蹤於 #84 |
-| GLOSSARY「規格名稱建立後不變」與規格更新 API 可改 `label` 的落差 | #83 | 可併入 #84 |
+| GLOSSARY「規格名稱建立後不變」與規格更新 API 可改 `label` 的落差 | #83 | 追蹤於 #98 |
+| 雙數限制訊息「2 粒裝」改「兩粒裝」 | #83 | 追蹤於 #45；後合併者須保留快照名稱 |
 | ADR 0003／0004 未提包裝類型快照 | #46 | 追蹤於 #85 |
 | 公開下單回應不含後台欄位缺明確自動測試 | #67 | #82；`test_create_order_201` 只斷言 `stock_qty` |
 
