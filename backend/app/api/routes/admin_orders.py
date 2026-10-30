@@ -1,7 +1,7 @@
-from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import AwareDatetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
@@ -31,8 +31,9 @@ async def list_orders(
     session: SessionDep,
     status: str | None = Query(default=None),  # noqa: B008
     source: Literal["storefront", "admin"] | None = Query(default=None),  # noqa: B008
-    date_from: date | None = Query(default=None),  # noqa: B008
-    date_to: date | None = Query(default=None),  # noqa: B008
+    # 須帶時區(如 ...Z 或 +08:00);naive datetime / 純日期回 422
+    created_from: AwareDatetime | None = Query(default=None),  # noqa: B008
+    created_before: AwareDatetime | None = Query(default=None),  # noqa: B008
     q: str | None = Query(default=None),  # noqa: B008
     order_no: str | None = Query(default=None),  # noqa: B008
     page: int = Query(default=1, ge=1),  # noqa: B008
@@ -42,8 +43,8 @@ async def list_orders(
         session,
         status=status,
         source=source,
-        date_from=date_from,
-        date_to=date_to,
+        created_from=created_from,
+        created_before=created_before,
         q=q,
         order_no=order_no,
         page=page,
