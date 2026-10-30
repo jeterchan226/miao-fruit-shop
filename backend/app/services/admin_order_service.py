@@ -2,7 +2,11 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import ORDER_SOURCE_ADMIN, PAYMENT_METHOD_TRANSFER
+from app.core.constants import (
+    ORDER_SOURCE_ADMIN,
+    PAYMENT_METHOD_TRANSFER,
+    OrderSource,
+)
 from app.core.exceptions import (
     InvalidStatusTransition,
     NotFoundError,
@@ -101,7 +105,7 @@ async def list_orders(
     session: AsyncSession,
     *,
     status: str | None = None,
-    source: str | None = None,
+    source: OrderSource | None = None,
     created_from: datetime | None = None,
     created_before: datetime | None = None,
     q: str | None = None,
