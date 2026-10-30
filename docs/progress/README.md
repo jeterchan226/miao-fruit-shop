@@ -95,3 +95,4 @@ python.org 版 Python 報 `CERTIFICATE_VERIFY_FAILED` 時，前面加 `SSL_CERT_
 - 用繁體中文；程式碼、指令、路徑維持原文。
 - 不複製 diff 或 spec 內容，用連結指過去。
 - 不手改 `STATUS.md`，要改內容就改 ticket 紀錄。
+- 解決沒標追蹤 issue 的「留待之後」項目時，從原 ticket 紀錄刪除該行。
