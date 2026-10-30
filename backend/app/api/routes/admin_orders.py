@@ -1,10 +1,11 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import AwareDatetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
+from app.core.constants import OrderSource
 from app.core.database import get_session
 from app.schemas.order import (
     AdminOrderCreate,
@@ -30,7 +31,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 async def list_orders(
     session: SessionDep,
     status: str | None = Query(default=None),  # noqa: B008
-    source: Literal["storefront", "admin"] | None = Query(default=None),  # noqa: B008
+    source: OrderSource | None = Query(default=None),  # noqa: B008
     # 須帶時區(如 ...Z 或 +08:00);naive datetime / 純日期回 422
     created_from: AwareDatetime | None = Query(default=None),  # noqa: B008
     created_before: AwareDatetime | None = Query(default=None),  # noqa: B008

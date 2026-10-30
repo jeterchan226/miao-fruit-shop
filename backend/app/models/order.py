@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.constants import ORDER_SOURCE_STOREFRONT
 from app.core.database import Base
 
 if TYPE_CHECKING:
@@ -18,7 +19,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column()
     # 訂單來源:storefront(顧客下單)/ admin(代客下單)
     source: Mapped[str] = mapped_column(
-        default="storefront", server_default="storefront"
+        default=ORDER_SOURCE_STOREFRONT, server_default=ORDER_SOURCE_STOREFRONT
     )
     customer_name: Mapped[str] = mapped_column()
     customer_phone: Mapped[str] = mapped_column()

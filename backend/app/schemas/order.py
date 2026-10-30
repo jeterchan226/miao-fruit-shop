@@ -3,6 +3,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.constants import PAYMENT_METHOD_TRANSFER, PaymentMethod
+
 
 class CustomerCreate(BaseModel):
     name: str
@@ -35,7 +37,7 @@ class OrderCreate(BaseModel):
     customer: CustomerCreate
     shipping: ShippingCreate
     items: list[OrderItemCreate] = Field(min_length=1)
-    payment_method: Literal["transfer"] = "transfer"
+    payment_method: PaymentMethod = PAYMENT_METHOD_TRANSFER
     note: str | None = None
     expected_total: int = Field(ge=0)
 
