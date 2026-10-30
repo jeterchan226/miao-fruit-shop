@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import datetime
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,8 +23,8 @@ async def list_filtered(
     *,
     status: str | None = None,
     source: str | None = None,
-    date_from: date | None = None,
-    date_to: date | None = None,
+    created_from: datetime | None = None,
+    created_before: datetime | None = None,
     q: str | None = None,
     order_no: str | None = None,
     page: int = 1,
@@ -40,13 +40,13 @@ async def list_filtered(
     if source is not None:
         count_stmt = count_stmt.where(Order.source == source)
         list_stmt = list_stmt.where(Order.source == source)
-    if date_from is not None:
-        count_stmt = count_stmt.where(Order.created_at >= date_from)
-        list_stmt = list_stmt.where(Order.created_at >= date_from)
-    if date_to is not None:
-        boundary = date_to + timedelta(days=1)
-        count_stmt = count_stmt.where(Order.created_at < boundary)
-        list_stmt = list_stmt.where(Order.created_at < boundary)
+    # 時間範圍一律為 timezone-aware 的 UTC 時點;「哪一天」由前端依使用者時區換算(ADR 0005)
+    if created_from is not None:
+        count_stmt = count_stmt.where(Order.created_at >= created_from)
+        list_stmt = list_stmt.where(Order.created_at >= created_from)
+    if created_before is not None:
+        count_stmt = count_stmt.where(Order.created_at < created_before)
+        list_stmt = list_stmt.where(Order.created_at < created_before)
     if q is not None:
         pattern = f"%{q}%"
         condition = or_(

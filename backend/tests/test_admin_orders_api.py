@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -118,6 +118,78 @@ async def test_list_orders_invalid_source_422(
     headers = await _auth_header(db_session)
     resp = await client.get("/api/admin/orders?source=line", headers=headers)
     assert resp.status_code == 422
+
+
+# 台北 2026-10-30 = UTC [2026-10-29T16:00Z, 2026-10-30T16:00Z)
+TAIPEI_OCT_30 = {
+    "created_from": "2026-10-29T16:00:00.000Z",
+    "created_before": "2026-10-30T16:00:00.000Z",
+}
+TAIPEI_OCT_29 = {
+    "created_from": "2026-10-28T16:00:00+00:00",
+    "created_before": "2026-10-29T16:00:00+00:00",
+}
+
+
+async def test_list_orders_created_range_uses_utc_instants(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    # 台北 10/30 03:00 = UTC 10/29 19:00:UTC 切日會錯分到 10/29
+    early = _make_order("MM-TZ01")
+    early.created_at = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    # 台北 10/30 00:00 整:起點包含
+    midnight = _make_order("MM-TZ02")
+    midnight.created_at = datetime(2026, 10, 29, 16, 0, tzinfo=UTC)
+    # 台北 10/31 00:00 整:終點不包含
+    next_day = _make_order("MM-TZ03")
+    next_day.created_at = datetime(2026, 10, 30, 16, 0, tzinfo=UTC)
+    for order in (early, midnight, next_day):
+        await order_repo.add(db_session, order)
+    await db_session.flush()
+
+    resp = await client.get("/api/admin/orders", params=TAIPEI_OCT_30, headers=headers)
+    assert resp.status_code == 200
+    nos = {item["order_no"] for item in resp.json()["items"]}
+    assert {"MM-TZ01", "MM-TZ02"} <= nos
+    assert "MM-TZ03" not in nos
+
+    resp = await client.get("/api/admin/orders", params=TAIPEI_OCT_29, headers=headers)
+    assert resp.status_code == 200
+    nos = {item["order_no"] for item in resp.json()["items"]}
+    assert not nos & {"MM-TZ01", "MM-TZ02", "MM-TZ03"}
+
+
+async def test_list_orders_accepts_offset_datetime(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    order = _make_order("MM-TZ04")
+    order.created_at = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    await order_repo.add(db_session, order)
+    await db_session.flush()
+    resp = await client.get(
+        "/api/admin/orders",
+        params={"created_from": "2026-10-30T00:00:00+08:00"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert "MM-TZ04" in {item["order_no"] for item in resp.json()["items"]}
+
+
+async def test_list_orders_rejects_naive_datetime_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    for value in ("2026-10-30T00:00:00", "2026-10-30"):
+        resp = await client.get(
+            "/api/admin/orders", params={"created_from": value}, headers=headers
+        )
+        assert resp.status_code == 422, value
+        resp = await client.get(
+            "/api/admin/orders", params={"created_before": value}, headers=headers
+        )
+        assert resp.status_code == 422, value
 
 
 async def test_orders_summary_requires_auth(client: AsyncClient):

@@ -53,6 +53,7 @@ import {
 } from './orderEdit.js';
 import OrderItemsEditor from './OrderItemsEditor.jsx';
 import { money } from './format.js';
+import { localDateRangeToUtc } from './dateRange.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -116,8 +117,11 @@ function resolveSearchParams(filters) {
   const params = {};
   if (filters.status) params.status = filters.status;
   if (filters.source) params.source = filters.source;
-  if (filters.date_from) params.date_from = filters.date_from;
-  if (filters.date_to) params.date_to = filters.date_to;
+  // 本地日期 → UTC 時間範圍(依瀏覽器時區)
+  Object.assign(
+    params,
+    localDateRangeToUtc({ dateFrom: filters.date_from, dateTo: filters.date_to }),
+  );
   const text = (filters.searchText ?? '').trim();
   if (text) {
     if (/^MM-/i.test(text)) {
