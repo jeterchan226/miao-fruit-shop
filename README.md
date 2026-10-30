@@ -64,7 +64,7 @@ miao-fruit-shop/
 
 ## 環境需求
 
-- **Node.js**（建議 18+,用於前端）
+- **Node.js** 24（用於前端，版本宣告於根目錄 `package.json` 的 `engines.node`）
 - **Python 3.13**
 - **uv**（後端套件管理,安裝見 <https://docs.astral.sh/uv/>）
 - **Docker** / **Docker Compose**（本地啟動 PostgreSQL,選用）

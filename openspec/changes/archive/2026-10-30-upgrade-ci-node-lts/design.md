@@ -12,7 +12,7 @@ CI 前端 job 以 `actions/setup-node` 釘 `node-version: "20"`，repo 內沒有
 | 在 `frontend/` 內 `npm test` | 106 tests 通過 |
 | 在 `frontend/` 內 `npm run build` | 成功 |
 | 在根目錄 `npm install --prefix frontend`，再 `npm test` / `npm run build --prefix frontend` | 成功（即 Vercel 的 install/build 指令） |
-| `npm ci --prefix <dir>` | 失敗：`EUSAGE`，`Missing: frontend@0.1.0 from lock file` |
+| `npm ci --prefix <dir>` | 撰寫 spec 時一度失敗（`EUSAGE`，`Missing: frontend@0.1.0 from lock file`）；實作時在 worktree 與乾淨副本的 `--prefix frontend` 皆成功，未重現 |
 
 ## Goals / Non-Goals
 
@@ -34,7 +34,7 @@ CI 前端 job 以 `actions/setup-node` 釘 `node-version: "20"`，repo 內沒有
 
 **以根目錄 `package.json` 的 `engines.node: "24.x"` 為單一來源。** Vercel 讀 Root Directory 下 `package.json` 的 `engines.node`，且優先於專案設定；`actions/setup-node` 以 `node-version-file: package.json` 讀同一欄位。一致性由結構保證，不靠人工比對 Vercel 後台。替代方案 `.nvmrc`：Vercel 不保證讀取，仍要另外同步。替代方案只把 Vercel 後台改成 24：版本留在 repo 外，正是這張 ticket 要解決的問題。
 
-**CI 前端 job 用 `defaults.run.working-directory: frontend`，指令改為 `npm ci`、`npm test`、`npm run build`。** `npm ci --prefix frontend` 在 npm 11 下失敗（見 Context），不能直接替換現有指令。`node-version-file` 由 action 讀取，路徑相對 repo 根目錄，不受 `defaults.run` 影響。
+**CI 前端 job 用 `defaults.run.working-directory: frontend`，指令改為 `npm ci`、`npm test`、`npm run build`。** `--prefix` 的行為在實測中不一致（見 Context），改在 `frontend/` 內執行，與 lockfile 所在目錄一致，也與 `CLAUDE.md` 的本機指令相同。`node-version-file` 由 action 讀取，路徑相對 repo 根目錄，不受 `defaults.run` 影響。
 
 ## Testing Decisions
 

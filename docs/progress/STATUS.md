@@ -6,16 +6,22 @@
 
 （每完成一個 ticket，用 1–3 句更新系統目前能做什麼。）
 
+前端 Node 版本宣告於根目錄 `package.json` 的 `engines.node`（24.x），CI 前端 job 依此取得版本並以 `npm ci` 驗證 lockfile。
+
 ## 已完成
 
 | # | 標題 | OpenSpec change | 完成日 | 紀錄 |
 |---|---|---|---|---|
+| 31 | CI Node 版本從 20 升級 | `upgrade-ci-node-lts` | 2026-10-30 | [紀錄](tickets/31-upgrade-ci-node-lts.md) |
 
 ## 留待之後
 
 | 項目 | 來源 ticket | 備註 |
 |---|---|---|
+| 確認 Vercel Root Directory 是 repo 根目錄，build log 顯示 Node 24 | #31 | 否則根目錄 `engines` 不生效 |
+| 確認後刪除疑似舊檔 `frontend/vercel.json` | #31 | |
+| Vercel `installCommand` 未依 lockfile 安裝 | #31 | 仍是 `npm install --prefix frontend` |
 
 ## 下一步建議
 
-- 
+- 下次 Vercel 部署時看 build log 的 Node 版本（#31）。
