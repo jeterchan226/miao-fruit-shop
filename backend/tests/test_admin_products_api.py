@@ -142,15 +142,12 @@ async def test_update_product_explicit_null_clears_optional_field(
     p.tag = "當季"
     p.tag_color = "#fff"
     await db_session.flush()
+    columns = ("name", "description", "image", "season", "tag", "tag_color", "is_active")
+    before = {c: getattr(p, c) for c in columns}
     resp = await client.patch(f"/api/admin/products/{p.id}", json={field: None}, headers=headers)
     assert resp.status_code == 200
     await db_session.refresh(p)
-    assert getattr(p, field) is None
-    assert p.name == "甘露梨"
-    assert p.season == "s"
-    others = {"image": "i", "tag": "當季", "tag_color": "#fff"}
-    del others[field]
-    assert {k: getattr(p, k) for k in others} == others
+    assert {c: getattr(p, c) for c in columns} == {**before, field: None}
 
 
 @pytest.mark.parametrize("field", SPEC_REQUIRED_FIELDS)
@@ -197,3 +194,4 @@ async def test_update_spec_explicit_null_clears_note(
     )
     assert resp.status_code == 200
     assert resp.json() == {**before, "note": None}
+    assert (await _admin_product(client, headers))["specs"][0] == {**before, "note": None}
