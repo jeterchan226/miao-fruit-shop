@@ -32,3 +32,6 @@
 - 無。
 
 ## Review
+- 2026-10-31 `/review-and-fix`，範圍 `3ee4204..478c53b`：auto-fix 4、needs-decision 1、rejected 7、deferred 1。
+- Needs decision：`test_order_items.py` 兩則快照訊息測試結構相同，可參數化；建議維持一對一對應 scenario。
+- 第二次複審的新項目依流程應轉 needs-decision，但它是紀錄的事實錯誤且修法唯一，直接修正（`478c53b`）。
