@@ -110,3 +110,19 @@ async def test_create_order_unknown_spec_404(client: AsyncClient, db_session: As
 async def test_create_order_validation_422(client: AsyncClient, db_session: AsyncSession):
     resp = await client.post("/api/orders", json=_body(1, 1, expected_total=0) | {"items": []})
     assert resp.status_code == 422
+
+
+async def test_create_order_snapshots_pack_type(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=300, stock=10)
+    spec.is_two_pack = True
+    await db_session.flush()
+
+    resp = await client.post("/api/orders", json=_body(spec.id, 2, expected_total=700))
+
+    assert resp.status_code == 201
+    assert resp.json()["items"][0]["is_two_pack"] is True
+    order = await order_repo.get_by_order_no(db_session, resp.json()["order_no"])
+    assert order is not None
+    assert order.items[0].is_two_pack is True
