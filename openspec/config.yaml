@@ -1,0 +1,26 @@
+schema: spec-driven
+
+# Shown to the AI when it writes change artifacts (/to-spec, /opsx:*).
+context: |
+  妙媽媽果園 (miao-fruit-shop): LINE LIFF storefront selling one product (甘露梨) in several specs,
+  paid by bank transfer, with an admin UI for specs and orders.
+  Backend: Python 3.13, FastAPI, SQLAlchemy 2.0 async, Postgres, strict layering
+  routes -> services -> repositories -> models. Frontend: React 18 + Vite, target iPadOS 15 Safari.
+  Domain terms come from GLOSSARY.md; past decisions live in docs/adr/. Use the glossary's terms
+  and avoid the words it lists under _Avoid_.
+  Write prose in Traditional Chinese (zh-TW); keep code identifiers, API paths and the
+  OpenSpec keywords (## ADDED Requirements, ### Requirement:, #### Scenario:, WHEN/THEN, SHALL/MUST) in English.
+
+rules:
+  proposal:
+    - Start the file with a `Ticket: #NN` line once the GitHub issue exists.
+    - Include a "## User Stories" section after "## What Changes" (numbered, "身為<角色>，我想要<功能>，以便<好處>").
+  specs:
+    - Every requirement has at least one scenario; scenarios are the acceptance criteria of the ticket.
+    - Describe externally observable behaviour only, not file paths or code.
+  design:
+    - Include a "## Testing Decisions" section naming the test entry point (HTTP API, pure domain function, service against the test DB, or DB constraint) and prior-art tests.
+    - List out-of-scope items under Non-Goals.
+  tasks:
+    - Group tasks as vertical slices; each slice starts with a failing test task (TDD).
+    - The last group is verification (ruff, mypy, pytest, and frontend test/build when the frontend changes).
