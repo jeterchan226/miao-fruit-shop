@@ -39,7 +39,13 @@ import {
 } from './api.js';
 
 import { useOrderNotifications } from './useOrderNotifications.js';
-import { formatRelativeTime, isAfter, newestCreatedAt, newOrdersSince } from './notifications.js';
+import {
+  formatRelativeTime,
+  isAfter,
+  isCustomerOrder,
+  newestCreatedAt,
+  newOrdersSince,
+} from './notifications.js';
 import {
   adminOrderPayload,
   emptyOrderForm,
@@ -1831,7 +1837,9 @@ function NotifPanel({ notif, onOpenOrder, onClose }) {
                 className={`adm-notif__item${unreadSet.has(o.order_no) ? ' adm-notif__item--unread' : ''}`}
                 onClick={() => onOpenOrder(o)}
               >
-                <div className="adm-notif__item-top">新訂單 {o.order_no}</div>
+                <div className="adm-notif__item-top">
+                  {isCustomerOrder(o) ? '新訂單' : '代客下單'} {o.order_no}
+                </div>
                 <div className="adm-notif__item-sub">
                   {o.customer_name}・NT$ {o.total.toLocaleString()}・
                   {formatRelativeTime(o.created_at)}
