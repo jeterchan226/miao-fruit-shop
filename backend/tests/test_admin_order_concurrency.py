@@ -25,6 +25,7 @@ from app.services import admin_order_service
 class Seeded(NamedTuple):
     order_no: str
     spec_id: int
+    other_spec_id: int  # 規格 B,訂單原本沒有
 
 
 @pytest_asyncio.fixture(loop_scope="session")
@@ -36,7 +37,7 @@ async def committing_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[Asy
 async def seeded(
     committing_sessionmaker: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[Seeded]:
-    """已 commit 的待付款訂單:規格 A(單價 880、庫存 10)× 2。"""
+    """已 commit 的待付款訂單:規格 A(單價 880、庫存 10)× 2;另有規格 B(單價 880、庫存 10)。"""
     async with committing_sessionmaker() as s:
         product = Product(
             slug="kanro-race", name="甘露梨", description="d", image="i", season="s"
@@ -51,7 +52,15 @@ async def seeded(
             stock_qty=10,
             sort_order=1,
         )
-        s.add(spec)
+        other_spec = ProductSpec(
+            product_id=product.id,
+            label="B",
+            qty_text="q",
+            price=880,
+            stock_qty=10,
+            sort_order=2,
+        )
+        s.add_all([spec, other_spec])
         await s.flush()
         order = Order(
             order_no="MM-RACE01",
@@ -85,7 +94,9 @@ async def seeded(
         ]
         s.add(order)
         await s.commit()
-        seeded = Seeded(order_no=order.order_no, spec_id=spec.id)
+        seeded = Seeded(
+            order_no=order.order_no, spec_id=spec.id, other_spec_id=other_spec.id
+        )
         product_id = product.id
     try:
         yield seeded
@@ -136,3 +147,22 @@ async def test_concurrent_edit_adjusts_stock_once(
 
     assert results == [None, None]
     assert await _stock(committing_sessionmaker, seeded.spec_id) == 8
+
+
+async def test_concurrent_edit_restores_removed_item_stock_once(
+    committing_sessionmaker: async_sessionmaker[AsyncSession], seeded: Seeded
+):
+    # 兩個請求都把 A × 2 換成 B × 1(880 + 運費 100):A 只補回 2、B 只扣 1
+    data = AdminOrderUpdate(
+        items=[AdminOrderItemUpdate(spec_id=seeded.other_spec_id, qty=1)], expected_total=980
+    )
+
+    async def edit() -> None:
+        async with committing_sessionmaker() as s:
+            await admin_order_service.update_order(s, seeded.order_no, data)
+
+    results = await asyncio.gather(edit(), edit(), return_exceptions=True)
+
+    assert results == [None, None]
+    assert await _stock(committing_sessionmaker, seeded.spec_id) == 12
+    assert await _stock(committing_sessionmaker, seeded.other_spec_id) == 9
