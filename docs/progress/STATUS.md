@@ -24,10 +24,6 @@
 | `frontend/Dockerfile` 的 Node 版本與 `engines` 不同步 | #31 | #79 |
 | Vercel `installCommand` 未依 lockfile 安裝 | #31 | #80 |
 | 移除疑似舊檔 `frontend/vercel.json` | #31 | #81 |
-
-## 下一步建議
-
-- 登入後看 PR #76 的 CI log 與 Vercel build log，確認 Node 24（#31）。
 | 錯誤訊息改用快照名稱與正確用語 | #46 | 追蹤於 #83，可併入 #45 |
 | GLOSSARY「包裝類型建立後不變」與 admin-catalog 可改的落差 | #46 | 追蹤於 #84 |
 | ADR 0003／0004 未提包裝類型快照 | #46 | 追蹤於 #85 |
@@ -35,3 +31,4 @@
 ## 下一步建議
 
 - 部署 #46：先跑 migration，立刻部署後端，再部署前端。
+- 登入後看 PR #76 的 CI log 與 Vercel build log，確認 Node 24（#31）。
