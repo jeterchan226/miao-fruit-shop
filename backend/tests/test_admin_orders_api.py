@@ -2,7 +2,6 @@ from datetime import UTC, date, datetime
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password
@@ -716,17 +715,19 @@ async def test_added_item_snapshots_current_pack_type(
     client: AsyncClient, db_session: AsyncSession
 ):
     headers = await _auth_header(db_session)
-    _, box = await _make_order_pair_addable(db_session)
+    _, box = await _make_pack_order(db_session, "MM-PACK06", slug="pack06")
     box_id = box.id
-    addable = await db_session.scalar(
-        select(ProductSpec.id).where(ProductSpec.label == "加訂兩粒裝")
-    )
+    addable = ProductSpec(product_id=box.product_id, label="加訂兩粒裝", qty_text="q",
+                          price=300, stock_qty=10, sort_order=3, is_two_pack=True)
+    db_session.add(addable)
+    await db_session.flush()
+    addable_id = addable.id
 
     # 500 + 600 = 1100;1 + 1 = 2 層 → 運費 150
     resp = await client.patch(
         "/api/admin/orders/MM-PACK06",
         json={
-            "items": [{"spec_id": box_id, "qty": 1}, {"spec_id": addable, "qty": 2}],
+            "items": [{"spec_id": box_id, "qty": 1}, {"spec_id": addable_id, "qty": 2}],
             "expected_total": 1250,
         },
         headers=headers,
@@ -735,13 +736,3 @@ async def test_added_item_snapshots_current_pack_type(
     assert resp.status_code == 200
     assert resp.json()["shipping_fee"] == 150
     assert [i["is_two_pack"] for i in resp.json()["items"]] == [False, True]
-
-
-async def _make_order_pair_addable(
-    session: AsyncSession,
-) -> tuple[ProductSpec, ProductSpec]:
-    pair, box = await _make_pack_order(session, "MM-PACK06", slug="pack06")
-    session.add(ProductSpec(product_id=box.product_id, label="加訂兩粒裝", qty_text="q",
-                            price=300, stock_qty=10, sort_order=3, is_two_pack=True))
-    await session.flush()
-    return pair, box
