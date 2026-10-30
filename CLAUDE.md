@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 妙媽媽果園 (miao-fruit-shop) — LINE LIFF 訂購網站。前端單一商品（甘露梨）+ 多規格呈現，付款採轉帳匯款，訂單透過 LINE Messaging API 推送 Flex Message 通知。後台管理商品規格與訂單。
 
-## Commands
+Backend (`backend/`), frontend (`frontend/`) and Terraform (`terraform/`) each have their own CLAUDE.md with area-specific rules.
 
 ### Backend (`backend/`, Python 3.13 + FastAPI, package manager: `uv`)
 
@@ -77,16 +77,17 @@ The shop is architecturally locked to one product (甘露梨) rendered as multip
 
 Target device baseline for the storefront is iPadOS 15 Safari/WebKit — avoid `transparent` in gradients and keep first-load images light (see project memory on frontend target).
 
-### Infrastructure (`terraform/`)
+### Infrastructure
 
-GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) are managed via Terraform. `terraform/bootstrap/` creates the remote-state GCS bucket (run once, local state); the root `terraform/` module owns everything else, backed by that bucket (`terraform init -backend-config="bucket=<project_id>-tfstate"`). Cloud Run `image` fields are `lifecycle.ignore_changes` — Terraform owns the service shell (env vars, secrets, scaling, Cloud SQL wiring), `backend/deploy.sh` owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; DB/JWT secrets are Terraform-generated so they can never drift from what's actually set on the resource (see project memory on Cloud SQL password sync). LINE tokens are manual (`gcloud secrets versions add ...`) since they come from the LINE Developers Console.
+GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Manager, Artifact Registry, IAM) exist in production but are not managed by any IaC in this repo; change them with `gcloud`/Console directly; `backend/deploy.sh` still owns code deploys. LINE credentials and `db-password`/`jwt-secret` are Secret Manager secrets; the Cloud SQL `miao_app` password must stay in sync with `db-password` (see project memory on Cloud SQL password sync).
 
 ### Deployment
+## Deployment
 
 - Frontend: Vercel, built from root `vercel.json`. LIFF endpoint is bound to a fixed Vercel production URL.
 - Backend: GCP Cloud Run, built from `backend/Dockerfile`. DB is Cloud SQL Postgres in production, docker-compose Postgres locally.
 - Production deploys only ever come from `master`; confirm changes are merged to `master` before deploying either side.
-- CI (`.github/workflows/ci.yml`) runs backend pytest + non-blocking mypy against a Postgres 16 service container, and a frontend job that runs vitest (`npm test`) then the build check. There is no CD — deploys are manual (`gcloud`/`vercel`), not automated on merge.
+- CI (`.github/workflows/ci.yml`) runs backend pytest + mypy (blocking) against a Postgres 16 service container, and a frontend job that runs vitest (`npm test`) then the build check. There is no CD — deploys are manual (`gcloud`/`vercel`), not automated on merge.
 
 ## Docs
 

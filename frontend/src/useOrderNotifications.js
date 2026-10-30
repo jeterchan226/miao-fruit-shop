@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listAdminOrders } from './api.js';
 import { createChime } from './chime.js';
-import { isAfter, newestCreatedAt, unreadOrders } from './notifications.js';
+import {
+  evaluatePoll,
+  isAfter,
+  isCustomerOrder,
+  newestCreatedAt,
+  unreadOrders,
+} from './notifications.js';
 
 const LAST_READ_KEY = 'admin_notif_last_read_at';
 const SOUND_KEY = 'admin_notif_sound_on';
@@ -20,7 +26,7 @@ export function useOrderNotifications({ token, onAuthError }) {
 
   const chimeRef = useRef(null);
   if (chimeRef.current === null) chimeRef.current = createChime();
-  const prevNewestRef = useRef(null);
+  const pollStateRef = useRef(null);
   const soundOnRef = useRef(soundOn);
   const unlockedRef = useRef(false);
 
@@ -45,19 +51,15 @@ export function useOrderNotifications({ token, onAuthError }) {
     }
     const items = data.items || [];
     setRecentOrders(items);
-    const newest = newestCreatedAt(items);
-
-    // 首次：以最新訂單初始化基準，不發聲；無標記時順便初始化已讀標記。
-    if (prevNewestRef.current === null) {
-      prevNewestRef.current = newest;
-      if (!localStorage.getItem(LAST_READ_KEY) && newest) persistLastRead(newest);
-      return;
-    }
-    // 出現更新的訂單 → 發聲（需已解鎖音訊且開啟）。
-    if (isAfter(newest, prevNewestRef.current)) {
-      if (unlockedRef.current && soundOnRef.current) chimeRef.current.play();
-    }
-    prevNewestRef.current = newest;
+    const { state, chime, initLastReadAt } = evaluatePoll(
+      pollStateRef.current,
+      items,
+      Boolean(localStorage.getItem(LAST_READ_KEY)),
+    );
+    pollStateRef.current = state;
+    if (initLastReadAt) persistLastRead(initLastReadAt);
+    // 出現更新的顧客下單 → 發聲（需已解鎖音訊且開啟）。
+    if (chime && unlockedRef.current && soundOnRef.current) chimeRef.current.play();
   }, [token, onAuthError, persistLastRead]);
 
   // 輪詢：立即一次 + 每 POLL_MS。
@@ -107,7 +109,8 @@ export function useOrderNotifications({ token, onAuthError }) {
 
   const markRead = useCallback(
     (order) => {
-      if (order?.created_at && isAfter(order.created_at, lastReadAt)) {
+      if (!order || !isCustomerOrder(order)) return;
+      if (order.created_at && isAfter(order.created_at, lastReadAt)) {
         persistLastRead(order.created_at);
       }
     },

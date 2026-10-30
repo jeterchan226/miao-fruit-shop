@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.order import Order
@@ -29,6 +30,22 @@ async def test_add_and_get_by_order_no(db_session: AsyncSession):
 
 async def test_get_by_order_no_missing_returns_none(db_session: AsyncSession):
     assert await order_repo.get_by_order_no(db_session, "MM-NOPE99") is None
+
+
+async def test_get_by_order_no_for_update_reads_latest_status(db_session: AsyncSession):
+    # session 內已載入的訂單被別人改過時,鎖定讀取須拿到資料庫最新狀態
+    await order_repo.add(db_session, _make_order("MM-LOCK01"))
+    await db_session.flush()
+    await db_session.execute(
+        text("UPDATE orders SET status = 'cancelled' WHERE order_no = 'MM-LOCK01'")
+    )
+    locked = await order_repo.get_by_order_no_for_update(db_session, "MM-LOCK01")
+    assert locked is not None
+    assert locked.status == "cancelled"
+
+
+async def test_get_by_order_no_for_update_missing_returns_none(db_session: AsyncSession):
+    assert await order_repo.get_by_order_no_for_update(db_session, "MM-NOPE99") is None
 
 
 async def test_spec_get_for_update_returns_spec(db_session: AsyncSession):
@@ -107,17 +124,22 @@ async def test_list_filtered_by_order_no(db_session: AsyncSession):
     assert results[0].order_no == "MM-EXACT1"
 
 
-async def test_list_filtered_by_date(db_session: AsyncSession):
-    await order_repo.add(db_session, _make_order("MM-DT01"))
+async def test_list_filtered_by_created_range(db_session: AsyncSession):
+    order = _make_order("MM-DT01")
+    order.created_at = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    await order_repo.add(db_session, order)
     await db_session.flush()
-    today = date.today()
-    _, results = await order_repo.list_filtered(db_session, date_from=today, page=1, page_size=20)
-    assert any(o.order_no == "MM-DT01" for o in results)
-    yesterday = today - timedelta(days=1)
-    _, old_results = await order_repo.list_filtered(
-        db_session, date_to=yesterday, page=1, page_size=20
+    start = datetime(2026, 10, 29, 19, 0, tzinfo=UTC)
+    _, results = await order_repo.list_filtered(
+        db_session, created_from=start, created_before=datetime(2026, 10, 30, tzinfo=UTC),
+        page=1, page_size=20,
     )
-    assert not any(o.order_no == "MM-DT01" for o in old_results)
+    assert any(o.order_no == "MM-DT01" for o in results)
+    # created_before 不包含邊界時點
+    _, excluded = await order_repo.list_filtered(
+        db_session, created_before=start, page=1, page_size=20
+    )
+    assert not any(o.order_no == "MM-DT01" for o in excluded)
 
 
 async def test_list_filtered_pagination(db_session: AsyncSession):

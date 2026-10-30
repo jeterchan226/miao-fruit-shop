@@ -17,7 +17,7 @@ GitHub operations follow `docs/agents/issue-tracker.md` (GitHub MCP, not `gh`). 
 4. **Isolated branch**: write the change in a temporary worktree so the user's checkout is untouched:
    ```bash
    git fetch origin
-   git worktree add "$TMPDIR/spec-<change-id>" -b spec/<change-id> origin/master
+   git worktree add "$TMPDIR/spec-<change-id>" -b spec/<change-id> origin/dev
    ```
    Run every `openspec` command below from inside that worktree (`cd "$TMPDIR/spec-<change-id>" && openspec ...`).
 5. **Write the artifacts** in dependency order: `openspec new change <change-id>`, then for each artifact from `openspec status --change <change-id> --json`, run `openspec instructions <artifact> --change <change-id> --json` and write the file from its `template` to `resolvedOutputPath`. The `context` and `rules` it returns come from `openspec/config.yaml`; obey them, never copy them into the file. Map the conversation onto the artifacts:
@@ -50,7 +50,7 @@ GitHub operations follow `docs/agents/issue-tracker.md` (GitHub MCP, not `gh`). 
 
    The acceptance criteria are one checkbox per spec scenario, same names, same order. The issue carries only the goal and criteria; details stay in the change.
 8. **Link back**: put `Ticket: #NN` as the first line of `proposal.md`, rerun `openspec validate <change-id> --strict`.
-9. **Commit and push** from the temporary worktree: one commit `docs(openspec): propose <change-id> (#NN)` containing only `openspec/changes/<change-id>/`, then `git push -u origin spec/<change-id>` as a standalone command. Remove the worktree with `git worktree remove "$TMPDIR/spec-<change-id>"`. No PR: the spec reaches master inside the ticket's PR.
+9. **Commit and push** from the temporary worktree: one commit `docs(openspec): propose <change-id> (#NN)` containing only `openspec/changes/<change-id>/`, then `git push -u origin spec/<change-id>` as a standalone command. Remove the worktree with `git worktree remove "$TMPDIR/spec-<change-id>"`. No PR: the spec reaches dev inside the ticket's PR.
 10. **Report**: the issue link, the change id and branch, the requirement and scenario count, and the next command: `/work-on-ticket #NN`.
 
 When the conversation splits into several independent tickets, repeat steps 3–9 per ticket (one change, one issue, one branch each) and fill in `Blocked by:` between them.
