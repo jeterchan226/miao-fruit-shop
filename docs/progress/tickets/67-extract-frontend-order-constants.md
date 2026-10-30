@@ -11,7 +11,7 @@
 ## 決定與偏離
 - `tasks.md` 未完全依 `openspec/config.yaml`：第 2、3 組不以紅燈開頭，第 4 組未列 ruff、mypy、pytest，理由見 [design.md](../../../openspec/changes/archive/2026-10-30-extract-frontend-order-constants/design.md) 的 Testing Decisions。
 - 偏離 design 一處：design 寫不跑 ruff、mypy、pytest，實作時仍依 `/work-on-ticket` 跑了，全數通過。
-- `PAYMENT_METHOD_LABELS` 的物件 key `transfer` 不在 design 列出的五處，維持原樣，列入留待之後。
+- `PAYMENT_METHOD_LABELS` 的物件 key `transfer` 不在 design 列出的五處，review 時經使用者同意一併改用 `PAYMENT_METHOD_TRANSFER`。
 
 ## 驗收結果
 - [x] 代客下單不提醒 — 新代客下單：`notifications.test.js`「只有代客下單 → 不計未讀」、「只多了代客下單 → 不響鈴」
@@ -29,11 +29,10 @@
 未實際開瀏覽器操作；以上「無自動測試」項目依 design 的驗證方式處理。
 
 ## 留待之後
-- `AdminApp.jsx` 的 `PAYMENT_METHOD_LABELS` 物件 key 仍手寫 `transfer`，可改 `[PAYMENT_METHOD_TRANSFER]`。
 - 公開下單回應不含後台欄位缺明確的自動測試：#82。
 
 ## 下一步
 
 ## Review
-- 2026-10-30 `/review-and-fix`：審查 `72b2a4b..b7f0b72`，修正見本次 review 提交。共 13 項：auto-fix 6、needs-decision 1、rejected 5、deferred 1。
-- Needs decision：`PAYMENT_METHOD_LABELS` 物件 key 是否改用 `PAYMENT_METHOD_TRANSFER`。
+- 2026-10-30 `/review-and-fix`：審查 `72b2a4b..b7f0b72`，修正見本次 review 提交。共 13 項：auto-fix 7、needs-decision 0、rejected 5、deferred 1。
+- 原 needs-decision 項目 `PAYMENT_METHOD_LABELS` 物件 key 經使用者同意改用 `PAYMENT_METHOD_TRANSFER`，計入 auto-fix。

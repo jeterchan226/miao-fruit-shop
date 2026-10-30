@@ -16,9 +16,8 @@
 
 | 項目 | 來源 ticket | 備註 |
 |---|---|---|
-| `PAYMENT_METHOD_LABELS` 物件 key 仍手寫 `transfer` | #67 | 可改 `[PAYMENT_METHOD_TRANSFER]` |
 | 公開下單回應不含後台欄位缺明確自動測試 | #67 | #82；`test_create_order_201` 只斷言 `stock_qty` |
 
 ## 下一步建議
 
-- 處理「留待之後」兩項小修。
+- 處理「留待之後」的 #82。

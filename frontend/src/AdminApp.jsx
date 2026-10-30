@@ -60,7 +60,11 @@ import {
 import OrderItemsEditor from './OrderItemsEditor.jsx';
 import { money } from './format.js';
 import { localDateRangeToUtc } from './dateRange.js';
-import { ORDER_SOURCE_ADMIN, ORDER_SOURCE_STOREFRONT } from './constants.js';
+import {
+  ORDER_SOURCE_ADMIN,
+  ORDER_SOURCE_STOREFRONT,
+  PAYMENT_METHOD_TRANSFER,
+} from './constants.js';
 
 const TOKEN_KEY = 'miao.admin.token';
 
@@ -99,7 +103,7 @@ const DELIVERY_WINDOW_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
-  transfer: '銀行轉帳',
+  [PAYMENT_METHOD_TRANSFER]: '銀行轉帳',
   // 以下為舊資料相容用,新訂單一律為 transfer。
   linepay: 'LINE Pay',
   card: '信用卡',
