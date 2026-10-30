@@ -184,7 +184,7 @@ async def create_order(session: AsyncSession, data: AdminOrderCreate) -> AdminOr
 async def change_order_status(
     session: AsyncSession, order_no: str, new_status: str
 ) -> AdminOrderRead:
-    order = await order_repo.get_by_order_no(session, order_no)
+    order = await order_repo.get_by_order_no_for_update(session, order_no)
     if order is None:
         raise NotFoundError("找不到訂單")
     allowed = VALID_TRANSITIONS.get(order.status, set())
@@ -201,7 +201,7 @@ async def change_order_status(
 async def update_order(
     session: AsyncSession, order_no: str, data: AdminOrderUpdate
 ) -> AdminOrderRead:
-    order = await order_repo.get_by_order_no(session, order_no)
+    order = await order_repo.get_by_order_no_for_update(session, order_no)
     if order is None:
         raise NotFoundError("找不到訂單")
     if order.status in NOT_EDITABLE_STATUSES:
