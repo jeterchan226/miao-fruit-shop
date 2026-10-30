@@ -56,19 +56,19 @@ class Ticket:
 
 
 def parse_ticket(filename: str, text: str) -> Ticket:
-    title = _require(filename, "標題", r"^# #(\d+)[ \t]+(.+?)\s*$", text)
+    heading = _require(filename, "標題", r"^# #(\d+)[ \t]+(.+?)\s*$", text)
     status = _require(filename, "狀態", r"^- 狀態：(\S+)\s*$", text).group(1)
     if status not in VALID_STATUSES:
         raise TicketFormatError(f"{filename}: 狀態不合法：{status}")
-    change = _require(filename, "OpenSpec change", r"^- OpenSpec change：`([^`]+)`", text)
-    updated = _require(filename, "最後更新", r"^- 最後更新：(\d{4}-\d{2}-\d{2})\s*$", text)
+    change = _require(filename, "OpenSpec change", r"^- OpenSpec change：`([^`]+)`", text).group(1)
+    updated = _require(filename, "最後更新", r"^- 最後更新：(\d{4}-\d{2}-\d{2})\s*$", text).group(1)
     return Ticket(
         filename=filename,
-        number=int(title.group(1)),
-        title=title.group(2),
+        number=int(heading.group(1)),
+        title=heading.group(2),
         status=status,
-        change=change.group(1),
-        updated=updated.group(1),
+        change=change,
+        updated=updated,
         deferred=[_parse_deferred(line) for line in _section_items(text, "留待之後")],
         system_status=_section_items(text, "系統現況"),
         deploy_todos=_section_items(text, "部署待辦"),
