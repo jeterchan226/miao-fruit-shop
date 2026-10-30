@@ -2,6 +2,11 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import (
+    ORDER_SOURCE_ADMIN,
+    PAYMENT_METHOD_TRANSFER,
+    OrderSource,
+)
 from app.core.exceptions import (
     InvalidStatusTransition,
     NotFoundError,
@@ -99,7 +104,7 @@ async def list_orders(
     session: AsyncSession,
     *,
     status: str | None = None,
-    source: str | None = None,
+    source: OrderSource | None = None,
     created_from: datetime | None = None,
     created_before: datetime | None = None,
     q: str | None = None,
@@ -141,32 +146,20 @@ async def get_order_detail(session: AsyncSession, order_no: str) -> AdminOrderRe
 
 async def create_order(session: AsyncSession, data: AdminOrderCreate) -> AdminOrderRead:
     """代客下單:規則同顧客下單,但來源記為 admin、無 LINE 身份、不發 LINE 通知。"""
-    result = await order_items.apply_items(
+    order = await order_service.place_order(
         session,
-        [],
-        [order_items.ItemRequest(i.spec_id, i.qty) for i in data.items],
+        source=ORDER_SOURCE_ADMIN,
+        customer=order_service.OrderCustomer(
+            name=data.customer_name,
+            phone=data.customer_phone,
+            email=data.customer_email,
+        ),
+        shipping=data.shipping,
+        items=data.items,
         expected_total=data.expected_total,
-    )
-    order = Order(
-        order_no=await order_service.generate_unique_order_no(session),
-        status=order_service.initial_status(),
-        source="admin",
-        customer_name=data.customer_name,
-        customer_phone=data.customer_phone,
-        customer_email=data.customer_email,
-        ship_zipcode=data.shipping.zipcode,
-        ship_city=data.shipping.city,
-        ship_district=data.shipping.district,
-        ship_street=data.shipping.street,
-        preferred_date=data.shipping.preferred_date,
-        delivery_window=data.shipping.delivery_window,
-        payment_method="transfer",
+        payment_method=PAYMENT_METHOD_TRANSFER,
         note=data.note,
     )
-    result.apply_to(order)
-    await order_repo.add(session, order)
-    await session.commit()
-    await session.refresh(order)
     return _to_admin_order_read(order)
 
 

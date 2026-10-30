@@ -4,6 +4,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.constants import OrderSource
 from app.models.order import Order
 
 
@@ -33,7 +34,7 @@ async def list_filtered(
     session: AsyncSession,
     *,
     status: str | None = None,
-    source: str | None = None,
+    source: OrderSource | None = None,
     created_from: datetime | None = None,
     created_before: datetime | None = None,
     q: str | None = None,
