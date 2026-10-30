@@ -48,8 +48,12 @@
 - `Closes` 指向不存在的 issue 時 close-issues 失敗，generate-status 被跳過，下一次合併補回。
 - `scripts/` 不在 ruff、mypy 範圍內。
 - 系統現況的純重構內容佔三格之一，例如 #67。
+- 在途舊流程 PR（#29、#43、#60 的 PR）內容只在 `STATUS.md` 的部分要搬進各自紀錄，含 #29 的部署順序，否則快照漏列。
+- 行尾寫成 `追蹤於 #NN。` 不算追蹤 issue，不會報錯，項目永久列出（#43 紀錄目前如此）。
 
 ## 下一步
 - 無。
 
 ## Review
+- 2026-10-30 `/review-and-fix`，範圍 `3ee4204..d8bffe5`：13 項，auto-fix 4、needs-decision 6、rejected 3、deferred 0。第 3 項：tasks 8.4 寫「由 CI 確認」，但 CI 沒有 ruff；本機補跑 backend ruff、mypy、pytest 皆通過。
+- Needs decision：完成狀態過濾重複、表格組裝重複、區塊名稱字串散落、狀態未用 Enum、「PR MUST NOT 修改快照」無機制強制且在途 PR 有資料遺失風險、行尾 `追蹤於 #NN` 靜默不算追蹤。
