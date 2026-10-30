@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Any
 
 from linebot.v3 import WebhookParser
 from linebot.v3.messaging import (
@@ -94,7 +95,7 @@ def _delivery_window_label(order: Order) -> str:
     return DELIVERY_WINDOW_LABELS.get(order.delivery_window, order.delivery_window)
 
 
-def _divider() -> dict:
+def _divider() -> dict[str, Any]:
     return {"type": "separator", "color": DIVIDER_COLOR, "margin": "md"}
 
 
@@ -104,7 +105,7 @@ def _kv_row(
     *,
     value_color: str = TEXT_COLOR,
     value_bold: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "type": "box",
         "layout": "baseline",
@@ -118,7 +119,7 @@ def _kv_row(
     }
 
 
-def _stacked_row(label: str, value: str) -> dict:
+def _stacked_row(label: str, value: str) -> dict[str, Any]:
     """標籤獨立一行（靠左），內容換到下一行佔滿寬度顯示。"""
     return {
         "type": "box",
@@ -131,8 +132,8 @@ def _stacked_row(label: str, value: str) -> dict:
     }
 
 
-def _item_rows(order: Order) -> list[dict]:
-    rows: list[dict] = []
+def _item_rows(order: Order) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for item in order.items:
         rows.append(
             {
@@ -151,7 +152,7 @@ def _item_rows(order: Order) -> list[dict]:
     return rows
 
 
-def _payment_rows() -> list[dict]:
+def _payment_rows() -> list[dict[str, Any]]:
     return [
         _divider(),
         {"type": "text", "text": "付款方式", "weight": "bold",
@@ -182,14 +183,14 @@ def _payment_rows() -> list[dict]:
     ]
 
 
-def _shipping_row(order: Order) -> dict:
+def _shipping_row(order: Order) -> dict[str, Any]:
     if order.shipping_fee == 0:
         return _kv_row("運費", "免運費",
                        value_color=FREE_SHIPPING_COLOR, value_bold=True)
     return _kv_row("運費", f"NT$ {order.shipping_fee:,}")
 
 
-def _order_flex(order: Order) -> dict:
+def _order_flex(order: Order) -> dict[str, Any]:
     address = (
         f"{order.ship_zipcode} "
         f"{order.ship_city}{order.ship_district}{order.ship_street}"

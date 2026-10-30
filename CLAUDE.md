@@ -13,7 +13,7 @@ Backend (`backend/`), frontend (`frontend/`) and Terraform (`terraform/`) each h
 - Frontend: Vercel, built from root `vercel.json`. LIFF endpoint is bound to a fixed Vercel production URL.
 - Backend: GCP Cloud Run, built from `backend/Dockerfile`. DB is Cloud SQL Postgres in production, docker-compose Postgres locally.
 - Production deploys only ever come from `master`; confirm changes are merged to `master` before deploying either side.
-- CI (`.github/workflows/ci.yml`) runs backend pytest + non-blocking mypy against a Postgres 16 service container, and a frontend job that runs vitest (`npm test`) then the build check. There is no CD — deploys are manual (`gcloud`/`vercel`), not automated on merge.
+- CI (`.github/workflows/ci.yml`) runs backend pytest + mypy (blocking) against a Postgres 16 service container, and a frontend job that runs vitest (`npm test`) then the build check. There is no CD — deploys are manual (`gcloud`/`vercel`), not automated on merge.
 
 ## Docs
 

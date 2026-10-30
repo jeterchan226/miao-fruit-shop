@@ -47,9 +47,15 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.13"
 strict = true
 plugins = ["pydantic.mypy"]
+# google-auth ships untyped functions; allow calling them without relaxing strict elsewhere.
+untyped_calls_exclude = ["google"]
 
 [[tool.mypy.overrides]]
 module = "linebot.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google.cloud.*"
 ignore_missing_imports = true
 
 [build-system]
