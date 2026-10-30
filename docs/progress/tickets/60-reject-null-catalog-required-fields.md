@@ -26,5 +26,11 @@
 讀 `AdminApp.jsx` 確認後台前端不送必填 `null`：規格表單的數字欄位經 `Number()`，只有備註可能為 `null`；前端無商品更新呼叫。
 
 ## 留待之後
+- GLOSSARY「規格名稱建立後不變」與 API 可改名稱的落差：#94。
+- 後台表單未處理 422 的陣列 `detail`：#95。
 
 ## 下一步
+
+## Review
+- 2026-10-30 `/review-and-fix`：審查 `3ee4204..fd24adf`，共 11 項：auto-fix 3、needs-decision 2、rejected 4、deferred 2。
+- needs-decision：三處 `_required_fields_not_null` 樣板是否改基底類別；兩個「同時帶合法欄位」測試是否參數化。建議都維持現狀。
