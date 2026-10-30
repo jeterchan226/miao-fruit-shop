@@ -25,7 +25,7 @@ uv run python -m app.cli seed-product      # seed initial product (first run)
 uv run python -m app.cli create-admin --username admin  # create admin user
 ```
 
-Tests need a running Postgres reachable via `DATABASE_URL` (test DB name is derived by swapping the DB name to `miao_test`, see `tests/conftest.py`). `docker compose up db` in `backend/` starts local Postgres. CI spins up its own `postgres:16` service — mirror that DB when debugging CI-only failures.
+Tests need a running Postgres reachable via `DATABASE_URL` (`tests/conftest.py` derives the test DB name and creates it if missing: `miao_test` in the main checkout and CI, `miao_test_<worktree>` in a linked worktree, or `TEST_DB_NAME` if set). `docker compose up db` in `backend/` starts local Postgres. CI spins up its own `postgres:16` service — mirror that DB when debugging CI-only failures.
 
 ### Frontend (`frontend/`, React 18 + Vite 8)
 
@@ -91,7 +91,13 @@ GCP resources (Cloud Run service + migrate job, Cloud SQL, GCS bucket, Secret Ma
 
 ## Docs
 
-`docs/superpowers/plans/` and `docs/superpowers/specs/` hold dated per-feature plan/design docs (one pair per feature, e.g. `2026-06-11-backend-foundation.md` + matching spec). When completing a task tracked in one of these plans, mark its checkbox `- [x]` and commit.
+Feature workflow: `/to-spec` → `/work-on-ticket #NN` → `/review-and-fix <PR>`.
+
+- **`/to-spec` in this repo follows `docs/agents/to-spec.md`**, which overrides the global skill's template: it writes an OpenSpec change (`openspec/changes/<change-id>/`, pushed on branch `spec/<change-id>`) plus a GitHub ticket pointing at it.
+- `/work-on-ticket` implements from the ticket + that change, archives the change into `openspec/specs/` (the current requirements), and records progress.
+- `docs/progress/` is the cross-session development memory: `STATUS.md` (snapshot) and `tickets/NN-<change-id>.md` (per-ticket log). Format and rules in `docs/progress/README.md`. Read `STATUS.md` before starting work on a ticket.
+
+`docs/superpowers/plans/` and `docs/superpowers/specs/` hold dated per-feature plan/design docs from before OpenSpec (one pair per feature, e.g. `2026-06-11-backend-foundation.md` + matching spec). When completing a task tracked in one of these plans, mark its checkbox `- [x]` and commit.
 
 ## Response Rule：
 - 直接給結果，不要前言、不要總結

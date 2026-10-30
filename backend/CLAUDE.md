@@ -7,7 +7,7 @@ uv run python -m app.cli seed-product      # seed initial product (first run)
 uv run python -m app.cli create-admin --username admin  # create admin user
 ```
 
-Tests need a running Postgres reachable via `DATABASE_URL` (test DB name is derived by swapping the DB name to `miao_test`, see `tests/conftest.py`). `docker compose up db` in `backend/` starts local Postgres. CI spins up its own `postgres:16` service — mirror that DB when debugging CI-only failures.
+Tests need a running Postgres reachable via `DATABASE_URL` (`tests/conftest.py` derives the test DB name and creates it if missing: `miao_test` in the main checkout and CI, `miao_test_<worktree>` in a linked worktree, or `TEST_DB_NAME` if set). `docker compose up db` in `backend/` starts local Postgres. CI spins up its own `postgres:16` service — mirror that DB when debugging CI-only failures.
 
 ## Strict layered structure
 

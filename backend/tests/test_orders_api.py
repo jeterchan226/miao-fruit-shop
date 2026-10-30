@@ -1,9 +1,12 @@
 from httpx import AsyncClient
+from pytest import MonkeyPatch
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.order import Order
 from app.models.product import Product
 from app.models.product_spec import ProductSpec
 from app.repositories import order_repo, product_repo
+from app.services import line_service
 
 
 async def _seed_spec(db_session, *, price=1880, stock=10):
@@ -61,6 +64,25 @@ async def test_create_order_source_is_storefront(
     order = await order_repo.get_by_order_no(db_session, resp.json()["order_no"])
     assert order is not None
     assert order.source == "storefront"
+
+
+async def test_create_order_notifies_line_once(
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: MonkeyPatch
+):
+    calls: list[Order] = []
+
+    async def _record(order: Order) -> bool:
+        calls.append(order)
+        return True
+
+    monkeypatch.setattr(line_service, "send_order_created", _record)
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+
+    resp = await client.post("/api/orders", json=_body(spec.id, 1, expected_total=1980))
+
+    assert resp.status_code == 201
+    assert [o.order_no for o in calls] == [resp.json()["order_no"]]
+    assert calls[0].line_user_id == "U123"
 
 
 async def test_create_order_price_changed_409(client: AsyncClient, db_session: AsyncSession):

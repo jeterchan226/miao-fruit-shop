@@ -66,10 +66,11 @@ Done when: the last re-review produced no new auto-fix items, or two re-reviews 
 ## 6. Deliver
 
 1. **Deferred items**: open a GitHub issue for each with `issue_write` `method: "create"` (label `needs-triage`, body linking PR N and the finding). Put the new issue number in the Deferred section.
-2. **Push**: `git push` as a standalone command.
-3. **Update the PR body**: fetch the current body with `pull_request_read` `method: "get"` right before writing, append the format below (or replace only the existing `## Automated review` section, keeping everything else byte for byte), and write it back with `update_pull_request` `body`. Write the section's prose in the same language as the rest of the PR body. The agent edits only the body; replying to and resolving GitHub comments is left to the user.
-4. **Wait for CI**: poll `pull_request_read` `method: "get_check_runs"` every few minutes until every check run completes. On failure, fix, push, and poll again until green.
-5. **Report**: the PR link, the count in each category, and the full needs-decision list. The user merges the PR.
+2. **Record progress**: append this run's result (commit range, count per category, needs-decision items) to the 「Review」 section of `docs/progress/tickets/NN-*.md` (format in `docs/progress/README.md`; create the file if the ticket predates it), move any deferred items into `docs/progress/STATUS.md` 「留待之後」 with their new issue numbers, and commit as `docs: review progress for #NN`.
+3. **Push**: `git push` as a standalone command.
+4. **Update the PR body**: fetch the current body with `pull_request_read` `method: "get"` right before writing, append the format below (or replace only the existing `## Automated review` section, keeping everything else byte for byte), and write it back with `update_pull_request` `body`. Write the section's prose in the same language as the rest of the PR body. The agent edits only the body; replying to and resolving GitHub comments is left to the user.
+5. **Wait for CI**: poll `pull_request_read` `method: "get_check_runs"` every few minutes until every check run completes. On failure, fix, push, and poll again until green.
+6. **Report**: the PR link, the count in each category, and the full needs-decision list. The user merges the PR.
 
 Done when: every list item appears under its category in the PR body, and CI is green.
 
