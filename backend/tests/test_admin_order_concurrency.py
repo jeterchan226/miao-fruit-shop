@@ -23,6 +23,8 @@ from app.services import admin_order_service
 
 _SLUG = "kanro-race"
 _ORDER_NO = "MM-RACE01"
+# 鎖若出錯(例如互相等待)會讓 gather 卡住;逾時改為測試失敗
+_RACE_TIMEOUT_S = 10
 
 
 class Seeded(NamedTuple):
@@ -133,7 +135,9 @@ async def test_concurrent_cancel_restores_stock_once(
         async with committing_sessionmaker() as s:
             await admin_order_service.change_order_status(s, seeded.order_no, "cancelled")
 
-    results = await asyncio.gather(cancel(), cancel(), return_exceptions=True)
+    results = await asyncio.wait_for(
+        asyncio.gather(cancel(), cancel(), return_exceptions=True), _RACE_TIMEOUT_S
+    )
 
     assert results.count(None) == 1
     assert sum(isinstance(r, InvalidStatusTransition) for r in results) == 1
@@ -152,7 +156,9 @@ async def test_concurrent_edit_adjusts_stock_once(
         async with committing_sessionmaker() as s:
             await admin_order_service.update_order(s, seeded.order_no, data)
 
-    results = await asyncio.gather(edit(), edit(), return_exceptions=True)
+    results = await asyncio.wait_for(
+        asyncio.gather(edit(), edit(), return_exceptions=True), _RACE_TIMEOUT_S
+    )
 
     assert results == [None, None]
     assert await _stock(committing_sessionmaker, seeded.spec_id) == 8
@@ -170,7 +176,9 @@ async def test_concurrent_edit_restores_removed_item_stock_once(
         async with committing_sessionmaker() as s:
             await admin_order_service.update_order(s, seeded.order_no, data)
 
-    results = await asyncio.gather(edit(), edit(), return_exceptions=True)
+    results = await asyncio.wait_for(
+        asyncio.gather(edit(), edit(), return_exceptions=True), _RACE_TIMEOUT_S
+    )
 
     assert results == [None, None]
     assert await _stock(committing_sessionmaker, seeded.spec_id) == 12
