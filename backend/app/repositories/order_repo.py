@@ -19,6 +19,11 @@ async def get_by_order_no(session: AsyncSession, order_no: str) -> Order | None:
     return result.scalar_one_or_none()
 
 
+async def get_by_idempotency_key(session: AsyncSession, key: str) -> Order | None:
+    result = await session.execute(select(Order).where(Order.idempotency_key == key))
+    return result.scalar_one_or_none()
+
+
 async def get_by_order_no_for_update(session: AsyncSession, order_no: str) -> Order | None:
     """以列鎖(SELECT ... FOR UPDATE)讀取訂單,並發改動同一筆訂單時依序執行。
 

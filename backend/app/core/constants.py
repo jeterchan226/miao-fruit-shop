@@ -12,3 +12,6 @@ ORDER_SOURCE_ADMIN: Final = "admin"
 # 付款方式:目前只有轉帳匯款
 PaymentMethod = Literal["transfer"]
 PAYMENT_METHOD_TRANSFER: Final = "transfer"
+
+# 顧客下單 Idempotency-Key 的長度上限
+IDEMPOTENCY_KEY_MAX_LENGTH: Final = 128

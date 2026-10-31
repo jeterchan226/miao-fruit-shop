@@ -126,3 +126,130 @@ async def test_create_order_snapshots_pack_type(
     order = await order_repo.get_by_order_no(db_session, resp.json()["order_no"])
     assert order is not None
     assert order.items[0].is_two_pack is True
+
+
+def _key_header(key: str) -> dict[str, str]:
+    return {"Idempotency-Key": key}
+
+
+async def _order_count(db_session: AsyncSession) -> int:
+    total, _ = await order_repo.list_filtered(db_session)
+    return total
+
+
+async def test_same_key_returns_original_order_once(
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: MonkeyPatch
+):
+    calls: list[Order] = []
+
+    async def _record(order: Order) -> bool:
+        calls.append(order)
+        return True
+
+    monkeypatch.setattr(line_service, "send_order_created", _record)
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    body = _body(spec.id, 1, expected_total=1980)
+
+    first = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+    second = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+
+    assert first.status_code == second.status_code == 201
+    assert second.json() == first.json()
+    assert "idempotency_key" not in first.json()
+    assert await _order_count(db_session) == 1
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 9
+    assert [o.order_no for o in calls] == [first.json()["order_no"]]
+
+
+async def test_same_key_returns_original_order_after_price_or_stock_change(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    body = _body(spec.id, 1, expected_total=1980)
+    first = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+    assert first.status_code == 201
+
+    spec.price = 2000
+    await db_session.flush()
+    repriced = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+
+    spec.stock_qty = 0
+    await db_session.flush()
+    no_stock = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+
+    assert repriced.status_code == no_stock.status_code == 201
+    assert repriced.json()["order_no"] == first.json()["order_no"]
+    assert no_stock.json()["order_no"] == first.json()["order_no"]
+    assert await _order_count(db_session) == 1
+
+
+async def test_rejected_request_does_not_consume_key(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    spec_id = spec.id
+    # 被拒的路徑會 rollback,seed 須先落到 savepoint 之外
+    await db_session.commit()
+
+    rejected = await client.post(
+        "/api/orders", json=_body(spec_id, 1, expected_total=9999), headers=_key_header("key-1")
+    )
+    accepted = await client.post(
+        "/api/orders", json=_body(spec_id, 1, expected_total=1980), headers=_key_header("key-1")
+    )
+
+    assert rejected.status_code == 409
+    assert rejected.json()["code"] == "PRICE_CHANGED"
+    assert accepted.status_code == 201
+
+
+async def test_different_keys_create_separate_orders(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    body = _body(spec.id, 1, expected_total=1980)
+
+    first = await client.post("/api/orders", json=body, headers=_key_header("key-1"))
+    second = await client.post("/api/orders", json=body, headers=_key_header("key-2"))
+
+    assert first.status_code == second.status_code == 201
+    assert first.json()["order_no"] != second.json()["order_no"]
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 8
+
+
+async def test_requests_without_key_create_separate_orders(
+    client: AsyncClient, db_session: AsyncSession
+):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    body = _body(spec.id, 1, expected_total=1980)
+
+    first = await client.post("/api/orders", json=body)
+    second = await client.post("/api/orders", json=body)
+
+    assert first.status_code == second.status_code == 201
+    assert first.json()["order_no"] != second.json()["order_no"]
+    await db_session.refresh(spec)
+    assert spec.stock_qty == 8
+
+
+async def test_invalid_key_length_422(client: AsyncClient, db_session: AsyncSession):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+    body = _body(spec.id, 1, expected_total=1980)
+
+    empty = await client.post("/api/orders", json=body, headers=_key_header(""))
+    too_long = await client.post("/api/orders", json=body, headers=_key_header("k" * 129))
+
+    assert empty.status_code == too_long.status_code == 422
+    assert await _order_count(db_session) == 0
+
+
+async def test_key_at_max_length_accepted(client: AsyncClient, db_session: AsyncSession):
+    spec = await _seed_spec(db_session, price=1880, stock=10)
+
+    resp = await client.post(
+        "/api/orders", json=_body(spec.id, 1, expected_total=1980), headers=_key_header("k" * 128)
+    )
+
+    assert resp.status_code == 201

@@ -8,11 +8,13 @@
 
 前端 Node 版本宣告於根目錄 `package.json` 的 `engines.node`（24.x），CI 前端 job 依此取得版本並以 `npm ci` 驗證 lockfile。
 訂單品項保存包裝類型快照：既有訂單品項的層數與雙數檢查不受規格改動或刪除影響，後台試算讀同一份快照。
+顧客下單具冪等性：`POST /api/orders` 接受選填 `Idempotency-Key`，同一個 key 最多成立一張訂單；商店頁每次送單帶 key 並同步鎖住送出。
 
 ## 已完成
 
 | # | 標題 | OpenSpec change | 完成日 | 紀錄 |
 |---|---|---|---|---|
+| 29 | POST /api/orders 無冪等性，連點會建立重複訂單 | `add-order-idempotency` | 2026-10-30 | [紀錄](tickets/29-add-order-idempotency.md) |
 | 31 | CI Node 版本從 20 升級 | `upgrade-ci-node-lts` | 2026-10-30 | [紀錄](tickets/31-upgrade-ci-node-lts.md) |
 | 43 | `order_repo.list_filtered` 篩選條件只定義一次 | `dedupe-order-list-filters` | 2026-10-30 | [紀錄](tickets/43-dedupe-order-list-filters.md) |
 | 46 | 訂單品項快照加入「是否兩粒裝」 | `add-order-item-pack-snapshot` | 2026-10-30 | [紀錄](tickets/46-add-order-item-pack-snapshot.md) |
@@ -32,9 +34,13 @@
 | GLOSSARY「包裝類型建立後不變」與 admin-catalog 可改的落差 | #46 | 追蹤於 #84 |
 | ADR 0003／0004 未提包裝類型快照 | #46 | 追蹤於 #85 |
 | 公開下單回應不含後台欄位缺明確自動測試 | #67 | #82；`test_create_order_201` 只斷言 `stock_qty` |
+| `Idempotency-Key` 長度上限只在 route，DB 欄位無長度限制 | #29 | 設計如此（D2）；繞過 route 才會寫入過長值 |
+| `Cart.jsx` 送單接線無自動化測試 | #29 | 前端無 jsdom／component 測試基礎，目前靠手動驗證 |
 
 ## 下一步建議
 
 - 部署 #46：先跑 migration，立刻部署後端，再部署前端。
+- 部署 #29：先跑 migration，再部署後端，最後部署前端。
+- 接著做 #30，retry 須保留 #29 `create_order` 失敗後再查的路徑。
 - 處理「留待之後」的 #82。
 - 登入後看 PR #76 的 Vercel build log，確認 Node 24（#31）。

@@ -3,9 +3,7 @@
 ## Purpose
 
 描述系統與 LINE 的整合：在 LIFF 內取得顧客身份與好友狀態、訂單成立後推送 Flex Message 通知、處理官方帳號 webhook 的 postback 回覆，以及建立 Rich Menu。LINE 異常不得影響訂單成立。
-
 ## Requirements
-
 ### Requirement: 取得 LINE 身份
 
 商店頁 SHALL 在開啟購物車時初始化 LIFF：未設定 LIFF 時視為不可用，未登入時導向 LINE 登入，已登入時取得顧客的 user ID、顯示名稱、頭像與好友狀態並帶入訂單。好友狀態查詢失敗時 SHALL 視為未確認。
@@ -60,12 +58,17 @@
 
 ### Requirement: 僅在訂單成立時通知
 
-系統 SHALL 只在顧客下單成立時發送 LINE 通知；代客下單、訂單狀態變更與編輯訂單 MUST NOT 發送通知。
+系統 SHALL 只在顧客下單成立時發送 LINE 通知；代客下單、訂單狀態變更、編輯訂單與重送回傳原訂單 MUST NOT 發送通知。
 
 #### Scenario: 訂單狀態變更
 
 - **WHEN** 管理員把訂單改為已出貨
 - **THEN** 系統不發送 LINE 通知
+
+#### Scenario: 重送回傳原訂單
+
+- **WHEN** 系統收到相同 `Idempotency-Key` 的重送請求並回傳原訂單
+- **THEN** 系統不發送 LINE 通知，該訂單只收到一則通知
 
 ### Requirement: 通知內容
 
@@ -151,3 +154,4 @@
 
 - **WHEN** 缺 LIFF ID 或 channel access token
 - **THEN** 指令中止
+

@@ -44,6 +44,8 @@ class Order(Base):
     shipping_fee: Mapped[int] = mapped_column()
     cod_fee: Mapped[int] = mapped_column()
     total: Mapped[int] = mapped_column()
+    # 顧客下單的 Idempotency-Key;代客下單與舊訂單為 NULL
+    idempotency_key: Mapped[str | None] = mapped_column(unique=True, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
