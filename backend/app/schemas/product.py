@@ -1,8 +1,6 @@
-from typing import Self
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel, ConfigDict, model_validator
-
-from app.schemas.validators import reject_null_required_fields
+from app.schemas.validators import RejectNullRequiredFields
 
 
 class PublicSpecRead(BaseModel):
@@ -59,8 +57,9 @@ class AdminProductRead(BaseModel):
 PRODUCT_REQUIRED_FIELDS = ("name", "description", "season", "is_active")
 
 
-class ProductUpdate(BaseModel):
+class ProductUpdate(RejectNullRequiredFields):
     model_config = ConfigDict(extra="forbid")
+    required_fields = PRODUCT_REQUIRED_FIELDS
 
     name: str | None = None
     description: str | None = None
@@ -69,11 +68,6 @@ class ProductUpdate(BaseModel):
     tag: str | None = None
     tag_color: str | None = None
     is_active: bool | None = None
-
-    @model_validator(mode="after")
-    def _required_fields_not_null(self) -> Self:
-        reject_null_required_fields(self, PRODUCT_REQUIRED_FIELDS)
-        return self
 
 
 class SpecCreate(BaseModel):
@@ -101,8 +95,9 @@ SPEC_REQUIRED_FIELDS = (
 )
 
 
-class SpecUpdate(BaseModel):
+class SpecUpdate(RejectNullRequiredFields):
     model_config = ConfigDict(extra="forbid")
+    required_fields = SPEC_REQUIRED_FIELDS
 
     label: str | None = None
     qty_text: str | None = None
@@ -113,8 +108,3 @@ class SpecUpdate(BaseModel):
     sort_order: int | None = None
     is_active: bool | None = None
     is_two_pack: bool | None = None
-
-    @model_validator(mode="after")
-    def _required_fields_not_null(self) -> Self:
-        reject_null_required_fields(self, SPEC_REQUIRED_FIELDS)
-        return self

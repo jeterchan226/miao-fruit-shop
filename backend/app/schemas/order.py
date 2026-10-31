@@ -4,7 +4,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.constants import PAYMENT_METHOD_TRANSFER, PaymentMethod
-from app.schemas.validators import reject_null_required_fields
+from app.schemas.validators import RejectNullRequiredFields
 
 
 class CustomerCreate(BaseModel):
@@ -172,8 +172,9 @@ ADMIN_ORDER_REQUIRED_FIELDS = (
 )
 
 
-class AdminOrderUpdate(BaseModel):
+class AdminOrderUpdate(RejectNullRequiredFields):
     model_config = ConfigDict(extra="forbid")
+    required_fields = ADMIN_ORDER_REQUIRED_FIELDS
 
     customer_name: str | None = None
     customer_phone: str | None = None
@@ -188,11 +189,6 @@ class AdminOrderUpdate(BaseModel):
     # 期望的完整訂單品項清單;只改顧客/收件資訊時不送(R13)
     items: list[AdminOrderItemUpdate] | None = Field(default=None, min_length=1)
     expected_total: int | None = Field(default=None, ge=0)
-
-    @model_validator(mode="after")
-    def _required_fields_not_null(self) -> Self:
-        reject_null_required_fields(self, ADMIN_ORDER_REQUIRED_FIELDS)
-        return self
 
     @model_validator(mode="after")
     def _items_require_expected_total(self) -> Self:
