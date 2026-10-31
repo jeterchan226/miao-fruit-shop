@@ -10,8 +10,8 @@
 - 選填欄位（商品圖片、標籤、標籤顏色；規格備註）送 `null` 維持清空。
 
 ## 決定與偏離
-- 共用 helper 放 `backend/app/schemas/validators.py`（design 未指定檔名）。
-- 訂單 `AdminOrderUpdate` 改呼叫同一 helper，見 [design.md](../../../openspec/changes/archive/2026-10-30-reject-null-catalog-required-fields/design.md)。
+- 共用檢查放 `backend/app/schemas/validators.py` 的基底類別 `RejectNullRequiredFields`，子類設 `required_fields`。
+- 偏離 [design.md](../../../openspec/changes/archive/2026-10-30-reject-null-catalog-required-fields/design.md)：design 寫共用 helper 純函式，review 時使用者決定改基底類別，商品、規格、訂單皆繼承，行為不變。
 - 測試內另列一份必填欄位清單、不 import app 常數：常數漏列時測試才會失敗。
 - 對不存在的 id 送必填 `null` 回 422 而非 404，因 schema 驗證先於查詢；spec 未定義，與訂單相同，不改。
 
@@ -34,3 +34,4 @@
 ## Review
 - 2026-10-30 `/review-and-fix`：審查 `3ee4204..fd24adf`，共 11 項：auto-fix 3、needs-decision 2、rejected 4、deferred 2。
 - needs-decision：三處 `_required_fields_not_null` 樣板是否改基底類別；兩個「同時帶合法欄位」測試是否參數化。建議都維持現狀。
+- 2026-10-31 使用者決定：#4 改基底類別（`2db795e`），#5 維持現狀。最終 11 項：auto-fix 4、needs-decision 0、kept by user 1、rejected 4、deferred 2。
