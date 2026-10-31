@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -42,36 +42,32 @@ async def list_filtered(
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[int, list[Order]]:
-    count_stmt = select(func.count()).select_from(Order)
-    # eager-load items,供列表項目組出商品摘要(first_item_name / item_count),避免 N+1
-    list_stmt = select(Order).options(selectinload(Order.items))
-
+    conditions: list[ColumnElement[bool]] = []
     if status is not None:
-        count_stmt = count_stmt.where(Order.status == status)
-        list_stmt = list_stmt.where(Order.status == status)
+        conditions.append(Order.status == status)
     if source is not None:
-        count_stmt = count_stmt.where(Order.source == source)
-        list_stmt = list_stmt.where(Order.source == source)
+        conditions.append(Order.source == source)
     # 時間範圍一律為 timezone-aware 的 UTC 時點;「哪一天」由前端依使用者時區換算(ADR 0005)
     if created_from is not None:
-        count_stmt = count_stmt.where(Order.created_at >= created_from)
-        list_stmt = list_stmt.where(Order.created_at >= created_from)
+        conditions.append(Order.created_at >= created_from)
     if created_before is not None:
-        count_stmt = count_stmt.where(Order.created_at < created_before)
-        list_stmt = list_stmt.where(Order.created_at < created_before)
+        conditions.append(Order.created_at < created_before)
     if q is not None:
         pattern = f"%{q}%"
-        condition = or_(
-            Order.customer_name.ilike(pattern),
-            Order.customer_phone.ilike(pattern),
-            Order.line_display_name.ilike(pattern),
-            Order.line_user_id.ilike(pattern),
+        conditions.append(
+            or_(
+                Order.customer_name.ilike(pattern),
+                Order.customer_phone.ilike(pattern),
+                Order.line_display_name.ilike(pattern),
+                Order.line_user_id.ilike(pattern),
+            )
         )
-        count_stmt = count_stmt.where(condition)
-        list_stmt = list_stmt.where(condition)
     if order_no is not None:
-        count_stmt = count_stmt.where(Order.order_no == order_no)
-        list_stmt = list_stmt.where(Order.order_no == order_no)
+        conditions.append(Order.order_no == order_no)
+
+    count_stmt = select(func.count()).select_from(Order).where(*conditions)
+    # eager-load items,供列表項目組出商品摘要(first_item_name / item_count),避免 N+1
+    list_stmt = select(Order).options(selectinload(Order.items)).where(*conditions)
 
     total: int = (await session.execute(count_stmt)).scalar_one()
     rows = await session.execute(

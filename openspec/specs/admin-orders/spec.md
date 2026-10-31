@@ -56,6 +56,16 @@
 - **WHEN** 訂單成立時間等於 `created_from`，或等於 `created_before`
 - **THEN** 前者包含在結果內，後者不包含
 
+#### Scenario: 多個條件同時成立
+
+- **WHEN** 管理員同時以訂單狀態與訂單來源查詢
+- **THEN** 只回傳兩個條件皆符合的訂單
+
+#### Scenario: 總筆數與篩選結果一致
+
+- **WHEN** 管理員帶任一篩選條件查詢，且符合的訂單多於一頁
+- **THEN** 回應的總筆數為符合條件的全部筆數，而非全部訂單數或當頁筆數
+
 ### Requirement: 時間篩選須帶時區
 
 系統 MUST 只接受帶時區的 `created_from`、`created_before`，以 UTC 時點比對；不帶時區的 datetime 或純日期回傳 422。
