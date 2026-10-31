@@ -8,6 +8,7 @@
 
 前端 Node 版本宣告於根目錄 `package.json` 的 `engines.node`（24.x），CI 前端 job 依此取得版本並以 `npm ci` 驗證 lockfile。
 訂單品項保存包裝類型快照：既有訂單品項的層數與雙數檢查不受規格改動或刪除影響，後台試算讀同一份快照。
+後台部分更新商品、規格、訂單時，必填欄位送 `null` 一律回 422 且整筆不寫入；選填欄位送 `null` 為清空。
 
 ## 已完成
 
@@ -16,6 +17,7 @@
 | 31 | CI Node 版本從 20 升級 | `upgrade-ci-node-lts` | 2026-10-30 | [紀錄](tickets/31-upgrade-ci-node-lts.md) |
 | 43 | `order_repo.list_filtered` 篩選條件只定義一次 | `dedupe-order-list-filters` | 2026-10-30 | [紀錄](tickets/43-dedupe-order-list-filters.md) |
 | 46 | 訂單品項快照加入「是否兩粒裝」 | `add-order-item-pack-snapshot` | 2026-10-30 | [紀錄](tickets/46-add-order-item-pack-snapshot.md) |
+| 60 | 後台 PATCH 商品／規格對必填欄位送 null 回 500 而非 422 | `reject-null-catalog-required-fields` | 2026-10-30 | [紀錄](tickets/60-reject-null-catalog-required-fields.md) |
 | 67 | 前端訂單來源、付款方式字串改用常數模組 | `extract-frontend-order-constants` | 2026-10-30 | [紀錄](tickets/67-extract-frontend-order-constants.md) |
 
 ## 留待之後
@@ -32,6 +34,8 @@
 | GLOSSARY「包裝類型建立後不變」與 admin-catalog 可改的落差 | #46 | 追蹤於 #84 |
 | ADR 0003／0004 未提包裝類型快照 | #46 | 追蹤於 #85 |
 | 公開下單回應不含後台欄位缺明確自動測試 | #67 | #82；`test_create_order_201` 只斷言 `stock_qty` |
+| GLOSSARY「規格名稱建立後不變」與 API 可改名稱的落差 | #60 | #94，可與 #84 併處理 |
+| 後台表單未處理 422 的陣列 `detail` | #60 | #95；靜態閱讀所得，未重現 |
 
 ## 下一步建議
 

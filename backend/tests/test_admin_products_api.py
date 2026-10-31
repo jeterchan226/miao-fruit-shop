@@ -86,3 +86,112 @@ async def test_admin_spec_create_update_delete(client: AsyncClient, db_session: 
 
     deleted = await client.delete(f"/api/admin/specs/{spec_id}", headers=headers)
     assert deleted.status_code == 204
+
+
+PRODUCT_REQUIRED_FIELDS = ["name", "description", "season", "is_active"]
+SPEC_REQUIRED_FIELDS = [
+    "label",
+    "qty_text",
+    "price",
+    "stock_qty",
+    "low_stock_threshold",
+    "sort_order",
+    "is_active",
+    "is_two_pack",
+]
+
+
+async def _admin_product(client: AsyncClient, headers: dict[str, str]) -> dict:
+    return (await client.get("/api/admin/products", headers=headers)).json()[0]
+
+
+@pytest.mark.parametrize("field", PRODUCT_REQUIRED_FIELDS)
+async def test_update_product_required_field_null_is_422(
+    client: AsyncClient, db_session: AsyncSession, field: str
+):
+    headers = await _auth_header(db_session)
+    p = await _seed_product(db_session)
+    before = await _admin_product(client, headers)
+    resp = await client.patch(f"/api/admin/products/{p.id}", json={field: None}, headers=headers)
+    assert resp.status_code == 422
+    assert await _admin_product(client, headers) == before
+
+
+async def test_update_product_null_with_valid_field_writes_nothing(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    p = await _seed_product(db_session)
+    before = await _admin_product(client, headers)
+    # 同一請求帶合法欄位,整筆 PATCH 仍應被拒、不部分寫入
+    resp = await client.patch(
+        f"/api/admin/products/{p.id}",
+        json={"season": "不該寫入", "name": None},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+    assert await _admin_product(client, headers) == before
+
+
+@pytest.mark.parametrize("field", ["image", "tag", "tag_color"])
+async def test_update_product_explicit_null_clears_optional_field(
+    client: AsyncClient, db_session: AsyncSession, field: str
+):
+    headers = await _auth_header(db_session)
+    p = await _seed_product(db_session)
+    p.tag = "當季"
+    p.tag_color = "#fff"
+    await db_session.flush()
+    columns = ("name", "description", "image", "season", "tag", "tag_color", "is_active")
+    before = {c: getattr(p, c) for c in columns}
+    resp = await client.patch(f"/api/admin/products/{p.id}", json={field: None}, headers=headers)
+    assert resp.status_code == 200
+    await db_session.refresh(p)
+    assert {c: getattr(p, c) for c in columns} == {**before, field: None}
+
+
+@pytest.mark.parametrize("field", SPEC_REQUIRED_FIELDS)
+async def test_update_spec_required_field_null_is_422(
+    client: AsyncClient, db_session: AsyncSession, field: str
+):
+    headers = await _auth_header(db_session)
+    await _seed_product(db_session)
+    before = await _admin_product(client, headers)
+    resp = await client.patch(
+        f"/api/admin/specs/{before['specs'][0]['id']}", json={field: None}, headers=headers
+    )
+    assert resp.status_code == 422
+    assert await _admin_product(client, headers) == before
+
+
+async def test_update_spec_null_with_valid_field_writes_nothing(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    await _seed_product(db_session)
+    before = await _admin_product(client, headers)
+    # 同一請求帶合法欄位,整筆 PATCH 仍應被拒、不部分寫入
+    resp = await client.patch(
+        f"/api/admin/specs/{before['specs'][0]['id']}",
+        json={"stock_qty": 1, "price": None},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+    assert await _admin_product(client, headers) == before
+
+
+async def test_update_spec_explicit_null_clears_note(
+    client: AsyncClient, db_session: AsyncSession
+):
+    headers = await _auth_header(db_session)
+    p = await _seed_product(db_session)
+    p.specs[0].note = "備註"
+    await db_session.flush()
+    before = (await _admin_product(client, headers))["specs"][0]
+    assert before["note"] == "備註"
+    resp = await client.patch(
+        f"/api/admin/specs/{before['id']}", json={"note": None}, headers=headers
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {**before, "note": None}
+    assert (await _admin_product(client, headers))["specs"][0] == {**before, "note": None}

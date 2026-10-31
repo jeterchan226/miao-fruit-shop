@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.validators import RejectNullRequiredFields
+
 
 class PublicSpecRead(BaseModel):
     id: int
@@ -52,8 +54,12 @@ class AdminProductRead(BaseModel):
     specs: list[AdminSpecRead]
 
 
-class ProductUpdate(BaseModel):
+PRODUCT_REQUIRED_FIELDS = ("name", "description", "season", "is_active")
+
+
+class ProductUpdate(RejectNullRequiredFields):
     model_config = ConfigDict(extra="forbid")
+    required_fields = PRODUCT_REQUIRED_FIELDS
 
     name: str | None = None
     description: str | None = None
@@ -77,8 +83,21 @@ class SpecCreate(BaseModel):
     is_two_pack: bool = False
 
 
-class SpecUpdate(BaseModel):
+SPEC_REQUIRED_FIELDS = (
+    "label",
+    "qty_text",
+    "price",
+    "stock_qty",
+    "low_stock_threshold",
+    "sort_order",
+    "is_active",
+    "is_two_pack",
+)
+
+
+class SpecUpdate(RejectNullRequiredFields):
     model_config = ConfigDict(extra="forbid")
+    required_fields = SPEC_REQUIRED_FIELDS
 
     label: str | None = None
     qty_text: str | None = None
